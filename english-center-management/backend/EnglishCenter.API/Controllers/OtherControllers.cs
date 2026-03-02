@@ -18,6 +18,11 @@ namespace EnglishCenter.API.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Gets all teachers. (Lấy danh sách tất cả giáo viên.)
+        /// </summary>
+        /// <param name="isActive">Status (Trạng thái hoạt động)</param>
+        /// <returns>List of teachers (Danh sách giáo viên)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TeacherDto>>> GetTeachers([FromQuery] bool? isActive = null)
         {
@@ -46,6 +51,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(teachers);
         }
 
+        /// <summary>
+        /// Gets a teacher by ID. (Lấy thông tin chi tiết của giáo viên theo ID.)
+        /// </summary>
+        /// <param name="id">Teacher ID (ID giáo viên)</param>
+        /// <returns>Teacher details (Thông tin giáo viên)</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<TeacherDto>> GetTeacher(int id)
         {
@@ -73,6 +83,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(teacher);
         }
 
+        /// <summary>
+        /// Creates a new teacher. (Thêm giáo viên mới.)
+        /// </summary>
+        /// <param name="dto">Teacher creation data (Dữ liệu tạo giáo viên)</param>
+        /// <returns>Created teacher (Thông tin giáo viên vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<TeacherDto>> CreateTeacher(CreateTeacherDto dto)
         {
@@ -107,6 +122,11 @@ namespace EnglishCenter.API.Controllers
             return CreatedAtAction(nameof(GetTeacher), new { id = teacher.TeacherId }, teacherDto);
         }
 
+        /// <summary>
+        /// Gets teacher's schedule. (Lấy lịch dạy của giáo viên.)
+        /// </summary>
+        /// <param name="id">Teacher ID (ID giáo viên)</param>
+        /// <returns>Teacher's schedule (Lịch dạy của giáo viên)</returns>
         [HttpGet("{id}/schedule")]
         public async Task<ActionResult<IEnumerable<ScheduleDto>>> GetTeacherSchedule(int id)
         {
@@ -144,6 +164,12 @@ namespace EnglishCenter.API.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Gets all courses. (Lấy danh sách tất cả các khóa học.)
+        /// </summary>
+        /// <param name="level">Course level filter (Lọc theo cấp độ)</param>
+        /// <param name="isActive">Status filter (Lọc theo trạng thái hoạt động)</param>
+        /// <returns>List of courses (Danh sách khóa học)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(
             [FromQuery] string? level = null,
@@ -179,6 +205,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(courses);
         }
 
+        /// <summary>
+        /// Gets a course by ID. (Lấy thông tin chi tiết của một khóa học theo ID.)
+        /// </summary>
+        /// <param name="id">Course ID (ID khóa học)</param>
+        /// <returns>Course details (Thông tin khóa học)</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<CourseDto>> GetCourse(int id)
         {
@@ -206,6 +237,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(course);
         }
 
+        /// <summary>
+        /// Creates a new course. (Tạo một khóa học mới.)
+        /// </summary>
+        /// <param name="dto">Course creation data (Dữ liệu tạo khóa học)</param>
+        /// <returns>Created course (Thông tin khóa học vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<CourseDto>> CreateCourse(CreateCourseDto dto)
         {
@@ -253,6 +289,11 @@ namespace EnglishCenter.API.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Gets all classes. (Lấy danh sách tất cả các lớp học.)
+        /// </summary>
+        /// <param name="status">Class status filter (Lọc theo trạng thái lớp học)</param>
+        /// <returns>List of classes (Danh sách lớp học)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ClassDto>>> GetClasses([FromQuery] string? status = null)
         {
@@ -288,6 +329,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(classes);
         }
 
+        /// <summary>
+        /// Gets a class by ID. (Lấy thông tin chi tiết của một lớp học theo ID.)
+        /// </summary>
+        /// <param name="id">Class ID (ID lớp học)</param>
+        /// <returns>Class details (Thông tin lớp học)</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<ClassDto>> GetClass(int id)
         {
@@ -321,6 +367,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(classDto);
         }
 
+        /// <summary>
+        /// Creates a new class. (Tạo một lớp học mới.)
+        /// </summary>
+        /// <param name="dto">Class creation data (Dữ liệu tạo lớp học)</param>
+        /// <returns>Created class (Thông tin lớp học vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<ClassDto>> CreateClass(CreateClassDto dto)
         {
@@ -342,6 +393,11 @@ namespace EnglishCenter.API.Controllers
             return CreatedAtAction(nameof(GetClass), new { id = classEntity.ClassId }, classEntity);
         }
 
+        /// <summary>
+        /// Gets students in a class. (Lấy danh sách học viên trong một lớp học cụ thể.)
+        /// </summary>
+        /// <param name="id">Class ID (ID lớp học)</param>
+        /// <returns>List of students (Danh sách học viên)</returns>
         [HttpGet("{id}/students")]
         public async Task<ActionResult<IEnumerable<StudentDto>>> GetClassStudents(int id)
         {

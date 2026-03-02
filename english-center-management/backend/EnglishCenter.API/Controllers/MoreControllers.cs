@@ -18,6 +18,10 @@ namespace EnglishCenter.API.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Gets all enrollments. (Lấy danh sách các bản ghi đăng ký khóa học.)
+        /// </summary>
+        /// <returns>List of enrollments (Danh sách đăng ký)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EnrollmentDto>>> GetEnrollments()
         {
@@ -39,6 +43,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(enrollments);
         }
 
+        /// <summary>
+        /// Creates a new enrollment. (Đăng ký học viên vào một lớp/khóa học.)
+        /// </summary>
+        /// <param name="dto">Enrollment creation data (Dữ liệu đăng ký)</param>
+        /// <returns>Created enrollment (Thông tin đăng ký vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<EnrollmentDto>> CreateEnrollment(CreateEnrollmentDto dto)
         {
@@ -106,6 +115,11 @@ namespace EnglishCenter.API.Controllers
             return CreatedAtAction(nameof(GetEnrollments), new { id = enrollment.EnrollmentId }, enrollmentDto);
         }
 
+        /// <summary>
+        /// Deletes an enrollment record. (Hủy/Xóa bản ghi đăng ký.)
+        /// </summary>
+        /// <param name="id">Enrollment ID (ID bản ghi đăng ký)</param>
+        /// <returns>No Content</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEnrollment(int id)
         {
@@ -135,6 +149,12 @@ namespace EnglishCenter.API.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Gets all payments. (Lấy danh sách các giao dịch thanh toán.)
+        /// </summary>
+        /// <param name="startDate">Start date filter (Ngày bắt đầu)</param>
+        /// <param name="endDate">End date filter (Ngày kết thúc)</param>
+        /// <returns>List of payments (Danh sách thanh toán)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PaymentDto>>> GetPayments(
             [FromQuery] DateTime? startDate = null,
@@ -172,6 +192,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(payments);
         }
 
+        /// <summary>
+        /// Creates a new payment. (Tạo một phiếu thu/giao dịch thanh toán mới.)
+        /// </summary>
+        /// <param name="dto">Payment creation data (Dữ liệu thanh toán)</param>
+        /// <returns>Created payment (Thông tin thanh toán vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<PaymentDto>> CreatePayment(CreatePaymentDto dto)
         {
@@ -222,6 +247,10 @@ namespace EnglishCenter.API.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Gets all schedules. (Lấy danh sách lịch học tổng thể.)
+        /// </summary>
+        /// <returns>List of schedules (Danh sách lịch học)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ScheduleDto>>> GetSchedules()
         {
@@ -245,6 +274,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(schedules);
         }
 
+        /// <summary>
+        /// Creates a new schedule. (Tạo lịch học mới.)
+        /// </summary>
+        /// <param name="dto">Schedule creation data (Dữ liệu tạo lịch học)</param>
+        /// <returns>Created schedule (Thông tin lịch học vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<ScheduleDto>> CreateSchedule(CreateScheduleDto dto)
         {
@@ -264,6 +298,11 @@ namespace EnglishCenter.API.Controllers
             return CreatedAtAction(nameof(GetSchedules), new { id = schedule.ScheduleId }, schedule);
         }
 
+        /// <summary>
+        /// Deletes a schedule. (Xóa một lịch học cụ thể.)
+        /// </summary>
+        /// <param name="id">Schedule ID (ID lịch học)</param>
+        /// <returns>No Content</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSchedule(int id)
         {
@@ -293,6 +332,10 @@ namespace EnglishCenter.API.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Gets all test scores. (Lấy danh sách điểm số.)
+        /// </summary>
+        /// <returns>List of test scores (Danh sách điểm thi)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TestScoreDto>>> GetTestScores()
         {
@@ -321,6 +364,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(testScores);
         }
 
+        /// <summary>
+        /// Creates a new test score. (Nhập điểm thi/kiểm tra mới.)
+        /// </summary>
+        /// <param name="dto">Test score creation data (Dữ liệu điểm thi)</param>
+        /// <returns>Created test score (Thông tin điểm thi vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<TestScoreDto>> CreateTestScore(CreateTestScoreDto dto)
         {
@@ -360,6 +408,10 @@ namespace EnglishCenter.API.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Gets dashboard statistic statistics. (Lấy các số liệu thống kê tổng quan cho hệ thống.)
+        /// </summary>
+        /// <returns>Dashboard stats (Số liệu thống kê)</returns>
         [HttpGet("stats")]
         public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats()
         {
