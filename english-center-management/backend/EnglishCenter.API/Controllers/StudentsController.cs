@@ -17,7 +17,13 @@ namespace EnglishCenter.API.Controllers
             _context = context;
         }
 
-        // GET: api/students
+        /// <summary>
+        /// Gets all students. (Lấy danh sách tất cả học viên.)
+        /// </summary>
+        /// <param name="search">Search term (Tìm kiếm theo tên, email, số điện thoại)</param>
+        /// <param name="level">Student level (Cấp độ học viên)</param>
+        /// <param name="isActive">Status (Trạng thái hoạt động)</param>
+        /// <returns>List of students (Danh sách học viên)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<StudentDto>>> GetStudents(
             [FromQuery] string? search = null,
@@ -61,7 +67,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(students);
         }
 
-        // GET: api/students/5
+        /// <summary>
+        /// Gets a student by ID. (Lấy thông tin cá nhân của học viên theo ID.)
+        /// </summary>
+        /// <param name="id">Student ID (ID học viên)</param>
+        /// <returns>Student details (Thông tin chi tiết học viên)</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<StudentDto>> GetStudent(int id)
         {
@@ -89,7 +99,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(student);
         }
 
-        // POST: api/students
+        /// <summary>
+        /// Creates a new student. (Thêm học viên mới.)
+        /// </summary>
+        /// <param name="dto">Student creation data (Dữ liệu tạo học viên)</param>
+        /// <returns>Created student (Học viên vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<StudentDto>> CreateStudent(CreateStudentDto dto)
         {
@@ -124,7 +138,12 @@ namespace EnglishCenter.API.Controllers
             return CreatedAtAction(nameof(GetStudent), new { id = student.StudentId }, studentDto);
         }
 
-        // PUT: api/students/5
+        /// <summary>
+        /// Updates student information. (Cập nhật thông tin học viên.)
+        /// </summary>
+        /// <param name="id">Student ID (ID học viên)</param>
+        /// <param name="dto">Update data (Dữ liệu cập nhật)</param>
+        /// <returns>No Content</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStudent(int id, UpdateStudentDto dto)
         {
@@ -148,7 +167,11 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/students/5
+        /// <summary>
+        /// Deletes a student (soft delete). (Xóa hồ sơ học viên - xóa mềm.)
+        /// </summary>
+        /// <param name="id">Student ID (ID học viên)</param>
+        /// <returns>No Content</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStudent(int id)
         {
@@ -166,7 +189,11 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // GET: api/students/5/enrollments
+        /// <summary>
+        /// Gets student's enrollments. (Lấy danh sách các bản ghi đăng ký của học viên.)
+        /// </summary>
+        /// <param name="id">Student ID (ID học viên)</param>
+        /// <returns>List of enrollments (Danh sách đăng ký)</returns>
         [HttpGet("{id}/enrollments")]
         public async Task<ActionResult<IEnumerable<EnrollmentDto>>> GetStudentEnrollments(int id)
         {
@@ -189,7 +216,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(enrollments);
         }
 
-        // GET: api/students/5/payments
+        /// <summary>
+        /// Gets student's payments. (Lấy lịch sử thanh toán của học viên.)
+        /// </summary>
+        /// <param name="id">Student ID (ID học viên)</param>
+        /// <returns>List of payments (Danh sách thanh toán)</returns>
         [HttpGet("{id}/payments")]
         public async Task<ActionResult<IEnumerable<PaymentDto>>> GetStudentPayments(int id)
         {
@@ -212,7 +243,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(payments);
         }
 
-        // GET: api/students/5/testscores
+        /// <summary>
+        /// Gets student's test scores. (Lấy bảng điểm của học viên.)
+        /// </summary>
+        /// <param name="id">Student ID (ID học viên)</param>
+        /// <returns>List of test scores (Danh sách điểm thi)</returns>
         [HttpGet("{id}/testscores")]
         public async Task<ActionResult<IEnumerable<TestScoreDto>>> GetStudentTestScores(int id)
         {
@@ -241,7 +276,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(testScores);
         }
 
-        // GET: api/students/5/schedule
+        /// <summary>
+        /// Gets student's schedule. (Lấy thời khóa biểu cá nhân của học viên.)
+        /// </summary>
+        /// <param name="id">Student ID (ID học viên)</param>
+        /// <returns>List of curriculums (Danh sách lịch học)</returns>
         [HttpGet("{id}/schedule")]
         public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetStudentSchedule(int id)
         {

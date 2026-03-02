@@ -19,7 +19,10 @@ namespace EnglishCenter.API.Controllers
             _logger = logger;
         }
 
-        // GET: api/curriculum
+        /// <summary>
+        /// Gets all curriculums. (Lấy danh sách khung chương trình.)
+        /// </summary>
+        /// <returns>List of curriculums (Danh sách khung chương trình)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetAllCurriculums()
         {
@@ -48,7 +51,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // GET: api/curriculum/5
+        /// <summary>
+        /// Gets a curriculum by ID. (Lấy thông tin khung chương trình theo ID.)
+        /// </summary>
+        /// <param name="id">Curriculum ID (ID khung chương trình)</param>
+        /// <returns>Curriculum details (Thông tin khung chương trình)</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<CurriculumDto>> GetCurriculumById(int id)
         {
@@ -80,7 +87,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // GET: api/curriculum/class/5
+        /// <summary>
+        /// Gets curriculums for a specific class. (Lấy khung chương trình của một lớp học cụ thể.)
+        /// </summary>
+        /// <param name="classId">Class ID (ID lớp học)</param>
+        /// <returns>List of curriculums (Danh sách khung chương trình)</returns>
         [HttpGet("class/{classId}")]
         public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetCurriculumsByClass(int classId)
         {
@@ -110,7 +121,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // POST: api/curriculum
+        /// <summary>
+        /// Creates a new curriculum. (Tạo khung chương trình mới.)
+        /// </summary>
+        /// <param name="createCurriculumDto">Curriculum creation data (Dữ liệu tạo khung chương trình)</param>
+        /// <returns>Created curriculum (Thông tin khung chương trình vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<CurriculumDto>> CreateCurriculum([FromBody] CreateCurriculumDto createCurriculumDto)
         {
@@ -162,7 +177,12 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // PUT: api/curriculum/5
+        /// <summary>
+        /// Updates a curriculum. (Cập nhật thông tin khung chương trình.)
+        /// </summary>
+        /// <param name="id">Curriculum ID (ID khung chương trình)</param>
+        /// <param name="updateCurriculumDto">Update data (Dữ liệu cập nhật)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCurriculum(int id, [FromBody] UpdateCurriculumDto updateCurriculumDto)
         {
@@ -213,7 +233,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // DELETE: api/curriculum/5
+        /// <summary>
+        /// Deletes a curriculum. (Xóa khung chương trình.)
+        /// </summary>
+        /// <param name="id">Curriculum ID (ID khung chương trình)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCurriculum(int id)
         {
@@ -237,7 +261,11 @@ namespace EnglishCenter.API.Controllers
 
         // CURRICULUM DAYS
 
-        // POST: api/curriculum/day
+        /// <summary>
+        /// Creates a new curriculum day. (Tạo mới thông tin ngày học trong chương trình.)
+        /// </summary>
+        /// <param name="createCurriculumDayDto">Curriculum day creation data (Dữ liệu tạo ngày học)</param>
+        /// <returns>Created curriculum day (Thông tin ngày học vừa tạo)</returns>
         [HttpPost("day")]
         public async Task<ActionResult<CurriculumDayDto>> CreateCurriculumDay([FromBody] CreateCurriculumDayDto createCurriculumDayDto)
         {
@@ -296,7 +324,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // GET: api/curriculum/day/5
+        /// <summary>
+        /// Gets a curriculum day by ID. (Lấy thông tin ngày học theo ID.)
+        /// </summary>
+        /// <param name="id">Curriculum day ID (ID ngày học)</param>
+        /// <returns>Curriculum day details (Thông tin ngày học)</returns>
         [HttpGet("day/{id}")]
         public async Task<ActionResult<CurriculumDayDto>> GetCurriculumDayById(int id)
         {
@@ -319,7 +351,12 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // PUT: api/curriculum/day/5
+        /// <summary>
+        /// Updates a curriculum day. (Cập nhật thông tin ngày học.)
+        /// </summary>
+        /// <param name="id">Curriculum day ID (ID ngày học)</param>
+        /// <param name="updateCurriculumDayDto">Update data (Dữ liệu cập nhật)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpPut("day/{id}")]
         public async Task<IActionResult> UpdateCurriculumDay(int id, [FromBody] UpdateCurriculumDayDto updateCurriculumDayDto)
         {
@@ -344,7 +381,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // DELETE: api/curriculum/day/5
+        /// <summary>
+        /// Deletes a curriculum day. (Xóa thông tin ngày học.)
+        /// </summary>
+        /// <param name="id">Curriculum day ID (ID ngày học)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpDelete("day/{id}")]
         public async Task<IActionResult> DeleteCurriculumDay(int id)
         {
@@ -368,7 +409,11 @@ namespace EnglishCenter.API.Controllers
 
         // CURRICULUM SESSIONS
 
-        // POST: api/curriculum/session
+        /// <summary>
+        /// Creates a new curriculum session. (Tạo mới một ca học/phần học.)
+        /// </summary>
+        /// <param name="createCurriculumSessionDto">Curriculum session creation data (Dữ liệu tạo ca học)</param>
+        /// <returns>Created curriculum session (Thông tin ca học vừa tạo)</returns>
         [HttpPost("session")]
         public async Task<ActionResult<CurriculumSessionDto>> CreateCurriculumSession([FromBody] CreateCurriculumSessionDto createCurriculumSessionDto)
         {
@@ -543,7 +588,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // GET: api/curriculum/session/5
+        /// <summary>
+        /// Gets a curriculum session by ID. (Lấy thông tin ca học theo ID.)
+        /// </summary>
+        /// <param name="id">Curriculum session ID (ID ca học)</param>
+        /// <returns>Curriculum session details (Thông tin ca học)</returns>
         [HttpGet("session/{id}")]
         public async Task<ActionResult<CurriculumSessionDto>> GetCurriculumSessionById(int id)
         {
@@ -567,7 +616,12 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // PUT: api/curriculum/session/5
+        /// <summary>
+        /// Updates a curriculum session. (Cập nhật thông tin ca học.)
+        /// </summary>
+        /// <param name="id">Curriculum session ID (ID ca học)</param>
+        /// <param name="updateCurriculumSessionDto">Update data (Dữ liệu cập nhật)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpPut("session/{id}")]
         public async Task<IActionResult> UpdateCurriculumSession(int id, [FromBody] UpdateCurriculumSessionDto updateCurriculumSessionDto)
         {
@@ -727,7 +781,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // DELETE: api/curriculum/session/5
+        /// <summary>
+        /// Deletes a curriculum session. (Xóa thông tin ca học.)
+        /// </summary>
+        /// <param name="id">Curriculum session ID (ID ca học)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpDelete("session/{id}")]
         public async Task<IActionResult> DeleteCurriculumSession(int id)
         {
@@ -762,7 +820,11 @@ namespace EnglishCenter.API.Controllers
 
         // LESSONS
 
-        // POST: api/curriculum/lesson
+        /// <summary>
+        /// Creates a new lesson. (Tạo mới một bài học/buổi học.)
+        /// </summary>
+        /// <param name="createLessonDto">Lesson creation data (Dữ liệu tạo bài học)</param>
+        /// <returns>Created lesson (Thông tin bài học vừa tạo)</returns>
         [HttpPost("lesson")]
         public async Task<ActionResult<LessonDto>> CreateLesson([FromBody] CreateLessonDto createLessonDto)
         {
@@ -795,7 +857,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // GET: api/curriculum/lesson/5
+        /// <summary>
+        /// Gets a lesson by ID. (Lấy thông tin bài học theo ID.)
+        /// </summary>
+        /// <param name="id">Lesson ID (ID bài học)</param>
+        /// <returns>Lesson details (Thông tin bài học)</returns>
         [HttpGet("lesson/{id}")]
         public async Task<ActionResult<LessonDto>> GetLessonById(int id)
         {
@@ -814,7 +880,12 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // PUT: api/curriculum/lesson/5
+        /// <summary>
+        /// Updates a lesson. (Cập nhật thông tin bài học.)
+        /// </summary>
+        /// <param name="id">Lesson ID (ID bài học)</param>
+        /// <param name="updateLessonDto">Update data (Dữ liệu cập nhật)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpPut("lesson/{id}")]
         public async Task<IActionResult> UpdateLesson(int id, [FromBody] UpdateLessonDto updateLessonDto)
         {
@@ -842,7 +913,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // DELETE: api/curriculum/lesson/5
+        /// <summary>
+        /// Deletes a lesson. (Xóa thông tin bài học.)
+        /// </summary>
+        /// <param name="id">Lesson ID (ID bài học)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpDelete("lesson/{id}")]
         public async Task<IActionResult> DeleteLesson(int id)
         {

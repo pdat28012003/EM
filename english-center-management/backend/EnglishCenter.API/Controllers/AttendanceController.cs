@@ -18,7 +18,7 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets a list of attendance information. Can be filtered by student, lesson, or date.
+        /// Gets a list of attendance information. Can be filtered by student, lesson, or date. (Lấy danh sách thông tin điểm danh. Có thể lọc theo học viên, buổi học, hoặc ngày.)
         /// </summary>
         /// <param name="studentId">Student ID</param>
         /// <param name="lessonId">Lesson ID</param>
@@ -58,7 +58,11 @@ namespace EnglishCenter.API.Controllers
             return Ok(attendances.Select(MapAttendanceToDto));
         }
 
-        // GET: api/attendance/{id}
+        /// <summary>
+        /// Gets attendance by ID. (Lấy thông tin điểm danh chi tiết theo ID.)
+        /// </summary>
+        /// <param name="id">Attendance ID (ID của bản ghi điểm danh)</param>
+        /// <returns>Attendance record (Thông tin điểm danh)</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<AttendanceDto>> GetAttendance(int id)
         {
@@ -76,7 +80,7 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Creates a new attendance record for a student in a lesson.
+        /// Creates a new attendance record for a student in a lesson. (Tạo bản ghi điểm danh mới cho học viên trong một buổi học.)
         /// </summary>
         /// <param name="dto">Attendance creation data</param>
         /// <returns>The created attendance information</returns>
@@ -128,7 +132,12 @@ namespace EnglishCenter.API.Controllers
             return CreatedAtAction(nameof(GetAttendance), new { id = attendance.AttendanceId }, MapAttendanceToDto(createdAttendance));
         }
 
-        // PUT: api/attendance/{id}
+        /// <summary>
+        /// Updates an attendance record. (Cập nhật thông tin điểm danh.)
+        /// </summary>
+        /// <param name="id">Attendance ID (ID điểm danh)</param>
+        /// <param name="dto">Update data (Dữ liệu cập nhật)</param>
+        /// <returns>No Content</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAttendance(int id, UpdateAttendanceDto dto)
         {
@@ -147,7 +156,11 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/attendance/{id}
+        /// <summary>
+        /// Deletes an attendance record. (Xóa bản ghi điểm danh.)
+        /// </summary>
+        /// <param name="id">Attendance ID (ID điểm danh)</param>
+        /// <returns>No Content</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAttendance(int id)
         {
@@ -163,7 +176,11 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // GET: api/attendance/lesson/{lessonId}
+        /// <summary>
+        /// Gets attendances for a specific lesson. (Lấy danh sách điểm danh của một buổi học cụ thể.)
+        /// </summary>
+        /// <param name="lessonId">Lesson ID (ID buổi học)</param>
+        /// <returns>List of attendance records (Danh sách các bản ghi điểm danh)</returns>
         [HttpGet("lesson/{lessonId}")]
         public async Task<ActionResult<IEnumerable<AttendanceDto>>> GetAttendancesByLesson(int lessonId)
         {

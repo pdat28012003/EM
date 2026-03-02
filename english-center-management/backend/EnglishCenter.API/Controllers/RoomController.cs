@@ -19,7 +19,10 @@ namespace EnglishCenter.API.Controllers
             _logger = logger;
         }
 
-        // GET: api/room
+        /// <summary>
+        /// Gets all rooms. (Lấy danh sách tất cả các phòng học.)
+        /// </summary>
+        /// <returns>List of rooms (Danh sách phòng học)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<RoomDto>>> GetAllRooms()
         {
@@ -35,7 +38,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // GET: api/room/5
+        /// <summary>
+        /// Gets a room by ID. (Lấy thông tin phòng học theo ID.)
+        /// </summary>
+        /// <param name="id">Room ID (ID phòng học)</param>
+        /// <returns>Room details (Thông tin chi tiết phòng học)</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<RoomDto>> GetRoomById(int id)
         {
@@ -54,7 +61,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // POST: api/room
+        /// <summary>
+        /// Creates a new room. (Thêm phòng học mới.)
+        /// </summary>
+        /// <param name="createRoomDto">Room creation data (Dữ liệu tạo phòng học)</param>
+        /// <returns>Created room (Phòng học vừa tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<RoomDto>> CreateRoom([FromBody] CreateRoomDto createRoomDto)
         {
@@ -87,7 +98,12 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // PUT: api/room/5
+        /// <summary>
+        /// Updates a room. (Cập nhật thông tin phòng học.)
+        /// </summary>
+        /// <param name="id">Room ID (ID phòng học)</param>
+        /// <param name="roomDto">Update data (Dữ liệu cập nhật)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRoom(int id, [FromBody] RoomDto roomDto)
         {
@@ -116,7 +132,11 @@ namespace EnglishCenter.API.Controllers
             }
         }
 
-        // DELETE: api/room/5
+        /// <summary>
+        /// Deletes a room. (Xóa phòng học.)
+        /// </summary>
+        /// <param name="id">Room ID (ID phòng học)</param>
+        /// <returns>Success message (Thông báo thành công)</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRoom(int id)
         {
