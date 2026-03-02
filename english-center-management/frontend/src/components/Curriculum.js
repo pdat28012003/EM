@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { curriculumAPI, classesAPI, teachersAPI } from '../services/api';
 
 const Curriculum = () => {
   const [curriculums, setCurriculums] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [editingCurriculum, setEditingCurriculum] = useState(null);
+  const [selectedCurriculumForTeachers, setSelectedCurriculumForTeachers] = useState(null);
   const [classes, setClasses] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
   const [formData, setFormData] = useState({
     curriculumName: '',
     classId: '',
@@ -14,29 +18,40 @@ const Curriculum = () => {
     description: ''
   });
 
-  const API_URL = 'http://localhost:5000/api';
-
   useEffect(() => {
     loadCurriculums();
     loadClasses();
+    loadTeachers();
   }, []);
 
   const loadCurriculums = async () => {
     try {
-      const response = await axios.get(`${API_URL}/curriculum`);
+      const response = await curriculumAPI.getAll();
+      console.log('Curriculums Response:', response.data);
       setCurriculums(response.data);
     } catch (error) {
       console.error('Error loading curriculums:', error);
+      console.error('Error details:', error.response?.data);
     }
   };
 
   const loadClasses = async () => {
     try {
-      const response = await axios.get(`${API_URL}/classes`);
+      const response = await classesAPI.getAll();
       setClasses(response.data);
     } catch (error) {
       console.error('Error loading classes:', error);
       alert('Lỗi khi tải dữ liệu lớp học');
+    }
+  };
+
+  const loadTeachers = async () => {
+    try {
+      const response = await teachersAPI.getAll({ isActive: true });
+      setTeachers(response.data);
+    } catch (error) {
+      console.error('Error loading teachers:', error);
+      alert('Lỗi khi tải dữ liệu giáo viên');
     }
   };
 
@@ -63,20 +78,22 @@ const Curriculum = () => {
 
     try {
       if (editingCurriculum) {
-        await axios.put(`${API_URL}/curriculum/${editingCurriculum.curriculumId}`, {
-          curriculumName: formData.curriculumName,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          description: formData.description,
-          status: editingCurriculum.status
+        await curriculumAPI.update(editingCurriculum.curriculumId, {
+          CurriculumName: formData.curriculumName,
+          StartDate: formData.startDate,
+          EndDate: formData.endDate,
+          Description: formData.description,
+          Status: editingCurriculum.status,
+          ParticipantTeacherIds: []
         });
       } else {
-        await axios.post(`${API_URL}/curriculum`, {
-          curriculumName: formData.curriculumName,
-          classId: parseInt(formData.classId),
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          description: formData.description
+        await curriculumAPI.create({
+          CurriculumName: formData.curriculumName,
+          ClassId: parseInt(formData.classId),
+          StartDate: formData.startDate,
+          EndDate: formData.endDate,
+          Description: formData.description,
+          ParticipantTeacherIds: []
         });
       }
       
@@ -85,7 +102,8 @@ const Curriculum = () => {
       resetForm();
     } catch (error) {
       console.error('Error saving curriculum:', error);
-      alert('Error saving curriculum');
+      console.error('Error details:', error.response?.data);
+      alert('Error saving curriculum: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -104,12 +122,73 @@ const Curriculum = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this curriculum?')) {
       try {
-        await axios.delete(`${API_URL}/curriculum/${id}`);
+        await curriculumAPI.delete(id);
         loadCurriculums();
       } catch (error) {
         console.error('Error deleting curriculum:', error);
         alert('Error deleting curriculum');
       }
+    }
+  };
+
+  const openTeacherModal = (curriculum) => {
+    setSelectedCurriculumForTeachers(curriculum);
+    const teacherIds = curriculum.participantTeachers?.map(t => parseInt(t.teacherId)) || [];
+    setSelectedTeacherIds(teacherIds);
+    setShowTeacherModal(true);
+  };
+
+  const handleTeacherToggle = (teacherId) => {
+    const id = parseInt(teacherId);
+    setSelectedTeacherIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(existingId => existingId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleSaveTeachers = async () => {
+    if (!selectedCurriculumForTeachers || !selectedCurriculumForTeachers.curriculumId) {
+      alert('Lỗi: Không tìm thấy chương trình học');
+      return;
+    }
+
+    try {
+      const curriculumId = selectedCurriculumForTeachers.curriculumId;
+      
+      // Convert teacher IDs to numbers
+      const teacherIds = selectedTeacherIds.map(id => 
+        typeof id === 'string' ? parseInt(id) : id
+      );
+
+      console.log('Saving Teachers:', {
+        curriculumId,
+        curriculumName: selectedCurriculumForTeachers.curriculumName,
+        startDate: selectedCurriculumForTeachers.startDate,
+        endDate: selectedCurriculumForTeachers.endDate,
+        description: selectedCurriculumForTeachers.description,
+        status: selectedCurriculumForTeachers.status,
+        participantTeacherIds: teacherIds
+      });
+
+      // Send PascalCase property names to match backend DTO
+      await curriculumAPI.update(curriculumId, {
+        CurriculumName: selectedCurriculumForTeachers.curriculumName,
+        StartDate: selectedCurriculumForTeachers.startDate,
+        EndDate: selectedCurriculumForTeachers.endDate,
+        Description: selectedCurriculumForTeachers.description,
+        Status: selectedCurriculumForTeachers.status,
+        ParticipantTeacherIds: teacherIds
+      });
+
+      loadCurriculums();
+      setShowTeacherModal(false);
+      alert('Cập nhật giáo viên thành công');
+    } catch (error) {
+      console.error('Error saving teachers:', error);
+      alert('Lỗi khi cập nhật giáo viên: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -164,6 +243,13 @@ const Curriculum = () => {
                   onClick={() => window.location.href = `/curriculum/${curriculum.curriculumId}`}
                 >
                   Chi tiết
+                </button>
+                <button 
+                  className="btn btn-sm btn-success"
+                  onClick={() => openTeacherModal(curriculum)}
+                  title="Quản lý giáo viên"
+                >
+                  👨‍🏫 Giáo viên
                 </button>
                 <button 
                   className="btn btn-sm btn-warning"
@@ -262,6 +348,47 @@ const Curriculum = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showTeacherModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Quản lý giáo viên - {selectedCurriculumForTeachers?.curriculumName}</h3>
+              <button className="close-btn" onClick={() => setShowTeacherModal(false)}>×</button>
+            </div>
+            <div className="teacher-list">
+              <p style={{ marginBottom: '15px', color: '#666' }}>Chọn các giáo viên tham gia chương trình này:</p>
+              {teachers.length > 0 ? (
+                teachers.map(teacher => (
+                  <div key={teacher.teacherId} className="teacher-checkbox-item">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selectedTeacherIds.includes(parseInt(teacher.teacherId))}
+                        onChange={() => handleTeacherToggle(teacher.teacherId)}
+                      />
+                      <span className="teacher-name">
+                        <strong>{teacher.fullName}</strong>
+                        <span className="teacher-email"> ({teacher.email})</span>
+                      </span>
+                    </label>
+                  </div>
+                ))
+              ) : (
+                <p style={{ color: '#999' }}>Không có giáo viên nào</p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowTeacherModal(false)}>
+                Hủy
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleSaveTeachers}>
+                Lưu
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -401,10 +528,55 @@ const Curriculum = () => {
           color: white;
         }
 
+        .btn-success {
+          background-color: #28a745;
+          color: white;
+        }
+
         .btn-sm {
           padding: 4px 8px;
           font-size: 12px;
           margin-right: 5px;
+        }
+
+        .teacher-list {
+          max-height: 400px;
+          overflow-y: auto;
+          padding: 15px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          background-color: #f9f9f9;
+        }
+
+        .teacher-checkbox-item {
+          margin-bottom: 12px;
+          padding: 10px;
+          background-color: white;
+          border-radius: 4px;
+          border-left: 3px solid #007bff;
+        }
+
+        .teacher-checkbox-item label {
+          display: flex;
+          align-items: center;
+          margin: 0;
+          cursor: pointer;
+        }
+
+        .teacher-checkbox-item input[type="checkbox"] {
+          width: auto;
+          margin-right: 10px;
+          cursor: pointer;
+        }
+
+        .teacher-name {
+          flex: 1;
+        }
+
+        .teacher-email {
+          color: #666;
+          font-size: 13px;
+          margin-left: 5px;
         }
       `}</style>
     </div>

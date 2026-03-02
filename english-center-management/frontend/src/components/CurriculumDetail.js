@@ -1,24 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
+import { curriculumAPI, roomsAPI, teachersAPI } from '../services/api';
 
 const CurriculumDetail = () => {
   const { curriculumId } = useParams();
   const [curriculum, setCurriculum] = useState(null);
+  const [rooms, setRooms] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [showLessonModal, setShowLessonModal] = useState(false);
+  const [showTeacherModal, setShowTeacherModal] = useState(false);
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
+  const [isEditingSession, setIsEditingSession] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
   const [dateRange, setDateRange] = useState([]);
   
   const [sessionForm, setSessionForm] = useState({
+    curriculumSessionId: null,
     curriculumDayId: '',
     sessionNumber: 1,
     startTime: '09:00',
     endTime: '10:00',
     sessionName: '',
     sessionDescription: '',
-    room: ''
+    roomId: '',
+    teacherId: ''
   });
 
   const [lessonForm, setLessonForm] = useState({
@@ -31,24 +38,74 @@ const CurriculumDetail = () => {
     notes: ''
   });
 
-  const API_URL = 'http://localhost:5000/api';
-
   useEffect(() => {
     loadCurriculum();
+    loadRooms();
+    loadTeachers();
   }, [curriculumId]);
 
   useEffect(() => {
     if (curriculum) {
       generateDateRange();
+      setSelectedTeacherIds(curriculum.participantTeachers?.map(t => t.teacherId) || []);
     }
   }, [curriculum]);
 
   const loadCurriculum = async () => {
     try {
-      const response = await axios.get(`${API_URL}/curriculum/${curriculumId}`);
+      const response = await curriculumAPI.getById(curriculumId);
       setCurriculum(response.data);
     } catch (error) {
       console.error('Error loading curriculum:', error);
+    }
+  };
+
+  const loadRooms = async () => {
+    try {
+      const response = await roomsAPI.getAll();
+      setRooms(response.data);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+    }
+  };
+
+  const loadTeachers = async () => {
+    try {
+      const response = await teachersAPI.getAll({ isActive: true });
+      setTeachers(response.data);
+    } catch (error) {
+      console.error('Error loading teachers:', error);
+    }
+  };
+
+  const handleTeacherToggle = (teacherId) => {
+    const id = parseInt(teacherId);
+    setSelectedTeacherIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(existingId => existingId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleSaveTeachers = async () => {
+    try {
+      await curriculumAPI.update(curriculumId, {
+        CurriculumName: curriculum.curriculumName,
+        StartDate: curriculum.startDate,
+        EndDate: curriculum.endDate,
+        Description: curriculum.description,
+        Status: curriculum.status,
+        ParticipantTeacherIds: selectedTeacherIds
+      });
+
+      loadCurriculum();
+      setShowTeacherModal(false);
+      alert('Cập nhật giáo viên thành công');
+    } catch (error) {
+      console.error('Error saving teachers:', error);
+      alert('Lỗi khi cập nhật giáo viên');
     }
   };
 
@@ -84,7 +141,7 @@ const CurriculumDetail = () => {
 
   const handleAddDay = async (date) => {
     try {
-      const response = await axios.post(`${API_URL}/curriculum/day`, {
+      const response = await curriculumAPI.createDay({
         curriculumId: parseInt(curriculumId),
         scheduleDate: formatDate(date),
         topic: `Học ngày ${date.toLocaleDateString('vi-VN')}`,
@@ -93,14 +150,17 @@ const CurriculumDetail = () => {
       
       const newDay = response.data;
       setSelectedDay(newDay);
+      setIsEditingSession(false);
       setSessionForm({
+        curriculumSessionId: null,
         curriculumDayId: newDay.curriculumDayId,
         sessionNumber: 1,
         startTime: '09:00',
         endTime: '10:00',
         sessionName: 'Buổi 1',
         sessionDescription: '',
-        room: ''
+        roomId: '',
+        teacherId: ''
       });
       
       setShowSessionModal(true);
@@ -118,14 +178,34 @@ const CurriculumDetail = () => {
     }
     
     setSelectedDay(day);
+    setIsEditingSession(false);
     setSessionForm({
+      curriculumSessionId: null,
       curriculumDayId: day.curriculumDayId,
       sessionNumber: day.sessionCount + 1,
       startTime: '09:00',
       endTime: '10:00',
       sessionName: `Buổi ${day.sessionCount + 1}`,
       sessionDescription: '',
-      room: ''
+      roomId: '',
+      teacherId: ''
+    });
+    setShowSessionModal(true);
+  };
+
+  const handleEditSession = (day, session) => {
+    setSelectedDay(day);
+    setIsEditingSession(true);
+    setSessionForm({
+      curriculumSessionId: session.curriculumSessionId,
+      curriculumDayId: day.curriculumDayId,
+      sessionNumber: session.sessionNumber,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      sessionName: session.sessionName,
+      sessionDescription: session.sessionDescription,
+      roomId: session.roomId || '',
+      teacherId: session.teacherId || ''
     });
     setShowSessionModal(true);
   };
@@ -138,22 +218,29 @@ const CurriculumDetail = () => {
       return;
     }
 
+    const sessionData = {
+      curriculumDayId: sessionForm.curriculumDayId,
+      sessionNumber: sessionForm.sessionNumber,
+      startTime: sessionForm.startTime,
+      endTime: sessionForm.endTime,
+      sessionName: sessionForm.sessionName,
+      sessionDescription: sessionForm.sessionDescription,
+      roomId: sessionForm.roomId ? parseInt(sessionForm.roomId) : null,
+      teacherId: sessionForm.teacherId ? parseInt(sessionForm.teacherId) : null
+    };
+
     try {
-      await axios.post(`${API_URL}/curriculum/session`, {
-        curriculumDayId: sessionForm.curriculumDayId,
-        sessionNumber: sessionForm.sessionNumber,
-        startTime: sessionForm.startTime,
-        endTime: sessionForm.endTime,
-        sessionName: sessionForm.sessionName,
-        sessionDescription: sessionForm.sessionDescription,
-        room: sessionForm.room
-      });
+      if (isEditingSession) {
+        await curriculumAPI.updateSession(sessionForm.curriculumSessionId, sessionData);
+      } else {
+        await curriculumAPI.createSession(sessionData);
+      }
       
       loadCurriculum();
       setShowSessionModal(false);
     } catch (error) {
-      console.error('Error creating session:', error);
-      alert(error.response?.data?.message || 'Error creating session');
+      console.error('Error saving session:', error);
+      alert(error.response?.data?.message || 'Error saving session');
     }
   };
 
@@ -175,7 +262,7 @@ const CurriculumDetail = () => {
     e.preventDefault();
     
     try {
-      await axios.post(`${API_URL}/curriculum/lesson`, {
+      await curriculumAPI.createLesson({
         curriculumSessionId: lessonForm.curriculumSessionId,
         lessonNumber: lessonForm.lessonNumber,
         lessonTitle: lessonForm.lessonTitle,
@@ -196,7 +283,7 @@ const CurriculumDetail = () => {
   const handleDeleteDay = async (dayId) => {
     if (window.confirm('Bạn chắc chắn muốn xóa ngày này?')) {
       try {
-        await axios.delete(`${API_URL}/curriculum/day/${dayId}`);
+        await curriculumAPI.deleteDay(dayId);
         loadCurriculum();
       } catch (error) {
         console.error('Error deleting day:', error);
@@ -208,7 +295,7 @@ const CurriculumDetail = () => {
   const handleDeleteSession = async (sessionId) => {
     if (window.confirm('Bạn chắc chắn muốn xóa buổi học này?')) {
       try {
-        await axios.delete(`${API_URL}/curriculum/session/${sessionId}`);
+        await curriculumAPI.deleteSession(sessionId);
         loadCurriculum();
       } catch (error) {
         console.error('Error deleting session:', error);
@@ -220,7 +307,7 @@ const CurriculumDetail = () => {
   const handleDeleteLesson = async (lessonId) => {
     if (window.confirm('Bạn chắc chắn muốn xóa tiết học này?')) {
       try {
-        await axios.delete(`${API_URL}/curriculum/lesson/${lessonId}`);
+        await curriculumAPI.deleteLesson(lessonId);
         loadCurriculum();
       } catch (error) {
         console.error('Error deleting lesson:', error);
@@ -236,8 +323,18 @@ const CurriculumDetail = () => {
   return (
     <div className="curriculum-detail-container">
       <div className="curriculum-detail-header">
-        <h2>{curriculum.curriculumName}</h2>
-        <p>Lớp: {curriculum.className} | {new Date(curriculum.startDate).toLocaleDateString()} - {new Date(curriculum.endDate).toLocaleDateString()}</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2>{curriculum.curriculumName}</h2>
+            <p>Lớp: {curriculum.className} | {new Date(curriculum.startDate).toLocaleDateString()} - {new Date(curriculum.endDate).toLocaleDateString()}</p>
+          </div>
+          <button 
+            className="btn btn-success"
+            onClick={() => setShowTeacherModal(true)}
+          >
+            👨‍🏫 Quản lý giáo viên
+          </button>
+        </div>
       </div>
 
       <div className="curriculum-timeline">
@@ -281,7 +378,8 @@ const CurriculumDetail = () => {
                               <strong>📚 Buổi {session.sessionNumber}: {session.sessionName}</strong>
                               <span className="time">{session.startTime} - {session.endTime}</span>
                             </div>
-                            <p className="room">Phòng: {session.room}</p>
+                            <p className="room">Phòng: {session.roomName || 'Chưa xếp phòng'}</p>
+                            <p className="teacher">Giảng viên: {session.teacherName || 'Chưa phân công'}</p>
                             
                             <div className="lessons">
                               <div className="lessons-header">
@@ -318,12 +416,20 @@ const CurriculumDetail = () => {
                               )}
                             </div>
 
-                            <button 
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleDeleteSession(session.curriculumSessionId)}
-                            >
-                              Xóa buổi
-                            </button>
+                            <div className="session-actions" style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
+                              <button 
+                                className="btn btn-sm btn-info"
+                                onClick={() => handleEditSession(curriculumDay, session)}
+                              >
+                                Sửa buổi
+                              </button>
+                              <button 
+                                className="btn btn-sm btn-danger"
+                                onClick={() => handleDeleteSession(session.curriculumSessionId)}
+                              >
+                                Xóa buổi
+                              </button>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -356,11 +462,53 @@ const CurriculumDetail = () => {
       </div>
 
       {/* Modals */}
+      {showTeacherModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Quản lý giáo viên tham gia chương trình</h3>
+              <button className="close-btn" onClick={() => setShowTeacherModal(false)}>×</button>
+            </div>
+            <div className="teacher-list" style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: '20px' }}>
+              <p style={{ marginBottom: '15px', color: '#666' }}>Chọn các giáo viên có thể giảng dạy trong chương trình này:</p>
+              {teachers.length > 0 ? (
+                teachers.map(teacher => (
+                  <div key={teacher.teacherId} style={{ marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '4px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedTeacherIds.includes(parseInt(teacher.teacherId))}
+                        onChange={() => handleTeacherToggle(teacher.teacherId)}
+                        style={{ width: 'auto', marginRight: '10px' }}
+                      />
+                      <span className="teacher-name">
+                        <strong>{teacher.fullName}</strong>
+                        <span style={{ fontSize: '12px', color: '#666' }}> ({teacher.specialization})</span>
+                      </span>
+                    </label>
+                  </div>
+                ))
+              ) : (
+                <p style={{ color: '#999' }}>Không có giáo viên nào</p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowTeacherModal(false)}>
+                Hủy
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleSaveTeachers}>
+                Lưu danh sách
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showSessionModal && (
         <div className="modal">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>Thêm buổi học</h3>
+              <h3>{isEditingSession ? 'Sửa buổi học' : 'Thêm buổi học'}</h3>
               <button className="close-btn" onClick={() => setShowSessionModal(false)}>×</button>
             </div>
             <form onSubmit={handleSubmitSession}>
@@ -373,7 +521,7 @@ const CurriculumDetail = () => {
                   min="1"
                   max="3"
                   required
-                  disabled
+                  disabled={!isEditingSession && true}
                 />
               </div>
               <div className="form-group">
@@ -404,12 +552,45 @@ const CurriculumDetail = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Phòng học</label>
-                <input
-                  type="text"
-                  value={sessionForm.room}
-                  onChange={(e) => setSessionForm({...sessionForm, room: e.target.value})}
-                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                  <label style={{ margin: 0 }}>Phòng học</label>
+                  <a href="/rooms" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#007bff' }}>
+                    + Quản lý danh sách phòng
+                  </a>
+                </div>
+                <select
+                  value={sessionForm.roomId}
+                  onChange={(e) => setSessionForm({...sessionForm, roomId: e.target.value})}
+                >
+                  <option value="">-- Chọn phòng học --</option>
+                  {rooms.map(room => (
+                    <option key={room.roomId} value={room.roomId}>
+                      {room.roomName} (Sức chứa: {room.capacity})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Giảng viên</label>
+                <select
+                  value={sessionForm.teacherId}
+                  onChange={(e) => setSessionForm({...sessionForm, teacherId: e.target.value})}
+                >
+                  <option value="">-- Chọn giảng viên --</option>
+                  {curriculum.participantTeachers && curriculum.participantTeachers.length > 0 ? (
+                    curriculum.participantTeachers.map(teacher => (
+                      <option key={teacher.teacherId} value={teacher.teacherId}>
+                        {teacher.fullName} ({teacher.specialization})
+                      </option>
+                    ))
+                  ) : (
+                    teachers.map(teacher => (
+                      <option key={teacher.teacherId} value={teacher.teacherId}>
+                        {teacher.fullName} ({teacher.specialization})
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
               <div className="form-group">
                 <label>Mô tả</label>
@@ -424,7 +605,7 @@ const CurriculumDetail = () => {
                   Hủy
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Thêm
+                  {isEditingSession ? 'Lưu thay đổi' : 'Thêm buổi học'}
                 </button>
               </div>
             </form>

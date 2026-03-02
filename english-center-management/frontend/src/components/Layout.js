@@ -23,6 +23,8 @@ import {
   Schedule,
   Assessment,
   LibraryBooks,
+  MeetingRoom as Room,
+  CheckCircle,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -33,10 +35,12 @@ const menuItems = [
   { text: 'Học Viên', icon: <People />, path: '/students' },
   { text: 'Giáo Viên', icon: <School />, path: '/teachers' },
   { text: 'Lớp Học', icon: <Class />, path: '/classes' },
+  { text: 'Phòng Học', icon: <Room />, path: '/rooms' },
   { text: 'Chương Trình Học', icon: <LibraryBooks />, path: '/curriculum' },
   { text: 'Thanh Toán', icon: <AttachMoney />, path: '/payments' },
   { text: 'Lịch Học', icon: <Schedule />, path: '/schedules' },
   { text: 'Điểm Số', icon: <Assessment />, path: '/test-scores' },
+  { text: 'Điểm Danh', icon: <CheckCircle />, path: '/attendance' },
 ];
 
 const Layout = ({ children }) => {

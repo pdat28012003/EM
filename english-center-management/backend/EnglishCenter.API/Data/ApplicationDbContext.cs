@@ -21,6 +21,8 @@ namespace EnglishCenter.API.Data
         public DbSet<CurriculumDay> CurriculumDays { get; set; }
         public DbSet<CurriculumSession> CurriculumSessions { get; set; }
         public DbSet<Lesson> Lessons { get; set; }
+        public DbSet<Room> Rooms { get; set; }
+        public DbSet<Attendance> Attendances { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -98,6 +100,24 @@ namespace EnglishCenter.API.Data
                 .WithMany(cs => cs.Lessons)
                 .HasForeignKey(l => l.CurriculumSessionId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Attendance>()
+                .HasOne(a => a.Student)
+                .WithMany(s => s.Attendances)
+                .HasForeignKey(a => a.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Attendance>()
+                .HasOne(a => a.Lesson)
+                .WithMany(l => l.Attendances)
+                .HasForeignKey(a => a.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure many-to-many relationship between Teacher and Curriculum
+            modelBuilder.Entity<Curriculum>()
+                .HasMany(c => c.ParticipantTeachers)
+                .WithMany(t => t.ParticipatedCurriculums)
+                .UsingEntity(j => j.ToTable("CurriculumTeacher"));
 
             // Seed initial data
             SeedData(modelBuilder);

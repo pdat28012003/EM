@@ -36,6 +36,7 @@ namespace EnglishCenter.API.Models
         public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
         public ICollection<Payment> Payments { get; set; } = new List<Payment>();
         public ICollection<TestScore> TestScores { get; set; } = new List<TestScore>();
+        public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
     }
 
     public class Teacher
@@ -71,6 +72,7 @@ namespace EnglishCenter.API.Models
         // Navigation properties
         public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
+        public ICollection<Curriculum> ParticipatedCurriculums { get; set; } = new List<Curriculum>();
     }
 
     public class Course
@@ -266,6 +268,27 @@ namespace EnglishCenter.API.Models
         public Class Class { get; set; } = null!;
     }
 
+    public class Room
+    {
+        [Key]
+        public int RoomId { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string RoomName { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string Description { get; set; } = string.Empty;
+
+        public int Capacity { get; set; }
+
+        public TimeSpan AvailableStartTime { get; set; }
+
+        public TimeSpan AvailableEndTime { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
     // Curriculum Models
     public class Curriculum
     {
@@ -300,6 +323,7 @@ namespace EnglishCenter.API.Models
         public Class Class { get; set; } = null!;
 
         public ICollection<CurriculumDay> CurriculumDays { get; set; } = new List<CurriculumDay>();
+        public ICollection<Teacher> ParticipantTeachers { get; set; } = new List<Teacher>();
     }
 
     public class CurriculumDay
@@ -349,12 +373,19 @@ namespace EnglishCenter.API.Models
         [MaxLength(1000)]
         public string SessionDescription { get; set; } = string.Empty;
 
-        [MaxLength(100)]
-        public string Room { get; set; } = string.Empty;
+        public int? RoomId { get; set; }
+
+        public int? TeacherId { get; set; }
 
         // Navigation properties
         [ForeignKey("CurriculumDayId")]
         public CurriculumDay CurriculumDay { get; set; } = null!;
+
+        [ForeignKey("RoomId")]
+        public Room? AssignedRoom { get; set; }
+
+        [ForeignKey("TeacherId")]
+        public Teacher? Teacher { get; set; }
 
         public ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
     }
@@ -388,5 +419,40 @@ namespace EnglishCenter.API.Models
         // Navigation properties
         [ForeignKey("CurriculumSessionId")]
         public CurriculumSession CurriculumSession { get; set; } = null!;
+
+        public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
+    }
+
+    public class Attendance
+    {
+        [Key]
+        public int AttendanceId { get; set; }
+
+        [Required]
+        public int StudentId { get; set; }
+
+        [Required]
+        public int LessonId { get; set; }
+
+        [Required]
+        public DateTime AttendanceDate { get; set; }
+
+        [Required]
+        [MaxLength(20)]
+        public string Status { get; set; } = "Present"; // Present, Absent, Late, Excused
+
+        [MaxLength(500)]
+        public string Notes { get; set; } = string.Empty;
+
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+        public DateTime? ModifiedDate { get; set; }
+
+        // Navigation properties
+        [ForeignKey("StudentId")]
+        public Student Student { get; set; } = null!;
+
+        [ForeignKey("LessonId")]
+        public Lesson Lesson { get; set; } = null!;
     }
 }

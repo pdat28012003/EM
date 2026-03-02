@@ -30,6 +30,13 @@ namespace EnglishCenter.API.Controllers
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Lessons)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.AssignedRoom)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.Teacher)
+                    .Include(c => c.ParticipantTeachers)
                     .ToListAsync();
 
                 return Ok(curriculums.Select(c => MapCurriculumToDto(c)));
@@ -52,6 +59,13 @@ namespace EnglishCenter.API.Controllers
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Lessons)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.AssignedRoom)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.Teacher)
+                    .Include(c => c.ParticipantTeachers)
                     .FirstOrDefaultAsync(c => c.CurriculumId == id);
 
                 if (curriculum == null)
@@ -78,6 +92,13 @@ namespace EnglishCenter.API.Controllers
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Lessons)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.AssignedRoom)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.Teacher)
+                    .Include(c => c.ParticipantTeachers)
                     .ToListAsync();
 
                 return Ok(curriculums.Select(c => MapCurriculumToDto(c)));
@@ -111,14 +132,28 @@ namespace EnglishCenter.API.Controllers
                     StartDate = createCurriculumDto.StartDate,
                     EndDate = createCurriculumDto.EndDate,
                     Description = createCurriculumDto.Description,
-                    Status = "Draft",
+                    Status = "Active",
                     CreatedDate = DateTime.Now
                 };
+
+                if (createCurriculumDto.ParticipantTeacherIds != null && createCurriculumDto.ParticipantTeacherIds.Any())
+                {
+                    var teachers = await _context.Teachers
+                        .Where(t => createCurriculumDto.ParticipantTeacherIds.Contains(t.TeacherId))
+                        .ToListAsync();
+                    curriculum.ParticipantTeachers = teachers;
+                }
 
                 _context.Curriculums.Add(curriculum);
                 await _context.SaveChangesAsync();
 
-                return CreatedAtAction(nameof(GetCurriculumById), new { id = curriculum.CurriculumId }, MapCurriculumToDto(curriculum));
+                // Re-load to include related data for mapping
+                var savedCurriculum = await _context.Curriculums
+                    .Include(c => c.Class)
+                    .Include(c => c.ParticipantTeachers)
+                    .FirstOrDefaultAsync(c => c.CurriculumId == curriculum.CurriculumId);
+
+                return CreatedAtAction(nameof(GetCurriculumById), new { id = curriculum.CurriculumId }, MapCurriculumToDto(savedCurriculum!));
             }
             catch (Exception ex)
             {
@@ -133,7 +168,9 @@ namespace EnglishCenter.API.Controllers
         {
             try
             {
-                var curriculum = await _context.Curriculums.FindAsync(id);
+                var curriculum = await _context.Curriculums
+                    .Include(c => c.ParticipantTeachers)
+                    .FirstOrDefaultAsync(c => c.CurriculumId == id);
                 if (curriculum == null)
                     return NotFound(new { message = "Curriculum not found" });
 
@@ -147,6 +184,22 @@ namespace EnglishCenter.API.Controllers
                 curriculum.Description = updateCurriculumDto.Description;
                 curriculum.Status = updateCurriculumDto.Status;
                 curriculum.ModifiedDate = DateTime.Now;
+
+                // Update participant teachers
+                if (updateCurriculumDto.ParticipantTeacherIds != null)
+                {
+                    curriculum.ParticipantTeachers.Clear();
+                    if (updateCurriculumDto.ParticipantTeacherIds.Any())
+                    {
+                        var teachers = await _context.Teachers
+                            .Where(t => updateCurriculumDto.ParticipantTeacherIds.Contains(t.TeacherId))
+                            .ToListAsync();
+                        foreach (var teacher in teachers)
+                        {
+                            curriculum.ParticipantTeachers.Add(teacher);
+                        }
+                    }
+                }
 
                 _context.Curriculums.Update(curriculum);
                 await _context.SaveChangesAsync();
@@ -323,7 +376,11 @@ namespace EnglishCenter.API.Controllers
             {
                 _logger.LogInformation($"Attempting to create session: DayId={createCurriculumSessionDto.CurriculumDayId}, Num={createCurriculumSessionDto.SessionNumber}, Start={createCurriculumSessionDto.StartTime}, End={createCurriculumSessionDto.EndTime}");
 
-                var curriculumDay = await _context.CurriculumDays.FindAsync(createCurriculumSessionDto.CurriculumDayId);
+                var curriculumDay = await _context.CurriculumDays
+                    .Include(cd => cd.Curriculum)
+                        .ThenInclude(c => c.ParticipantTeachers)
+                    .FirstOrDefaultAsync(cd => cd.CurriculumDayId == createCurriculumSessionDto.CurriculumDayId);
+
                 if (curriculumDay == null)
                 {
                     _logger.LogWarning($"Curriculum day not found: {createCurriculumSessionDto.CurriculumDayId}");
@@ -345,6 +402,117 @@ namespace EnglishCenter.API.Controllers
                 if (createCurriculumSessionDto.StartTime >= createCurriculumSessionDto.EndTime)
                     return BadRequest(new { message = "Start time must be before end time" });
 
+                // Room conflict check
+                if (createCurriculumSessionDto.RoomId.HasValue)
+                {
+                    var room = await _context.Rooms.FindAsync(createCurriculumSessionDto.RoomId.Value);
+                    if (room == null)
+                        return BadRequest(new { message = "Room not found" });
+
+                    // Check room availability hours
+                    if (createCurriculumSessionDto.StartTime < room.AvailableStartTime || createCurriculumSessionDto.EndTime > room.AvailableEndTime)
+                    {
+                        return BadRequest(new { 
+                            message = $"Room is only available between {room.AvailableStartTime:hh\\:mm} and {room.AvailableEndTime:hh\\:mm}" 
+                        });
+                    }
+
+                    // Check for overlapping sessions in the same room on the same day
+                    var overlappingSession = await _context.CurriculumSessions
+                        .Include(cs => cs.CurriculumDay)
+                        .Where(cs => cs.RoomId == createCurriculumSessionDto.RoomId.Value && 
+                                    cs.CurriculumDay.ScheduleDate.Date == curriculumDay.ScheduleDate.Date)
+                        .Where(cs => (createCurriculumSessionDto.StartTime < cs.EndTime && createCurriculumSessionDto.EndTime > cs.StartTime))
+                        .FirstOrDefaultAsync();
+
+                    if (overlappingSession != null)
+                    {
+                        return BadRequest(new { 
+                            message = $"Room is already occupied on {curriculumDay.ScheduleDate:yyyy-MM-dd} between {overlappingSession.StartTime:hh\\:mm} and {overlappingSession.EndTime:hh\\:mm}" 
+                        });
+                    }
+                }
+
+                // Teacher conflict check
+                if (createCurriculumSessionDto.TeacherId.HasValue)
+                {
+                    var teacherId = createCurriculumSessionDto.TeacherId.Value;
+                    var teacher = await _context.Teachers.FindAsync(teacherId);
+                    if (teacher == null)
+                        return BadRequest(new { message = "Teacher not found" });
+
+                    // Check for overlapping sessions for the same teacher on the same day (TEACHING)
+                    var teachingConflict = await _context.CurriculumSessions
+                        .Include(cs => cs.CurriculumDay)
+                        .Where(cs => cs.TeacherId == teacherId && 
+                                    cs.CurriculumDay.ScheduleDate.Date == curriculumDay.ScheduleDate.Date)
+                        .Where(cs => (createCurriculumSessionDto.StartTime < cs.EndTime && createCurriculumSessionDto.EndTime > cs.StartTime))
+                        .FirstOrDefaultAsync();
+
+                    if (teachingConflict != null)
+                    {
+                        return BadRequest(new { 
+                            message = $"Teacher is already teaching on {curriculumDay.ScheduleDate:yyyy-MM-dd} between {teachingConflict.StartTime:hh\\:mm} and {teachingConflict.EndTime:hh\\:mm}" 
+                        });
+                    }
+
+                    // Check if teacher is a participant in any curriculum that has an overlapping session
+                    var participatingConflict = await _context.CurriculumSessions
+                        .Include(cs => cs.CurriculumDay)
+                            .ThenInclude(cd => cd.Curriculum)
+                                .ThenInclude(c => c.ParticipantTeachers)
+                        .Where(cs => cs.CurriculumDay.ScheduleDate.Date == curriculumDay.ScheduleDate.Date)
+                        .Where(cs => cs.CurriculumDay.Curriculum.ParticipantTeachers.Any(t => t.TeacherId == teacherId))
+                        .Where(cs => (createCurriculumSessionDto.StartTime < cs.EndTime && createCurriculumSessionDto.EndTime > cs.StartTime))
+                        .FirstOrDefaultAsync();
+
+                    if (participatingConflict != null)
+                    {
+                        return BadRequest(new { 
+                            message = $"Teacher is participating in another program session on {curriculumDay.ScheduleDate:yyyy-MM-dd} between {participatingConflict.StartTime:hh\\:mm} and {participatingConflict.EndTime:hh\\:mm}" 
+                        });
+                    }
+                }
+
+                // Check conflicts for each participant teacher of this curriculum
+                if (curriculumDay.Curriculum.ParticipantTeachers != null)
+                {
+                    foreach (var participant in curriculumDay.Curriculum.ParticipantTeachers)
+                    {
+                        // Is this participant teaching another session at this time?
+                        var ptTeachingConflict = await _context.CurriculumSessions
+                            .Include(cs => cs.CurriculumDay)
+                            .Where(cs => cs.TeacherId == participant.TeacherId && 
+                                        cs.CurriculumDay.ScheduleDate.Date == curriculumDay.ScheduleDate.Date)
+                            .Where(cs => (createCurriculumSessionDto.StartTime < cs.EndTime && createCurriculumSessionDto.EndTime > cs.StartTime))
+                            .FirstOrDefaultAsync();
+
+                        if (ptTeachingConflict != null)
+                        {
+                            return BadRequest(new { 
+                                message = $"Participant teacher {participant.FullName} is already teaching on {curriculumDay.ScheduleDate:yyyy-MM-dd} between {ptTeachingConflict.StartTime:hh\\:mm} and {ptTeachingConflict.EndTime:hh\\:mm}" 
+                            });
+                        }
+
+                        // Is this participant in another curriculum session at this time?
+                        var ptParticipatingConflict = await _context.CurriculumSessions
+                            .Include(cs => cs.CurriculumDay)
+                                .ThenInclude(cd => cd.Curriculum)
+                            .Where(cs => cs.CurriculumDay.CurriculumId != curriculumDay.CurriculumId && // Different curriculum
+                                        cs.CurriculumDay.ScheduleDate.Date == curriculumDay.ScheduleDate.Date &&
+                                        cs.CurriculumDay.Curriculum.ParticipantTeachers.Any(t => t.TeacherId == participant.TeacherId))
+                            .Where(cs => (createCurriculumSessionDto.StartTime < cs.EndTime && createCurriculumSessionDto.EndTime > cs.StartTime))
+                            .FirstOrDefaultAsync();
+
+                        if (ptParticipatingConflict != null)
+                        {
+                            return BadRequest(new { 
+                                message = $"Participant teacher {participant.FullName} is participating in another program session on {curriculumDay.ScheduleDate:yyyy-MM-dd} between {ptParticipatingConflict.StartTime:hh\\:mm} and {ptParticipatingConflict.EndTime:hh\\:mm}" 
+                            });
+                        }
+                    }
+                }
+
                 var curriculumSession = new CurriculumSession
                 {
                     CurriculumDayId = createCurriculumSessionDto.CurriculumDayId,
@@ -353,7 +521,8 @@ namespace EnglishCenter.API.Controllers
                     EndTime = createCurriculumSessionDto.EndTime,
                     SessionName = createCurriculumSessionDto.SessionName,
                     SessionDescription = createCurriculumSessionDto.SessionDescription,
-                    Room = createCurriculumSessionDto.Room
+                    RoomId = createCurriculumSessionDto.RoomId,
+                    TeacherId = createCurriculumSessionDto.TeacherId
                 };
 
                 _context.CurriculumSessions.Add(curriculumSession);
@@ -382,6 +551,8 @@ namespace EnglishCenter.API.Controllers
             {
                 var curriculumSession = await _context.CurriculumSessions
                     .Include(cs => cs.Lessons)
+                    .Include(cs => cs.AssignedRoom)
+                    .Include(cs => cs.Teacher)
                     .FirstOrDefaultAsync(cs => cs.CurriculumSessionId == id);
 
                 if (curriculumSession == null)
@@ -402,7 +573,12 @@ namespace EnglishCenter.API.Controllers
         {
             try
             {
-                var curriculumSession = await _context.CurriculumSessions.FindAsync(id);
+                var curriculumSession = await _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                        .ThenInclude(cd => cd.Curriculum)
+                            .ThenInclude(c => c.ParticipantTeachers)
+                    .FirstOrDefaultAsync(cs => cs.CurriculumSessionId == id);
+
                 if (curriculumSession == null)
                     return NotFound(new { message = "Curriculum session not found" });
 
@@ -410,11 +586,134 @@ namespace EnglishCenter.API.Controllers
                 if (updateCurriculumSessionDto.StartTime >= updateCurriculumSessionDto.EndTime)
                     return BadRequest(new { message = "Start time must be before end time" });
 
+                // Room conflict check
+                if (updateCurriculumSessionDto.RoomId.HasValue)
+                {
+                    var room = await _context.Rooms.FindAsync(updateCurriculumSessionDto.RoomId.Value);
+                    if (room == null)
+                        return BadRequest(new { message = "Room not found" });
+
+                    // Check room availability hours
+                    if (updateCurriculumSessionDto.StartTime < room.AvailableStartTime || updateCurriculumSessionDto.EndTime > room.AvailableEndTime)
+                    {
+                        return BadRequest(new { 
+                            message = $"Room is only available between {room.AvailableStartTime:hh\\:mm} and {room.AvailableEndTime:hh\\:mm}" 
+                        });
+                    }
+
+                    // Check for overlapping sessions in the same room on the same day (excluding itself)
+                    var overlappingSession = await _context.CurriculumSessions
+                        .Include(cs => cs.CurriculumDay)
+                        .Where(cs => cs.CurriculumSessionId != id &&
+                                    cs.RoomId == updateCurriculumSessionDto.RoomId.Value && 
+                                    cs.CurriculumDay.ScheduleDate.Date == curriculumSession.CurriculumDay.ScheduleDate.Date)
+                        .Where(cs => (updateCurriculumSessionDto.StartTime < cs.EndTime && updateCurriculumSessionDto.EndTime > cs.StartTime))
+                        .FirstOrDefaultAsync();
+
+                    if (overlappingSession != null)
+                    {
+                        return BadRequest(new { 
+                            message = $"Room is already occupied on {curriculumSession.CurriculumDay.ScheduleDate:yyyy-MM-dd} between {overlappingSession.StartTime:hh\\:mm} and {overlappingSession.EndTime:hh\\:mm}" 
+                        });
+                    }
+                }
+
+                // Teacher conflict check
+                if (updateCurriculumSessionDto.TeacherId.HasValue)
+                {
+                    var teacherId = updateCurriculumSessionDto.TeacherId.Value;
+                    var teacher = await _context.Teachers.FindAsync(teacherId);
+                    if (teacher == null)
+                        return BadRequest(new { message = "Teacher not found" });
+
+                    // Check for overlapping sessions for the same teacher on the same day (TEACHING, excluding itself)
+                    var teachingConflict = await _context.CurriculumSessions
+                        .Include(cs => cs.CurriculumDay)
+                        .Where(cs => cs.CurriculumSessionId != id &&
+                                    cs.TeacherId == teacherId && 
+                                    cs.CurriculumDay.ScheduleDate.Date == curriculumSession.CurriculumDay.ScheduleDate.Date)
+                        .Where(cs => (updateCurriculumSessionDto.StartTime < cs.EndTime && updateCurriculumSessionDto.EndTime > cs.StartTime))
+                        .FirstOrDefaultAsync();
+
+                    if (teachingConflict != null)
+                    {
+                        return BadRequest(new { 
+                            message = $"Teacher is already teaching on {curriculumSession.CurriculumDay.ScheduleDate:yyyy-MM-dd} between {teachingConflict.StartTime:hh\\:mm} and {teachingConflict.EndTime:hh\\:mm}" 
+                        });
+                    }
+
+                    // Check if teacher is a participant in any curriculum that has an overlapping session
+                    // Note: We don't exclude the current session's curriculum if it's the same curriculum because 
+                    // a teacher could be a participant in THIS curriculum but they shouldn't have overlapping 
+                    // sessions within it either? Actually, if they are the TEACHER of this session, they are 
+                    // participating in it. So we should probably exclude sessions of THIS curriculum day's session id?
+                    // But `CurriculumSession` doesn't store participants, the `Curriculum` does.
+                    // So we check if they are in ANY other session.
+                    var participatingConflict = await _context.CurriculumSessions
+                        .Include(cs => cs.CurriculumDay)
+                            .ThenInclude(cd => cd.Curriculum)
+                                .ThenInclude(c => c.ParticipantTeachers)
+                        .Where(cs => cs.CurriculumSessionId != id && // Exclude self
+                                    cs.CurriculumDay.ScheduleDate.Date == curriculumSession.CurriculumDay.ScheduleDate.Date &&
+                                    cs.CurriculumDay.Curriculum.ParticipantTeachers.Any(t => t.TeacherId == teacherId))
+                        .Where(cs => (updateCurriculumSessionDto.StartTime < cs.EndTime && updateCurriculumSessionDto.EndTime > cs.StartTime))
+                        .FirstOrDefaultAsync();
+
+                    if (participatingConflict != null)
+                    {
+                        return BadRequest(new { 
+                            message = $"Teacher is participating in another program session on {curriculumSession.CurriculumDay.ScheduleDate:yyyy-MM-dd} between {participatingConflict.StartTime:hh\\:mm} and {participatingConflict.EndTime:hh\\:mm}" 
+                        });
+                    }
+                }
+
+                // Check conflicts for each participant teacher of this curriculum
+                if (curriculumSession.CurriculumDay.Curriculum.ParticipantTeachers != null)
+                {
+                    foreach (var participant in curriculumSession.CurriculumDay.Curriculum.ParticipantTeachers)
+                    {
+                        // Is this participant teaching another session at this time? (excluding current session)
+                        var ptTeachingConflict = await _context.CurriculumSessions
+                            .Include(cs => cs.CurriculumDay)
+                            .Where(cs => cs.CurriculumSessionId != id && // Exclude self
+                                        cs.TeacherId == participant.TeacherId && 
+                                        cs.CurriculumDay.ScheduleDate.Date == curriculumSession.CurriculumDay.ScheduleDate.Date)
+                            .Where(cs => (updateCurriculumSessionDto.StartTime < cs.EndTime && updateCurriculumSessionDto.EndTime > cs.StartTime))
+                            .FirstOrDefaultAsync();
+
+                        if (ptTeachingConflict != null)
+                        {
+                            return BadRequest(new { 
+                                message = $"Participant teacher {participant.FullName} is already teaching on {curriculumSession.CurriculumDay.ScheduleDate:yyyy-MM-dd} between {ptTeachingConflict.StartTime:hh\\:mm} and {ptTeachingConflict.EndTime:hh\\:mm}" 
+                            });
+                        }
+
+                        // Is this participant in another curriculum session at this time?
+                        var ptParticipatingConflict = await _context.CurriculumSessions
+                            .Include(cs => cs.CurriculumDay)
+                                .ThenInclude(cd => cd.Curriculum)
+                            .Where(cs => cs.CurriculumSessionId != id && // Exclude self
+                                        cs.CurriculumDay.CurriculumId != curriculumSession.CurriculumDay.CurriculumId && // Different curriculum
+                                        cs.CurriculumDay.ScheduleDate.Date == curriculumSession.CurriculumDay.ScheduleDate.Date &&
+                                        cs.CurriculumDay.Curriculum.ParticipantTeachers.Any(t => t.TeacherId == participant.TeacherId))
+                            .Where(cs => (updateCurriculumSessionDto.StartTime < cs.EndTime && updateCurriculumSessionDto.EndTime > cs.StartTime))
+                            .FirstOrDefaultAsync();
+
+                        if (ptParticipatingConflict != null)
+                        {
+                            return BadRequest(new { 
+                                message = $"Participant teacher {participant.FullName} is participating in another program session on {curriculumSession.CurriculumDay.ScheduleDate:yyyy-MM-dd} between {ptParticipatingConflict.StartTime:hh\\:mm} and {ptParticipatingConflict.EndTime:hh\\:mm}" 
+                            });
+                        }
+                    }
+                }
+
                 curriculumSession.StartTime = updateCurriculumSessionDto.StartTime;
                 curriculumSession.EndTime = updateCurriculumSessionDto.EndTime;
                 curriculumSession.SessionName = updateCurriculumSessionDto.SessionName;
                 curriculumSession.SessionDescription = updateCurriculumSessionDto.SessionDescription;
-                curriculumSession.Room = updateCurriculumSessionDto.Room;
+                curriculumSession.RoomId = updateCurriculumSessionDto.RoomId;
+                curriculumSession.TeacherId = updateCurriculumSessionDto.TeacherId;
 
                 _context.CurriculumSessions.Update(curriculumSession);
                 await _context.SaveChangesAsync();
@@ -581,7 +880,19 @@ namespace EnglishCenter.API.Controllers
                 CreatedDate = curriculum.CreatedDate,
                 ModifiedDate = curriculum.ModifiedDate,
                 Status = curriculum.Status,
-                CurriculumDays = curriculum.CurriculumDays?.Select(cd => MapCurriculumDayToDto(cd)).ToList() ?? new List<CurriculumDayDto>()
+                CurriculumDays = curriculum.CurriculumDays?.Select(cd => MapCurriculumDayToDto(cd)).ToList() ?? new List<CurriculumDayDto>(),
+                ParticipantTeachers = curriculum.ParticipantTeachers?.Select(t => new TeacherDto
+                {
+                    TeacherId = t.TeacherId,
+                    FullName = t.FullName,
+                    Email = t.Email,
+                    PhoneNumber = t.PhoneNumber,
+                    Specialization = t.Specialization,
+                    Qualifications = t.Qualifications,
+                    HireDate = t.HireDate,
+                    HourlyRate = t.HourlyRate,
+                    IsActive = t.IsActive
+                }).ToList() ?? new List<TeacherDto>()
             };
         }
 
@@ -610,7 +921,10 @@ namespace EnglishCenter.API.Controllers
                 EndTime = curriculumSession.EndTime,
                 SessionName = curriculumSession.SessionName,
                 SessionDescription = curriculumSession.SessionDescription,
-                Room = curriculumSession.Room,
+                RoomId = curriculumSession.RoomId,
+                RoomName = curriculumSession.AssignedRoom?.RoomName ?? string.Empty,
+                TeacherId = curriculumSession.TeacherId,
+                TeacherName = curriculumSession.Teacher?.FullName ?? string.Empty,
                 Lessons = curriculumSession.Lessons?.Select(l => MapLessonToDto(l)).ToList() ?? new List<LessonDto>()
             };
         }

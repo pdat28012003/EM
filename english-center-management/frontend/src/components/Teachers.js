@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -18,6 +19,7 @@ import { Add, Edit, Schedule } from '@mui/icons-material';
 import { teachersAPI } from '../services/api';
 
 const Teachers = () => {
+  const navigate = useNavigate();
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -119,6 +121,22 @@ const Teachers = () => {
           color={params.value ? 'success' : 'default'}
           size="small"
         />
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Hành Động',
+      width: 150,
+      sortable: false,
+      renderCell: (params) => (
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() => navigate(`/teacher-schedule/${params.row.teacherId}`)}
+          title="Xem lịch giảng dạy"
+        >
+          <Schedule />
+        </IconButton>
       ),
     },
   ];

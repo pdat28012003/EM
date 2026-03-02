@@ -240,5 +240,62 @@ namespace EnglishCenter.API.Controllers
 
             return Ok(testScores);
         }
+
+        // GET: api/students/5/schedule
+        [HttpGet("{id}/schedule")]
+        public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetStudentSchedule(int id)
+        {
+            var student = await _context.Students.FindAsync(id);
+            if (student == null)
+            {
+                return NotFound(new { message = "Student not found" });
+            }
+
+            var activeEnrollments = await _context.Enrollments
+                .Where(e => e.StudentId == id && e.Status == "Active")
+                .Select(e => e.ClassId)
+                .ToListAsync();
+
+            var curriculums = await _context.Curriculums
+                .Where(c => activeEnrollments.Contains(c.ClassId))
+                .Include(c => c.Class)
+                .Include(c => c.CurriculumDays)
+                    .ThenInclude(cd => cd.CurriculumSessions)
+                        .ThenInclude(cs => cs.AssignedRoom)
+                .ToListAsync();
+
+            return Ok(curriculums.Select(c => new CurriculumDto
+            {
+                CurriculumId = c.CurriculumId,
+                CurriculumName = c.CurriculumName,
+                ClassId = c.ClassId,
+                ClassName = c.Class.ClassName,
+                StartDate = c.StartDate,
+                EndDate = c.EndDate,
+                Description = c.Description,
+                Status = c.Status,
+                CurriculumDays = c.CurriculumDays.Select(cd => new CurriculumDayDto
+                {
+                    CurriculumDayId = cd.CurriculumDayId,
+                    CurriculumId = cd.CurriculumId,
+                    ScheduleDate = cd.ScheduleDate,
+                    Topic = cd.Topic,
+                    Description = cd.Description,
+                    SessionCount = cd.SessionCount,
+                    CurriculumSessions = cd.CurriculumSessions.Select(cs => new CurriculumSessionDto
+                    {
+                        CurriculumSessionId = cs.CurriculumSessionId,
+                        CurriculumDayId = cs.CurriculumDayId,
+                        SessionNumber = cs.SessionNumber,
+                        StartTime = cs.StartTime,
+                        EndTime = cs.EndTime,
+                        SessionName = cs.SessionName,
+                        SessionDescription = cs.SessionDescription,
+                        RoomId = cs.RoomId,
+                        RoomName = cs.AssignedRoom?.RoomName ?? "N/A"
+                    }).ToList()
+                }).ToList()
+            }));
+        }
     }
 }

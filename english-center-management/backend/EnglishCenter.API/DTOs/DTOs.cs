@@ -205,6 +205,36 @@ namespace EnglishCenter.API.DTOs
         public string Comments { get; set; } = string.Empty;
     }
 
+    public class UpdateTestScoreDto
+    {
+        public decimal ListeningScore { get; set; }
+        public decimal ReadingScore { get; set; }
+        public decimal WritingScore { get; set; }
+        public decimal SpeakingScore { get; set; }
+        public string Comments { get; set; } = string.Empty;
+    }
+
+    // Room DTOs
+    public class RoomDto
+    {
+        public int RoomId { get; set; }
+        public string RoomName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int Capacity { get; set; }
+        public TimeSpan AvailableStartTime { get; set; }
+        public TimeSpan AvailableEndTime { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class CreateRoomDto
+    {
+        public string RoomName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int Capacity { get; set; }
+        public TimeSpan AvailableStartTime { get; set; }
+        public TimeSpan AvailableEndTime { get; set; }
+    }
+
     // Curriculum DTOs
     public class CurriculumDto
     {
@@ -219,6 +249,7 @@ namespace EnglishCenter.API.DTOs
         public DateTime? ModifiedDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public List<CurriculumDayDto> CurriculumDays { get; set; } = new List<CurriculumDayDto>();
+        public List<TeacherDto> ParticipantTeachers { get; set; } = new List<TeacherDto>();
     }
 
     public class CreateCurriculumDto
@@ -228,6 +259,7 @@ namespace EnglishCenter.API.DTOs
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string Description { get; set; } = string.Empty;
+        public List<int> ParticipantTeacherIds { get; set; } = new List<int>();
     }
 
     public class UpdateCurriculumDto
@@ -237,6 +269,7 @@ namespace EnglishCenter.API.DTOs
         public DateTime EndDate { get; set; }
         public string Description { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public List<int> ParticipantTeacherIds { get; set; } = new List<int>();
     }
 
     public class CurriculumDayDto
@@ -273,7 +306,10 @@ namespace EnglishCenter.API.DTOs
         public TimeSpan EndTime { get; set; }
         public string SessionName { get; set; } = string.Empty;
         public string SessionDescription { get; set; } = string.Empty;
-        public string Room { get; set; } = string.Empty;
+        public int? RoomId { get; set; }
+        public string RoomName { get; set; } = string.Empty;
+        public int? TeacherId { get; set; }
+        public string TeacherName { get; set; } = string.Empty;
         public List<LessonDto> Lessons { get; set; } = new List<LessonDto>();
     }
 
@@ -285,7 +321,8 @@ namespace EnglishCenter.API.DTOs
         public TimeSpan EndTime { get; set; }
         public string SessionName { get; set; } = string.Empty;
         public string SessionDescription { get; set; } = string.Empty;
-        public string Room { get; set; } = string.Empty;
+        public int? RoomId { get; set; }
+        public int? TeacherId { get; set; }
     }
 
     public class UpdateCurriculumSessionDto
@@ -294,7 +331,8 @@ namespace EnglishCenter.API.DTOs
         public TimeSpan EndTime { get; set; }
         public string SessionName { get; set; } = string.Empty;
         public string SessionDescription { get; set; } = string.Empty;
-        public string Room { get; set; } = string.Empty;
+        public int? RoomId { get; set; }
+        public int? TeacherId { get; set; }
     }
 
     public class LessonDto
@@ -326,6 +364,36 @@ namespace EnglishCenter.API.DTOs
         public string Content { get; set; } = string.Empty;
         public TimeSpan Duration { get; set; }
         public string Resources { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    // Attendance DTOs
+    public class AttendanceDto
+    {
+        public int AttendanceId { get; set; }
+        public int StudentId { get; set; }
+        public string StudentName { get; set; } = string.Empty;
+        public int LessonId { get; set; }
+        public string LessonTitle { get; set; } = string.Empty;
+        public DateTime AttendanceDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+        public DateTime CreatedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+    }
+
+    public class CreateAttendanceDto
+    {
+        public int StudentId { get; set; }
+        public int LessonId { get; set; }
+        public DateTime AttendanceDate { get; set; }
+        public string Status { get; set; } = "Present";
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    public class UpdateAttendanceDto
+    {
+        public string Status { get; set; } = "Present";
         public string Notes { get; set; } = string.Empty;
     }
 

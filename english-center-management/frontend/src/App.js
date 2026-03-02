@@ -10,6 +10,10 @@ import Classes from './components/Classes';
 import Payments from './components/Payments';
 import Curriculum from './components/Curriculum';
 import CurriculumDetail from './components/CurriculumDetail';
+import Rooms from './components/Rooms';
+import TeacherSchedule from './components/TeacherSchedule';
+import Attendance from './components/Attendance';
+import Schedules from './components/Schedules';
 
 const theme = createTheme({
   palette: {
@@ -43,11 +47,14 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/students" element={<Students />} />
             <Route path="/teachers" element={<Teachers />} />
+            <Route path="/teacher-schedule/:teacherId" element={<TeacherSchedule />} />
             <Route path="/classes" element={<Classes />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/curriculum" element={<Curriculum />} />
             <Route path="/curriculum/:curriculumId" element={<CurriculumDetail />} />
-            <Route path="/schedules" element={<div>Schedules - Coming Soon</div>} />
+            <Route path="/rooms" element={<Rooms />} />
+            <Route path="/attendance" element={<Attendance />} />
+            <Route path="/schedules" element={<Schedules />} />
             <Route path="/test-scores" element={<div>Test Scores - Coming Soon</div>} />
           </Routes>
         </Layout>

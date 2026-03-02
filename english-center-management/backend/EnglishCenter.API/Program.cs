@@ -10,7 +10,9 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new TimeSpanJsonConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Giữ PascalCase
     });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

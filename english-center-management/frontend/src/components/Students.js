@@ -15,15 +15,19 @@ import {
   MenuItem,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
-import { studentsAPI } from '../services/api';
+import { Add, Edit, Delete, Visibility, CalendarMonth, AssignmentInd } from '@mui/icons-material';
+import { studentsAPI, enrollmentsAPI, classesAPI } from '../services/api';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openEnrollDialog, setOpenEnrollDialog] = useState(false);
+  const [openScheduleDialog, setOpenScheduleDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentStudent, setCurrentStudent] = useState(null);
+  const [studentSchedule, setStudentSchedule] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
@@ -33,22 +37,41 @@ const Students = () => {
     address: '',
     level: 'Beginner',
   });
+  const [enrollData, setEnrollData] = useState({
+    classId: '',
+  });
 
   const levels = ['Beginner', 'Elementary', 'Intermediate', 'Advanced'];
 
   useEffect(() => {
     loadStudents();
+    loadClasses();
   }, [searchTerm]);
+
+  const toDateInputValue = (value) => {
+    if (!value) return '';
+    const s = value.toString();
+    return s.includes('T') ? s.split('T')[0] : s;
+  };
 
   const loadStudents = async () => {
     try {
       setLoading(true);
-      const response = await studentsAPI.getAll({ search: searchTerm });
+      const response = await studentsAPI.getAll({ search: searchTerm, isActive: true });
       setStudents(response.data);
     } catch (error) {
       console.error('Error loading students:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadClasses = async () => {
+    try {
+      const response = await classesAPI.getAll({ status: 'Active' });
+      setClasses(response.data);
+    } catch (error) {
+      console.error('Error loading classes:', error);
     }
   };
 
@@ -60,7 +83,7 @@ const Students = () => {
         fullName: student.fullName,
         email: student.email,
         phoneNumber: student.phoneNumber,
-        dateOfBirth: student.dateOfBirth.split('T')[0],
+        dateOfBirth: toDateInputValue(student.dateOfBirth),
         address: student.address,
         level: student.level,
       });
@@ -79,8 +102,28 @@ const Students = () => {
     setOpenDialog(true);
   };
 
+  const handleOpenEnrollDialog = (student) => {
+    setCurrentStudent(student);
+    setEnrollData({ classId: '' });
+    setOpenEnrollDialog(true);
+  };
+
+  const handleOpenScheduleDialog = async (student) => {
+    setCurrentStudent(student);
+    try {
+      const response = await studentsAPI.getSchedule(student.studentId);
+      setStudentSchedule(response.data);
+      setOpenScheduleDialog(true);
+    } catch (error) {
+      console.error('Error loading student schedule:', error);
+      alert('Có lỗi xảy ra khi tải thời khóa biểu');
+    }
+  };
+
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setOpenEnrollDialog(false);
+    setOpenScheduleDialog(false);
     setCurrentStudent(null);
   };
 
@@ -92,12 +135,16 @@ const Students = () => {
     }));
   };
 
+  const handleEnrollChange = (e) => {
+    setEnrollData({ classId: e.target.value });
+  };
+
   const handleSubmit = async () => {
     try {
       if (editMode) {
         await studentsAPI.update(currentStudent.studentId, {
           ...formData,
-          isActive: true,
+          isActive: currentStudent?.isActive ?? true,
         });
       } else {
         await studentsAPI.create(formData);
@@ -107,6 +154,24 @@ const Students = () => {
     } catch (error) {
       console.error('Error saving student:', error);
       alert('Có lỗi xảy ra khi lưu thông tin học viên');
+    }
+  };
+
+  const handleEnrollSubmit = async () => {
+    if (!enrollData.classId) {
+      alert('Vui lòng chọn lớp học');
+      return;
+    }
+    try {
+      await enrollmentsAPI.create({
+        studentId: currentStudent.studentId,
+        classId: parseInt(enrollData.classId),
+      });
+      alert('Đăng ký vào chương trình học thành công');
+      handleCloseDialog();
+    } catch (error) {
+      console.error('Error enrolling student:', error);
+      alert(error.response?.data?.message || 'Có lỗi xảy ra khi đăng ký học viên');
     }
   };
 
@@ -168,9 +233,25 @@ const Students = () => {
     {
       field: 'actions',
       headerName: 'Thao Tác',
-      width: 150,
+      width: 250,
       renderCell: (params) => (
         <Box>
+          <IconButton
+            size="small"
+            color="primary"
+            title="Đăng ký chương trình học"
+            onClick={() => handleOpenEnrollDialog(params.row)}
+          >
+            <AssignmentInd />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="secondary"
+            title="Xem thời khóa biểu"
+            onClick={() => handleOpenScheduleDialog(params.row)}
+          >
+            <CalendarMonth />
+          </IconButton>
           <IconButton
             size="small"
             color="primary"
@@ -228,6 +309,7 @@ const Students = () => {
         />
       </Paper>
 
+      {/* Dialog Thêm/Sửa Học Viên */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
           {editMode ? 'Chỉnh Sửa Học Viên' : 'Thêm Học Viên Mới'}
@@ -300,6 +382,83 @@ const Students = () => {
           <Button onClick={handleSubmit} variant="contained">
             {editMode ? 'Cập Nhật' : 'Thêm Mới'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Đăng ký Chương trình học */}
+      <Dialog open={openEnrollDialog} onClose={handleCloseDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Đăng Ký Chương Trình Học</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <Typography variant="body1">
+              Học viên: <strong>{currentStudent?.fullName}</strong>
+            </Typography>
+            <TextField
+              name="classId"
+              label="Chọn Lớp Học (Chương Trình)"
+              select
+              value={enrollData.classId}
+              onChange={handleEnrollChange}
+              required
+              fullWidth
+            >
+              {classes.map((cls) => (
+                <MenuItem key={cls.classId} value={cls.classId}>
+                  {cls.className} ({cls.courseName})
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Hủy</Button>
+          <Button onClick={handleEnrollSubmit} variant="contained" color="primary">
+            Đăng Ký
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Xem Thời Khóa Biểu */}
+      <Dialog open={openScheduleDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <DialogTitle>Thời Khóa Biểu Học Viên: {currentStudent?.fullName}</DialogTitle>
+        <DialogContent>
+          {studentSchedule.length > 0 ? (
+            studentSchedule.map((curr) => (
+              <Box key={curr.curriculumId} sx={{ mb: 4 }}>
+                <Typography variant="h6" color="primary" gutterBottom>
+                  Lớp: {curr.className} - {curr.curriculumName}
+                </Typography>
+                <Typography variant="body2" gutterBottom>
+                  Từ {new Date(curr.startDate).toLocaleDateString('vi-VN')} đến {new Date(curr.endDate).toLocaleDateString('vi-VN')}
+                </Typography>
+                
+                {curr.curriculumDays.sort((a,b) => new Date(a.scheduleDate) - new Date(b.scheduleDate)).map((day) => (
+                  <Paper key={day.curriculumDayId} sx={{ p: 2, mb: 2, bgcolor: '#f8f9fa' }}>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      Ngày {new Date(day.scheduleDate).toLocaleDateString('vi-VN')}: {day.topic}
+                    </Typography>
+                    {day.curriculumSessions.sort((a,b) => a.sessionNumber - b.sessionNumber).map((session) => (
+                      <Box key={session.curriculumSessionId} sx={{ ml: 2, mt: 1, p: 1, borderLeft: '3px solid #1976d2' }}>
+                        <Typography variant="body2">
+                          <strong>Ca {session.sessionNumber}:</strong> {session.startTime} - {session.endTime} | Phòng: {session.roomName}
+                        </Typography>
+                        <Typography variant="caption" display="block">
+                          {session.sessionName}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Paper>
+                ))}
+              </Box>
+            ))
+          ) : (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography color="textSecondary">Học viên chưa đăng ký chương trình học nào hoặc chương trình chưa có lịch.</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Đóng</Button>
         </DialogActions>
       </Dialog>
     </Container>
