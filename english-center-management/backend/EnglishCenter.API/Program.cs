@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
+using EnglishCenter.API.Services;
 using EnglishCenter.API.Converters;
 using System.Text.Json.Serialization;
 
@@ -55,11 +56,35 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(xmlPath);
 });
 
+// Configure AppSettings
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 // Configure Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
+
+// Configure JWT Authentication
+var tokenKey = builder.Configuration.GetSection("AppSettings:Token").Value;
+if (string.IsNullOrEmpty(tokenKey))
+{
+    tokenKey = "super secret key for testing purpose only - please change in production";
+}
+
+builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(tokenKey)),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -87,6 +112,7 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

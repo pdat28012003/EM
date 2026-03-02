@@ -455,4 +455,105 @@ namespace EnglishCenter.API.Models
         [ForeignKey("LessonId")]
         public Lesson Lesson { get; set; } = null!;
     }
+
+    // Authentication Models
+    public class Role
+    {
+        [Key]
+        public int RoleId { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string RoleName { get; set; } = string.Empty;
+
+        [MaxLength(255)]
+        public string? Description { get; set; }
+
+        public ICollection<User> Users { get; set; } = new List<User>();
+    }
+
+    public class User
+    {
+        [Key]
+        public int UserId { get; set; }
+
+        [Required]
+        [EmailAddress]
+        [MaxLength(100)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public byte[] PasswordHash { get; set; } = Array.Empty<byte>();
+
+        [Required]
+        public byte[] PasswordSalt { get; set; } = Array.Empty<byte>();
+
+        [Required]
+        [MaxLength(100)]
+        public string FullName { get; set; } = string.Empty;
+
+        [MaxLength(20)]
+        public string? PhoneNumber { get; set; }
+
+        [Required]
+        public int RoleId { get; set; }
+
+        public bool IsActive { get; set; } = false;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public DateTime? LastLogin { get; set; }
+
+        [ForeignKey("RoleId")]
+        public Role Role { get; set; } = null!;
+
+        public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    }
+
+    public class UserOtp
+    {
+        [Key]
+        public int Id { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(10)]
+        public string OtpCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(20)]
+        public string Type { get; set; } = string.Empty; // Registration, ForgotPassword
+
+        [Required]
+        public DateTime ExpiryTime { get; set; }
+
+        public bool IsUsed { get; set; } = false;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+    }
+
+    public class RefreshToken
+    {
+        [Key]
+        public int Id { get; set; }
+
+        [Required]
+        public string Token { get; set; } = string.Empty;
+
+        [Required]
+        public int UserId { get; set; }
+
+        [Required]
+        public DateTime ExpiryTime { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public DateTime? RevokedAt { get; set; }
+
+        [ForeignKey("UserId")]
+        public User User { get; set; } = null!;
+    }
 }

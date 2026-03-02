@@ -23,6 +23,10 @@ namespace EnglishCenter.API.Data
         public DbSet<Lesson> Lessons { get; set; }
         public DbSet<Room> Rooms { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<UserOtp> UserOtps { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
