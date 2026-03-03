@@ -1,5 +1,19 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace EnglishCenter.API.DTOs
 {
+    // Pagination result class
+    public class PagedResult<T>
+    {
+        public List<T> Data { get; set; } = new List<T>();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasPreviousPage => Page > 1;
+        public bool HasNextPage => Page < TotalPages;
+    }
+
     // Student DTOs
     public class StudentDto
     {
@@ -9,6 +23,8 @@ namespace EnglishCenter.API.DTOs
         public string PhoneNumber { get; set; } = string.Empty;
         public DateTime DateOfBirth { get; set; }
         public string Address { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Avatar { get; set; } = string.Empty;
         public DateTime EnrollmentDate { get; set; }
         public string Level { get; set; } = string.Empty;
         public bool IsActive { get; set; }
@@ -16,22 +32,83 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateStudentDto
     {
+        [Required(ErrorMessage = "Full name is required")]
+        [MaxLength(100, ErrorMessage = "Full name cannot exceed 100 characters")]
         public string FullName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        [MaxLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
         public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Phone number is required")]
+        [Phone(ErrorMessage = "Invalid phone number format")]
+        [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
         public string PhoneNumber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Date of birth is required")]
         public DateTime DateOfBirth { get; set; }
+
+        [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
         public string Address { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Username is required")]
+        [MinLength(3, ErrorMessage = "Username must be at least 3 characters")]
+        [MaxLength(30, ErrorMessage = "Username cannot exceed 30 characters")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        [MaxLength(30, ErrorMessage = "Password cannot exceed 30 characters")]
+        public string Password { get; set; } = string.Empty;
+
+        [MaxLength(500, ErrorMessage = "Avatar URL cannot exceed 500 characters")]
+        public string Avatar { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Level is required")]
+        [RegularExpression("^(Beginner|Elementary|Intermediate|Advanced)$", ErrorMessage = "Level must be one of: Beginner, Elementary, Intermediate, Advanced")]
         public string Level { get; set; } = string.Empty;
     }
 
     public class UpdateStudentDto
     {
+        [Required(ErrorMessage = "Full name is required")]
+        [MaxLength(50, ErrorMessage = "Full name cannot exceed 50 characters")]
+        [MinLength(2, ErrorMessage = "Full name must be at least 2 characters")]
+        [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "Full name cannot contain numbers or special characters")]
         public string FullName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        [MaxLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
         public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Phone number is required")]
+        [Phone(ErrorMessage = "Invalid phone number format")]
+        [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
         public string PhoneNumber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Date of birth is required")]
         public DateTime DateOfBirth { get; set; }
+
+        [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
         public string Address { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Username is required")]
+        [MinLength(3, ErrorMessage = "Username must be at least 3 characters")]
+        [MaxLength(30, ErrorMessage = "Username cannot exceed 30 characters")]
+        public string Username { get; set; } = string.Empty;
+
+        [MaxLength(500, ErrorMessage = "Password cannot exceed 500 characters")]
+        public string Password { get; set; } = string.Empty;
+
+        [MaxLength(500, ErrorMessage = "Avatar URL cannot exceed 500 characters")]
+        public string Avatar { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Level is required")]
+        [RegularExpression("^(Beginner|Elementary|Intermediate|Advanced)$", ErrorMessage = "Level must be one of: Beginner, Elementary, Intermediate, Advanced")]
         public string Level { get; set; } = string.Empty;
+
         public bool IsActive { get; set; }
     }
 

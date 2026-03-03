@@ -24,6 +24,13 @@ namespace EnglishCenter.API.Models
 
         [MaxLength(500)]
         public string Address { get; set; } = string.Empty;
+        [MaxLength(30)]
+        public string Username { get; set; } = string.Empty;
+        [MaxLength(500)]
+        public string Password { get; set; } = string.Empty;
+        
+        [MaxLength(1000)]
+        public string Avatar { get; set; } = string.Empty;
 
         public DateTime EnrollmentDate { get; set; }
 

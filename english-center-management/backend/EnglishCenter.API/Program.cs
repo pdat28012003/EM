@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
 using EnglishCenter.API.Converters;
+using EnglishCenter.API.Services;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +23,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
+
+// Register custom services
+builder.Services.AddScoped<IMappingService, MappingService>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -43,7 +49,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Commented for testing
+
+app.UseStaticFiles();
 
 app.UseCors("AllowAll");
 
