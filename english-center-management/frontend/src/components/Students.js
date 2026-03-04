@@ -13,13 +13,17 @@ import {
   IconButton,
   Chip,
   MenuItem,
+  Avatar,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, Delete, Visibility, CalendarMonth, AssignmentInd } from '@mui/icons-material';
+import { Add, Edit, Delete, Visibility, VisibilityOff, CalendarMonth, AssignmentInd, CloudUpload } from '@mui/icons-material';
 import { studentsAPI, enrollmentsAPI, classesAPI } from '../services/api';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -35,18 +39,24 @@ const Students = () => {
     phoneNumber: '',
     dateOfBirth: '',
     address: '',
+    username: '',
+    password: '',
+    avatar: '',
     level: 'Beginner',
   });
   const [enrollData, setEnrollData] = useState({
     classId: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
 
   const levels = ['Beginner', 'Elementary', 'Intermediate', 'Advanced'];
 
   useEffect(() => {
     loadStudents();
     loadClasses();
-  }, [searchTerm]);
+  }, [searchTerm, currentPage, pageSize]);
 
   const toDateInputValue = (value) => {
     if (!value) return '';
@@ -57,8 +67,14 @@ const Students = () => {
   const loadStudents = async () => {
     try {
       setLoading(true);
-      const response = await studentsAPI.getAll({ search: searchTerm, isActive: true });
-      setStudents(response.data);
+      const response = await studentsAPI.getAll({ 
+        search: searchTerm, 
+        isActive: true,
+        page: currentPage,
+        pageSize: pageSize
+      });
+      setStudents(response.data?.data || response.data?.Data || []); 
+      setTotalCount(response.data?.totalCount || response.data?.TotalCount || 0);
     } catch (error) {
       console.error('Error loading students:', error);
     } finally {
@@ -85,8 +101,12 @@ const Students = () => {
         phoneNumber: student.phoneNumber,
         dateOfBirth: toDateInputValue(student.dateOfBirth),
         address: student.address,
+        username: student.username,
+        password: '', // Không hiển thị password khi edit
+        avatar: student.avatar || '',
         level: student.level,
       });
+      setAvatarPreview(student.avatar || '');
     } else {
       setEditMode(false);
       setCurrentStudent(null);
@@ -96,9 +116,14 @@ const Students = () => {
         phoneNumber: '',
         dateOfBirth: '',
         address: '',
+        username: '',
+        password: '',
+        avatar: '',
         level: 'Beginner',
       });
+      setAvatarPreview('');
     }
+    setAvatarFile(null);
     setOpenDialog(true);
   };
 
@@ -135,25 +160,72 @@ const Students = () => {
     }));
   };
 
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatarFile(file);
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview('');
+    setFormData(prev => ({ ...prev, avatar: '' }));
+  };
+
   const handleEnrollChange = (e) => {
     setEnrollData({ classId: e.target.value });
   };
 
   const handleSubmit = async () => {
     try {
+      let submitData = { ...formData };
+      
+      // Handle avatar upload
+      if (avatarFile) {
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', avatarFile);
+        
+        try {
+          const uploadResponse = await fetch('/api/upload/avatar', {
+            method: 'POST',
+            body: formDataUpload,
+          });
+          
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            submitData.avatar = uploadResult.url;
+          } else {
+            throw new Error('Upload failed');
+          }
+        } catch (uploadError) {
+          console.error('Avatar upload error:', uploadError);
+          alert('Có lỗi xảy ra khi upload avatar. Vui lòng thử lại.');
+          return;
+        }
+      }
+      
       if (editMode) {
         await studentsAPI.update(currentStudent.studentId, {
-          ...formData,
+          ...submitData,
           isActive: currentStudent?.isActive ?? true,
         });
       } else {
-        await studentsAPI.create(formData);
+        await studentsAPI.create(submitData);
       }
       handleCloseDialog();
+      setCurrentPage(1); // Reset về trang 1 sau khi tạo/sửa
       loadStudents();
     } catch (error) {
       console.error('Error saving student:', error);
-      alert('Có lỗi xảy ra khi lưu thông tin học viên');
+      const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi lưu thông tin học viên';
+      alert(errorMessage);
     }
   };
 
@@ -179,16 +251,19 @@ const Students = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa học viên này?')) {
       try {
         await studentsAPI.delete(id);
+        setCurrentPage(1); // Reset về trang 1 sau khi xóa
         loadStudents();
       } catch (error) {
         console.error('Error deleting student:', error);
-        alert('Có lỗi xảy ra khi xóa học viên');
+        // Hiển thị chính xác error message từ API
+        const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi xóa học viên';
+        alert(errorMessage);
       }
     }
   };
 
   const columns = [
-    { field: 'studentId', headerName: 'ID', width: 70 },
+    // { field: 'studentId', headerName: 'ID', width: 70 },
     { field: 'fullName', headerName: 'Họ và Tên', width: 200 },
     { field: 'email', headerName: 'Email', width: 200 },
     { field: 'phoneNumber', headerName: 'Số Điện Thoại', width: 130 },
@@ -198,10 +273,40 @@ const Students = () => {
       width: 120,
       valueFormatter: (params) => new Date(params.value).toLocaleDateString('vi-VN'),
     },
+    { field: 'address', headerName: 'Địa Chỉ', width: 180 },
+    { field: 'username', headerName: 'Tên Đăng Nhập', width: 130 },
+    { field: 'avatar', headerName: 'Avatar', width: 80,
+      renderCell: (params) => (
+        params.value ? (
+          <Box display="flex" justifyContent="center" alignItems="center" p={1}>
+            <img 
+              src={params.value.startsWith('http') ? params.value : `http://localhost:5000${params.value}`} 
+              alt="Avatar" 
+              onError={(e) => {
+                console.log('Avatar load error:', params.value);
+                e.target.onerror = null;
+                e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUiIGhlaWdodD0iMzUiIHZpZXdCb3g9IjAgMCAzNSAzNSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTcuNSIgY3k9IjE3LjUiIHI9IjE3LjUiIGZpbGw9IiNGNUY1RjUiLz4KPHR5cG8gZD0iTTE3LjUgMTJDMTkuOTg5MyAxMiAyMiAxNC4wMTA3IDIyIDE2LjVDMjIgMTguOTg5MyAxOS45ODkzIDIxIDE3LjUgMjFDMTUuMDEwNyAyMSAxMyAxOC45ODkzIDEzIDE2LjVDMTMgMTQuMDEwNyAxNS4wMTA3IDEyIDE3LjUgMTJaIiBmaWxsPSIjOTk5OTk5Ii8+Cjwvc3ZnPgo=';
+              }}
+              style={{ 
+                width: 35, 
+                height: 35, 
+                borderRadius: '50%', 
+                objectFit: 'cover',
+                border: '1px solid #e0e0e0'
+              }}
+            />
+          </Box>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" p={1}>
+            <Typography variant="caption" color="textSecondary">Không có</Typography>
+          </Box>
+        )
+      ),
+    },
     {
       field: 'level',
       headerName: 'Trình Độ',
-      width: 130,
+      width: 120,
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -221,7 +326,7 @@ const Students = () => {
     {
       field: 'isActive',
       headerName: 'Trạng Thái',
-      width: 120,
+      width: 100,
       renderCell: (params) => (
         <Chip
           label={params.value ? 'Đang học' : 'Ngưng học'}
@@ -233,7 +338,7 @@ const Students = () => {
     {
       field: 'actions',
       headerName: 'Thao Tác',
-      width: 250,
+      width: 200,
       renderCell: (params) => (
         <Box>
           <IconButton
@@ -303,8 +408,16 @@ const Students = () => {
           columns={columns}
           getRowId={(row) => row.studentId}
           loading={loading}
-          pageSize={10}
+          rowCount={totalCount}
+          page={currentPage - 1} // DataGrid uses 0-based indexing
+          pageSize={pageSize}
+          onPageChange={(newPage) => setCurrentPage(newPage + 1)}
+          onPageSizeChange={(newPageSize) => {
+            setPageSize(newPageSize);
+            setCurrentPage(1); // Reset về trang 1 khi thay đổi pageSize
+          }}
           rowsPerPageOptions={[10, 25, 50]}
+          paginationMode="server"
           disableSelectionOnClick
         />
       </Paper>
@@ -360,6 +473,82 @@ const Students = () => {
               rows={2}
               fullWidth
             />
+            <TextField
+              name="username"
+              label="Tên Đăng Nhập"
+              value={formData.username}
+              onChange={handleInputChange}
+              required
+              fullWidth
+            />
+            <TextField
+              name="password"
+              label="Mật Khẩu"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleInputChange}
+              required={!editMode} // Bắt buộc khi tạo mới, không bắt buộc khi edit
+              fullWidth
+              helperText={editMode ? "Để trống nếu không muốn đổi mật khẩu" : ""}
+              InputProps={{
+                endAdornment: (
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                    sx={{ mr: 1 }}
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                ),
+              }}
+            />
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Avatar
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {avatarPreview ? (
+                  <>
+                    <Avatar
+                      src={avatarPreview}
+                      sx={{ width: 80, height: 80 }}
+                    />
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={handleRemoveAvatar}
+                      size="small"
+                    >
+                      Xóa Avatar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Avatar sx={{ width: 80, height: 80, bgcolor: 'grey.300' }}>
+                      <CloudUpload sx={{ fontSize: 40, color: 'grey.600' }} />
+                    </Avatar>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={<CloudUpload />}
+                    >
+                      Chọn Ảnh
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                      />
+                    </Button>
+                  </>
+                )}
+              </Box>
+              {avatarFile && (
+                <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
+                  Đã chọn: {avatarFile.name}
+                </Typography>
+              )}
+            </Box>
             <TextField
               name="level"
               label="Trình Độ"
