@@ -37,16 +37,23 @@ const Rooms = () => {
     availableEndTime: '21:00',
     isActive: true,
   });
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = useState(0);
 
   useEffect(() => {
     loadRooms();
-  }, []);
+  }, [paginationModel]);
 
   const loadRooms = async () => {
     try {
       setLoading(true);
-      const response = await roomsAPI.getAll();
-      setRooms(response.data);
+      const response = await roomsAPI.getAll({
+        page: paginationModel.page + 1,
+        pageSize: paginationModel.pageSize,
+      });
+      
+      setRooms(response.data.data);
+      setRowCount(response.data.totalCount);
     } catch (error) {
       console.error('Error loading rooms:', error);
     } finally {
@@ -122,6 +129,7 @@ const Rooms = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa phòng học này?')) {
       try {
         await roomsAPI.delete(id);
+        setPaginationModel(prev => ({ ...prev, page: 0 }));
         loadRooms();
       } catch (error) {
         console.error('Error deleting room:', error);
@@ -199,8 +207,11 @@ const Rooms = () => {
           columns={columns}
           getRowId={(row) => row.roomId}
           loading={loading}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[1, 5, 10, 25, 50]}
+          rowCount={rowCount}
+          paginationMode="server"
           disableSelectionOnClick
         />
       </Paper>

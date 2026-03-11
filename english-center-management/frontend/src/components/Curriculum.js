@@ -1,4 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Container,
+  Paper,
+  Typography,
+  Button,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Box,
+  IconButton,
+  Chip,
+} from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
+import { Add, Edit, Delete, Info, People } from '@mui/icons-material';
 import { curriculumAPI, classesAPI, teachersAPI } from '../services/api';
 
 const Curriculum = () => {
@@ -10,6 +26,8 @@ const Curriculum = () => {
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = useState(0);
   const [formData, setFormData] = useState({
     curriculumName: '',
     classId: '',
@@ -22,13 +40,18 @@ const Curriculum = () => {
     loadCurriculums();
     loadClasses();
     loadTeachers();
-  }, []);
-
+  }, [paginationModel]);
+  
   const loadCurriculums = async () => {
     try {
-      const response = await curriculumAPI.getAll();
+      const response = await curriculumAPI.getAll({
+        page: paginationModel.page + 1,
+        pageSize: paginationModel.pageSize,
+      });
       console.log('Curriculums Response:', response.data);
-      setCurriculums(response.data);
+      const curriculumData = Array.isArray(response.data?.Data) ? response.data.Data : Array.isArray(response.data?.data) ? response.data.data : [];
+      setCurriculums(curriculumData);
+      setRowCount(response.data?.TotalCount || response.data?.totalCount || 0);
     } catch (error) {
       console.error('Error loading curriculums:', error);
       console.error('Error details:', error.response?.data);
@@ -48,7 +71,8 @@ const Curriculum = () => {
   const loadTeachers = async () => {
     try {
       const response = await teachersAPI.getAll({ isActive: true });
-      setTeachers(response.data);
+      const teachersData = response.data?.Data || response.data?.data || response.data || [];
+      setTeachers(Array.isArray(teachersData) ? teachersData : []);
     } catch (error) {
       console.error('Error loading teachers:', error);
       alert('Lỗi khi tải dữ liệu giáo viên');
@@ -100,6 +124,7 @@ const Curriculum = () => {
       loadCurriculums();
       setShowModal(false);
       resetForm();
+      setPaginationModel(prev => ({ ...prev, page: 0 }));
     } catch (error) {
       console.error('Error saving curriculum:', error);
       console.error('Error details:', error.response?.data);
@@ -123,6 +148,7 @@ const Curriculum = () => {
     if (window.confirm('Are you sure you want to delete this curriculum?')) {
       try {
         await curriculumAPI.delete(id);
+        setPaginationModel(prev => ({ ...prev, page: 0 }));
         loadCurriculums();
       } catch (error) {
         console.error('Error deleting curriculum:', error);
@@ -186,6 +212,7 @@ const Curriculum = () => {
       loadCurriculums();
       setShowTeacherModal(false);
       alert('Cập nhật giáo viên thành công');
+      setPaginationModel(prev => ({ ...prev, page: 0 }));
     } catch (error) {
       console.error('Error saving teachers:', error);
       alert('Lỗi khi cập nhật giáo viên: ' + (error.response?.data?.message || error.message));
@@ -203,71 +230,110 @@ const Curriculum = () => {
     setEditingCurriculum(null);
   };
 
+  const columns = [
+    { field: 'curriculumId', headerName: 'ID', width: 70 },
+    { field: 'curriculumName', headerName: 'Tên chương trình', width: 200 },
+    { field: 'className', headerName: 'Lớp học', width: 150 },
+    {
+      field: 'startDate',
+      headerName: 'Ngày bắt đầu',
+      width: 130,
+      valueFormatter: (params) => new Date(params.value).toLocaleDateString('vi-VN'),
+    },
+    {
+      field: 'endDate',
+      headerName: 'Ngày kết thúc',
+      width: 130,
+      valueFormatter: (params) => new Date(params.value).toLocaleDateString('vi-VN'),
+    },
+    {
+      field: 'status',
+      headerName: 'Trạng thái',
+      width: 120,
+      renderCell: (params) => (
+        <Chip
+          label={params.value}
+          color={params.value === 'Active' ? 'success' : params.value === 'Draft' ? 'default' : 'error'}
+          size="small"
+        />
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Hành động',
+      width: 300,
+      sortable: false,
+      renderCell: (params) => (
+        <Box>
+          <IconButton
+            size="small"
+            color="info"
+            onClick={() => window.location.href = `/curriculum/${params.row.curriculumId}`}
+            title="Chi tiết"
+          >
+            <Info />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="success"
+            onClick={() => openTeacherModal(params.row)}
+            title="Quản lý giáo viên"
+          >
+            <People />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={() => handleEdit(params.row)}
+            title="Sửa"
+          >
+            <Edit />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => handleDelete(params.row.curriculumId)}
+            title="Xóa"
+          >
+            <Delete />
+          </IconButton>
+        </Box>
+      ),
+    },
+  ];
+
   return (
-    <div className="curriculum-container">
-      <div className="curriculum-header">
-        <h2>Quản lý Chương trình học</h2>
-        <button 
-          className="btn btn-primary"
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" fontWeight="bold">
+          Quản lý Chương trình học
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
           onClick={() => {
             resetForm();
             setShowModal(true);
           }}
         >
           Tạo chương trình mới
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      <table className="curriculum-table">
-        <thead>
-          <tr>
-            <th>Tên chương trình</th>
-            <th>Lớp học</th>
-            <th>Ngày bắt đầu</th>
-            <th>Ngày kết thúc</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {curriculums.map((curriculum) => (
-            <tr key={curriculum.curriculumId}>
-              <td>{curriculum.curriculumName}</td>
-              <td>{curriculum.className}</td>
-              <td>{new Date(curriculum.startDate).toLocaleDateString()}</td>
-              <td>{new Date(curriculum.endDate).toLocaleDateString()}</td>
-              <td>{curriculum.status}</td>
-              <td>
-                <button 
-                  className="btn btn-sm btn-info"
-                  onClick={() => window.location.href = `/curriculum/${curriculum.curriculumId}`}
-                >
-                  Chi tiết
-                </button>
-                <button 
-                  className="btn btn-sm btn-success"
-                  onClick={() => openTeacherModal(curriculum)}
-                  title="Quản lý giáo viên"
-                >
-                  👨‍🏫 Giáo viên
-                </button>
-                <button 
-                  className="btn btn-sm btn-warning"
-                  onClick={() => handleEdit(curriculum)}
-                >
-                  Sửa
-                </button>
-                <button 
-                  className="btn btn-sm btn-danger"
-                  onClick={() => handleDelete(curriculum.curriculumId)}
-                >
-                  Xóa
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Paper sx={{ height: 600, width: '100%' }}>
+        <DataGrid
+          rows={curriculums}
+          columns={columns}
+          getRowId={(row) => row.curriculumId}
+          loading={false}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[1, 10, 25, 50]}
+          rowCount={rowCount}
+          paginationMode="server"
+          disableSelectionOnClick
+        />
+      </Paper>
 
       {showModal && (
         <div className="modal">
@@ -394,38 +460,6 @@ const Curriculum = () => {
       )}
 
       <style>{`
-        .curriculum-container {
-          padding: 20px;
-        }
-
-        .curriculum-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-
-        .curriculum-table {
-          width: 100%;
-          border-collapse: collapse;
-          background: white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .curriculum-table thead {
-          background-color: #f8f9fa;
-        }
-
-        .curriculum-table th, .curriculum-table td {
-          padding: 12px;
-          text-align: left;
-          border-bottom: 1px solid #dee2e6;
-        }
-
-        .curriculum-table tr:hover {
-          background-color: #f5f5f5;
-        }
-
         .modal {
           display: flex;
           position: fixed;
@@ -504,39 +538,9 @@ const Curriculum = () => {
           color: white;
         }
 
-        .btn-primary:hover {
-          background-color: #0056b3;
-        }
-
         .btn-secondary {
           background-color: #6c757d;
           color: white;
-        }
-
-        .btn-warning {
-          background-color: #ffc107;
-          color: black;
-        }
-
-        .btn-danger {
-          background-color: #dc3545;
-          color: white;
-        }
-
-        .btn-info {
-          background-color: #17a2b8;
-          color: white;
-        }
-
-        .btn-success {
-          background-color: #28a745;
-          color: white;
-        }
-
-        .btn-sm {
-          padding: 4px 8px;
-          font-size: 12px;
-          margin-right: 5px;
         }
 
         .teacher-list {
@@ -579,7 +583,7 @@ const Curriculum = () => {
           margin-left: 5px;
         }
       `}</style>
-    </div>
+    </Container>
   );
 };
 

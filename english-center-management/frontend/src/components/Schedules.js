@@ -44,7 +44,7 @@ const Schedules = () => {
     try {
       setLoadingStudents(true);
       const response = await studentsAPI.getAll({ isActive: true });
-      setStudents(response.data);
+      setStudents(Array.isArray(response.data?.data) ? response.data.data : []);
     } catch (err) {
       console.error('Error loading students:', err);
       setError('Không thể tải danh sách học viên');

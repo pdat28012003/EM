@@ -23,6 +23,8 @@ const Classes = () => {
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
     className: '',
@@ -36,19 +38,24 @@ const Classes = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [paginationModel]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [classesRes, coursesRes, teachersRes] = await Promise.all([
-        classesAPI.getAll(),
+        classesAPI.getAll({
+          page: paginationModel.page + 1,
+          pageSize: paginationModel.pageSize,
+        }),
         coursesAPI.getAll({ isActive: true }),
         teachersAPI.getAll({ isActive: true }),
       ]);
-      setClasses(classesRes.data);
-      setCourses(coursesRes.data);
-      setTeachers(teachersRes.data);
+      const classesData = Array.isArray(classesRes.data?.data) ? classesRes.data.data : [];
+      setClasses(classesData);
+      setCourses(Array.isArray(coursesRes.data?.data) ? coursesRes.data.data : []);
+      setTeachers(Array.isArray(teachersRes.data?.data) ? teachersRes.data.data : []);
+      setRowCount(classesRes.data?.totalCount || classesData.length);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -90,6 +97,7 @@ const Classes = () => {
         maxStudents: parseInt(formData.maxStudents),
       });
       handleCloseDialog();
+      setPaginationModel(prev => ({ ...prev, page: 0 }));
       loadData();
     } catch (error) {
       console.error('Error saving class:', error);
@@ -162,8 +170,11 @@ const Classes = () => {
           columns={columns}
           getRowId={(row) => row.classId}
           loading={loading}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[1, 10, 25, 50]}
+          rowCount={rowCount}
+          paginationMode="server"
           disableSelectionOnClick
         />
       </Paper>

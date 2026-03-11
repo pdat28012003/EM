@@ -24,10 +24,13 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <returns>List of curriculums (Danh sách khung chương trình)</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetAllCurriculums()
+        public async Task<ActionResult<PagedResult<CurriculumDto>>> GetAllCurriculums(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
+                var totalCount = await _context.Curriculums.CountAsync();
                 var curriculums = await _context.Curriculums
                     .Include(c => c.Class)
                     .Include(c => c.CurriculumDays)
@@ -40,9 +43,22 @@ namespace EnglishCenter.API.Controllers
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Teacher)
                     .Include(c => c.ParticipantTeachers)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
-                return Ok(curriculums.Select(c => MapCurriculumToDto(c)));
+                var curriculumDtos = curriculums.Select(c => MapCurriculumToDto(c)).ToList();
+
+                var pagedResult = new PagedResult<CurriculumDto>
+                {
+                    Data = curriculumDtos,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                };
+
+                return Ok(pagedResult);
             }
             catch (Exception ex)
             {

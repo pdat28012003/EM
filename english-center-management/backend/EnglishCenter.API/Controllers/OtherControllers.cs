@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Services;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -12,19 +13,27 @@ namespace EnglishCenter.API.Controllers
     public class TeachersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPasswordService _passwordService;
 
-        public TeachersController(ApplicationDbContext context)
+        public TeachersController(ApplicationDbContext context, IPasswordService passwordService)
         {
             _context = context;
+            _passwordService = passwordService;
         }
 
         /// <summary>
         /// Gets all teachers. (Lấy danh sách tất cả giáo viên.)
+
         /// </summary>
         /// <param name="isActive">Status (Trạng thái hoạt động)</param>
-        /// <returns>List of teachers (Danh sách giáo viên)</returns>
+        /// <param name="pageNumber">Page number (Số trang)</param>
+        /// <param name="pageSize">Page size (Số lượng mỗi trang)</param>
+        /// <returns>Paged list of teachers (Danh sách giáo viên có phân trang)</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TeacherDto>>> GetTeachers([FromQuery] bool? isActive = null)
+        public async Task<ActionResult<PagedResult<TeacherDto>>> GetTeachers(
+            [FromQuery] bool? isActive = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             var query = _context.Teachers.AsQueryable();
 
@@ -33,13 +42,19 @@ namespace EnglishCenter.API.Controllers
                 query = query.Where(t => t.IsActive == isActive.Value);
             }
 
+            var totalCount = await query.CountAsync();
+
             var teachers = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(t => new TeacherDto
                 {
                     TeacherId = t.TeacherId,
                     FullName = t.FullName,
                     Email = t.Email,
                     PhoneNumber = t.PhoneNumber,
+                    Username = t.Username,
+                    Avatar = t.Avatar,
                     Specialization = t.Specialization,
                     Qualifications = t.Qualifications,
                     HireDate = t.HireDate,
@@ -47,8 +62,17 @@ namespace EnglishCenter.API.Controllers
                     IsActive = t.IsActive
                 })
                 .ToListAsync();
+        var pagedResult = new PagedResult<TeacherDto>
+                {
+                    Data = teachers,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                };
 
-            return Ok(teachers);
+
+            return Ok(pagedResult);
         }
 
         /// <summary>
@@ -67,6 +91,8 @@ namespace EnglishCenter.API.Controllers
                     FullName = t.FullName,
                     Email = t.Email,
                     PhoneNumber = t.PhoneNumber,
+                    Username = t.Username,
+                    Avatar = t.Avatar,
                     Specialization = t.Specialization,
                     Qualifications = t.Qualifications,
                     HireDate = t.HireDate,
@@ -74,6 +100,7 @@ namespace EnglishCenter.API.Controllers
                     IsActive = t.IsActive
                 })
                 .FirstOrDefaultAsync();
+                
 
             if (teacher == null)
             {
@@ -96,6 +123,9 @@ namespace EnglishCenter.API.Controllers
                 FullName = dto.FullName,
                 Email = dto.Email,
                 PhoneNumber = dto.PhoneNumber,
+                Username = dto.Username,
+                Password = _passwordService.HashPassword(dto.Password),
+                Avatar = dto.Avatar,
                 Specialization = dto.Specialization,
                 Qualifications = dto.Qualifications,
                 HireDate = DateTime.Now,
@@ -112,6 +142,8 @@ namespace EnglishCenter.API.Controllers
                 FullName = teacher.FullName,
                 Email = teacher.Email,
                 PhoneNumber = teacher.PhoneNumber,
+                Username= teacher.Username,
+                Avatar = teacher.Avatar,
                 Specialization = teacher.Specialization,
                 Qualifications = teacher.Qualifications,
                 HireDate = teacher.HireDate,
@@ -293,9 +325,14 @@ namespace EnglishCenter.API.Controllers
         /// Gets all classes. (Lấy danh sách tất cả các lớp học.)
         /// </summary>
         /// <param name="status">Class status filter (Lọc theo trạng thái lớp học)</param>
-        /// <returns>List of classes (Danh sách lớp học)</returns>
+        /// <param name="page">Page number (Số trang)</param>
+        /// <param name="pageSize">Page size (Số lượng mỗi trang)</param>
+        /// <returns>Paged list of classes (Danh sách lớp học có phân trang)</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ClassDto>>> GetClasses([FromQuery] string? status = null)
+        public async Task<ActionResult<PagedResult<ClassDto>>> GetClasses(
+            [FromQuery] string? status = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             var query = _context.Classes
                 .Include(c => c.Course)
@@ -308,7 +345,11 @@ namespace EnglishCenter.API.Controllers
                 query = query.Where(c => c.Status == status);
             }
 
+            var totalCount = await query.CountAsync();
+
             var classes = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(c => new ClassDto
                 {
                     ClassId = c.ClassId,
@@ -326,7 +367,16 @@ namespace EnglishCenter.API.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(classes);
+            var pagedResult = new PagedResult<ClassDto>
+            {
+                Data = classes,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            };
+
+            return Ok(pagedResult);
         }
 
         /// <summary>

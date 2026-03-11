@@ -42,8 +42,8 @@ const Payments = () => {
         paymentsAPI.getAll(),
         studentsAPI.getAll({ isActive: true }),
       ]);
-      setPayments(paymentsRes.data);
-      setStudents(studentsRes.data);
+      setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
+      setStudents(Array.isArray(studentsRes.data?.data) ? studentsRes.data.data : []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {

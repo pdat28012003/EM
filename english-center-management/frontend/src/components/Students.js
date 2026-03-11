@@ -17,13 +17,12 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, Visibility, VisibilityOff, CalendarMonth, AssignmentInd, CloudUpload } from '@mui/icons-material';
-import { studentsAPI, enrollmentsAPI, classesAPI } from '../services/api';
+import { studentsAPI, enrollmentsAPI, classesAPI, UPLOAD_URL } from '../services/api';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -56,7 +55,7 @@ const Students = () => {
   useEffect(() => {
     loadStudents();
     loadClasses();
-  }, [searchTerm, currentPage, pageSize]);
+  }, [searchTerm, paginationModel]);
 
   const toDateInputValue = (value) => {
     if (!value) return '';
@@ -70,8 +69,8 @@ const Students = () => {
       const response = await studentsAPI.getAll({ 
         search: searchTerm, 
         isActive: true,
-        page: currentPage,
-        pageSize: pageSize
+        page: paginationModel.page + 1,
+        pageSize: paginationModel.pageSize
       });
       setStudents(response.data?.data || response.data?.Data || []); 
       setTotalCount(response.data?.totalCount || response.data?.TotalCount || 0);
@@ -85,7 +84,8 @@ const Students = () => {
   const loadClasses = async () => {
     try {
       const response = await classesAPI.getAll({ status: 'Active' });
-      setClasses(response.data);
+      const classesData = response.data?.Data || response.data?.data || response.data || [];
+      setClasses(Array.isArray(classesData) ? classesData : []);
     } catch (error) {
       console.error('Error loading classes:', error);
     }
@@ -193,7 +193,7 @@ const Students = () => {
         formDataUpload.append('file', avatarFile);
         
         try {
-          const uploadResponse = await fetch('/api/upload/avatar', {
+          const uploadResponse = await fetch(UPLOAD_URL, {
             method: 'POST',
             body: formDataUpload,
           });
@@ -220,7 +220,7 @@ const Students = () => {
         await studentsAPI.create(submitData);
       }
       handleCloseDialog();
-      setCurrentPage(1); // Reset về trang 1 sau khi tạo/sửa
+      setPaginationModel(prev => ({ ...prev, page: 0 })); // Reset về trang 1 sau khi tạo/sửa
       loadStudents();
     } catch (error) {
       console.error('Error saving student:', error);
@@ -251,7 +251,7 @@ const Students = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa học viên này?')) {
       try {
         await studentsAPI.delete(id);
-        setCurrentPage(1); // Reset về trang 1 sau khi xóa
+        setPaginationModel(prev => ({ ...prev, page: 0 })); // Reset về trang 1 sau khi xóa
         loadStudents();
       } catch (error) {
         console.error('Error deleting student:', error);
@@ -409,14 +409,9 @@ const Students = () => {
           getRowId={(row) => row.studentId}
           loading={loading}
           rowCount={totalCount}
-          page={currentPage - 1} // DataGrid uses 0-based indexing
-          pageSize={pageSize}
-          onPageChange={(newPage) => setCurrentPage(newPage + 1)}
-          onPageSizeChange={(newPageSize) => {
-            setPageSize(newPageSize);
-            setCurrentPage(1); // Reset về trang 1 khi thay đổi pageSize
-          }}
-          rowsPerPageOptions={[10, 25, 50]}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[1, 10, 25, 50]}
           paginationMode="server"
           disableSelectionOnClick
         />
