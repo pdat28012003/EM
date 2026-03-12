@@ -109,6 +109,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseStaticFiles();
 // Log the Swagger URL
 app.Logger.LogInformation("Swagger UI is available at: http://localhost:5000/swagger");
 app.Logger.LogInformation("Or: https://localhost:5001/swagger (if using HTTPS)");

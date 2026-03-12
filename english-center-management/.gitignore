@@ -59,7 +59,7 @@ node_modules/
 
 # Production
 /build
-
+wwwroot/
 # Misc
 .DS_Store
 .env

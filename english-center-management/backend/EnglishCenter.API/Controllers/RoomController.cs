@@ -24,12 +24,32 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <returns>List of rooms (Danh sách phòng học)</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<RoomDto>>> GetAllRooms()
+        public async Task<ActionResult<PagedResult<RoomDto>>> GetAllRooms(
+            [FromQuery] int page =1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
-                var rooms = await _context.Rooms.ToListAsync();
-                return Ok(rooms.Select(r => MapToDto(r)));
+                if(page < 1) page = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 10;
+                
+               var totalCount = await _context.Rooms.CountAsync();
+
+               var room = await _context.Rooms
+               .Skip((page -1) * pageSize)
+               .Take(pageSize)
+               .ToListAsync();
+               
+            var pagedResult = new PagedResult<RoomDto>
+                {
+                   Data = room.Select(r => MapToDto(r)).ToList(),
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                };
+                
+            return Ok(pagedResult);
             }
             catch (Exception ex)
             {

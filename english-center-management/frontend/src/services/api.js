@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const UPLOAD_URL = process.env.REACT_APP_UPLOAD_URL || 'http://localhost:5000/api/upload/avatar';
 
 const toCamelCase = (key) => {
   if (!key) return key;
@@ -116,7 +117,7 @@ export const dashboardAPI = {
 
 // Curriculum API
 export const curriculumAPI = {
-  getAll: () => api.get('/curriculum'),
+  getAll: (params) => api.get('/curriculum', { params }),
   getById: (id) => api.get(`/curriculum/${id}`),
   getByClass: (classId) => api.get(`/curriculum/class/${classId}`),
   create: (data) => api.post('/curriculum', data),
@@ -135,7 +136,7 @@ export const curriculumAPI = {
 
 // Rooms API
 export const roomsAPI = {
-  getAll: () => api.get('/room'),
+  getAll: (params) => api.get('/room', { params }),
   getById: (id) => api.get(`/room/${id}`),
   create: (data) => api.post('/room', data),
   update: (id, data) => api.put(`/room/${id}`, data),
@@ -153,3 +154,4 @@ export const attendanceAPI = {
 };
 
 export default api;
+export { UPLOAD_URL };
