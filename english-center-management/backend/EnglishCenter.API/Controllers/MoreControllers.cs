@@ -154,11 +154,15 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="startDate">Start date filter (Ngày bắt đầu)</param>
         /// <param name="endDate">End date filter (Ngày kết thúc)</param>
-        /// <returns>List of payments (Danh sách thanh toán)</returns>
+        /// <param name="page">Page number (Số trang)</param>
+        /// <param name="pageSize">Page size (Kích thước trang)</param>
+        /// <returns>Paginated list of payments (Danh sách thanh toán phân trang)</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PaymentDto>>> GetPayments(
+        public async Task<ActionResult<PagedResult<PaymentDto>>> GetPayments(
             [FromQuery] DateTime? startDate = null,
-            [FromQuery] DateTime? endDate = null)
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             var query = _context.Payments
                 .Include(p => p.Student)
@@ -174,6 +178,8 @@ namespace EnglishCenter.API.Controllers
                 query = query.Where(p => p.PaymentDate <= endDate.Value);
             }
 
+            var totalCount = await query.CountAsync();
+            
             var payments = await query
                 .Select(p => new PaymentDto
                 {
@@ -187,9 +193,18 @@ namespace EnglishCenter.API.Controllers
                     Notes = p.Notes
                 })
                 .OrderByDescending(p => p.PaymentDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(payments);
+            return Ok(new PagedResult<PaymentDto>
+            {
+                Data = payments,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            });
         }
 
         /// <summary>
@@ -335,13 +350,20 @@ namespace EnglishCenter.API.Controllers
         /// <summary>
         /// Gets all test scores. (Lấy danh sách điểm số.)
         /// </summary>
-        /// <returns>List of test scores (Danh sách điểm thi)</returns>
+        /// <param name="page">Page number (Số trang)</param>
+        /// <param name="pageSize">Page size (Kích thước trang)</param>
+        /// <returns>Paginated list of test scores (Danh sách điểm thi phân trang)</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TestScoreDto>>> GetTestScores()
+        public async Task<ActionResult<PagedResult<TestScoreDto>>> GetTestScores([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var testScores = await _context.TestScores
+            var query = _context.TestScores
                 .Include(ts => ts.Student)
                 .Include(ts => ts.Class)
+                .AsQueryable();
+
+            var totalCount = await query.CountAsync();
+            
+            var testScores = await query
                 .Select(ts => new TestScoreDto
                 {
                     TestScoreId = ts.TestScoreId,
@@ -359,9 +381,56 @@ namespace EnglishCenter.API.Controllers
                     Comments = ts.Comments
                 })
                 .OrderByDescending(ts => ts.TestDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(testScores);
+            return Ok(new PagedResult<TestScoreDto>
+            {
+                Data = testScores,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            });
+        }
+
+        /// <summary>
+        /// Gets a test score by ID. (Lấy điểm thi theo ID.)
+        /// </summary>
+        /// <param name="id">Test score ID (ID điểm thi)</param>
+        /// <returns>Test score details (Chi tiết điểm thi)</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<TestScoreDto>> GetTestScore(int id)
+        {
+            var testScore = await _context.TestScores
+                .Include(ts => ts.Student)
+                .Include(ts => ts.Class)
+                .Where(ts => ts.TestScoreId == id)
+                .Select(ts => new TestScoreDto
+                {
+                    TestScoreId = ts.TestScoreId,
+                    StudentId = ts.StudentId,
+                    StudentName = ts.Student.FullName,
+                    ClassId = ts.ClassId,
+                    ClassName = ts.Class.ClassName,
+                    TestName = ts.TestName,
+                    ListeningScore = ts.ListeningScore,
+                    ReadingScore = ts.ReadingScore,
+                    WritingScore = ts.WritingScore,
+                    SpeakingScore = ts.SpeakingScore,
+                    TotalScore = ts.TotalScore,
+                    TestDate = ts.TestDate,
+                    Comments = ts.Comments
+                })
+                .FirstOrDefaultAsync();
+
+            if (testScore == null)
+            {
+                return NotFound(new { message = "Test score not found" });
+            }
+
+            return Ok(testScore);
         }
 
         /// <summary>
@@ -393,6 +462,75 @@ namespace EnglishCenter.API.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetTestScores), new { id = testScore.TestScoreId }, testScore);
+        }
+
+        /// <summary>
+        /// Updates a test score. (Cập nhật điểm thi.)
+        /// </summary>
+        /// <param name="id">Test score ID (ID điểm thi)</param>
+        /// <param name="dto">Test score update data (Dữ liệu cập nhật điểm thi)</param>
+        /// <returns>Updated test score (Thông tin điểm thi đã cập nhật)</returns>
+        [HttpPut("{id}")]
+        public async Task<ActionResult<TestScoreDto>> UpdateTestScore(int id, UpdateTestScoreDto dto)
+        {
+            var testScore = await _context.TestScores.FindAsync(id);
+            if (testScore == null)
+            {
+                return NotFound(new { message = "Test score not found" });
+            }
+
+            testScore.ListeningScore = dto.ListeningScore;
+            testScore.ReadingScore = dto.ReadingScore;
+            testScore.WritingScore = dto.WritingScore;
+            testScore.SpeakingScore = dto.SpeakingScore;
+            testScore.TotalScore = (dto.ListeningScore + dto.ReadingScore + dto.WritingScore + dto.SpeakingScore) / 4;
+            testScore.Comments = dto.Comments;
+
+            await _context.SaveChangesAsync();
+
+            var updatedTestScore = await _context.TestScores
+                .Include(ts => ts.Student)
+                .Include(ts => ts.Class)
+                .Where(ts => ts.TestScoreId == id)
+                .Select(ts => new TestScoreDto
+                {
+                    TestScoreId = ts.TestScoreId,
+                    StudentId = ts.StudentId,
+                    StudentName = ts.Student.FullName,
+                    ClassId = ts.ClassId,
+                    ClassName = ts.Class.ClassName,
+                    TestName = ts.TestName,
+                    ListeningScore = ts.ListeningScore,
+                    ReadingScore = ts.ReadingScore,
+                    WritingScore = ts.WritingScore,
+                    SpeakingScore = ts.SpeakingScore,
+                    TotalScore = ts.TotalScore,
+                    TestDate = ts.TestDate,
+                    Comments = ts.Comments
+                })
+                .FirstOrDefaultAsync();
+
+            return Ok(updatedTestScore);
+        }
+
+        /// <summary>
+        /// Deletes a test score. (Xóa điểm thi.)
+        /// </summary>
+        /// <param name="id">Test score ID (ID điểm thi)</param>
+        /// <returns>No content (Không có nội dung)</returns>
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteTestScore(int id)
+        {
+            var testScore = await _context.TestScores.FindAsync(id);
+            if (testScore == null)
+            {
+                return NotFound(new { message = "Test score not found" });
+            }
+
+            _context.TestScores.Remove(testScore);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 

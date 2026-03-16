@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { curriculumAPI, roomsAPI, teachersAPI } from '../services/api';
+import { curriculumAPI, roomsAPI, teachersAPI } from '../../services/api';
 
 const CurriculumDetail = () => {
   const { curriculumId } = useParams();

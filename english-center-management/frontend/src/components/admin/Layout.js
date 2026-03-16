@@ -12,6 +12,9 @@ import {
   ListItemText,
   Toolbar,
   Typography,
+  Button,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -25,8 +28,11 @@ import {
   LibraryBooks,
   MeetingRoom as Room,
   CheckCircle,
+  AccountCircle,
+  Logout,
 } from '@mui/icons-material';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { authAPI } from '../../services/api';
 
 const drawerWidth = 240;
 
@@ -45,10 +51,35 @@ const menuItems = [
 
 const Layout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (err) {
+      // Continue with logout even if API call fails
+      console.error('Logout API failed:', err);
+    } finally {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('user');
+      navigate('/login');
+      handleMenuClose();
+    }
   };
 
   const drawer = (
@@ -110,9 +141,28 @@ const Layout = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Hệ Thống Quản Lý Trung Tâm Tiếng Anh
           </Typography>
+          <Button
+            color="inherit"
+            startIcon={<AccountCircle />}
+            onClick={handleMenuClick}
+            sx={{ textTransform: 'none' }}
+          >
+            Admin
+          </Button>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            onClick={handleMenuClose}
+          >
+            <MenuItem onClick={handleLogout}>
+              <Logout sx={{ mr: 1 }} />
+              Đăng xuất
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       <Box

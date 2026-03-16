@@ -24,13 +24,8 @@ namespace EnglishCenter.API.Models
 
         [MaxLength(500)]
         public string Address { get; set; } = string.Empty;
-        [MaxLength(30)]
-        public string Username { get; set; } = string.Empty;
         [MaxLength(500)]
         public string Password { get; set; } = string.Empty;
-        
-        [MaxLength(1000)]
-        public string Avatar { get; set; } = string.Empty;
 
         public DateTime EnrollmentDate { get; set; }
 
@@ -39,7 +34,12 @@ namespace EnglishCenter.API.Models
 
         public bool IsActive { get; set; } = true;
 
+        // Link to authentication user
+        public int? UserId { get; set; }
+
         // Navigation properties
+        [ForeignKey("UserId")]
+        public User? User { get; set; }
         public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
         public ICollection<Payment> Payments { get; set; } = new List<Payment>();
         public ICollection<TestScore> TestScores { get; set; } = new List<TestScore>();
@@ -63,13 +63,9 @@ namespace EnglishCenter.API.Models
         [Phone]
         public string PhoneNumber { get; set; } = string.Empty;
 
-        [MaxLength(30)]
-        public string Username { get; set; } = string.Empty;
         [MaxLength(500)]
         public string Password { get; set; } = string.Empty;
-        
-        [MaxLength(1000)]
-        public string Avatar { get; set; } = string.Empty;
+
         [MaxLength(500)]
         public string Specialization { get; set; } = string.Empty;
 
@@ -83,7 +79,12 @@ namespace EnglishCenter.API.Models
 
         public bool IsActive { get; set; } = true;
 
+        // Link to authentication user
+        public int? UserId { get; set; }
+
         // Navigation properties
+        [ForeignKey("UserId")]
+        public User? User { get; set; }
         public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
         public ICollection<Curriculum> ParticipatedCurriculums { get; set; } = new List<Curriculum>();
@@ -508,6 +509,9 @@ namespace EnglishCenter.API.Models
 
         [MaxLength(20)]
         public string? PhoneNumber { get; set; }
+
+        [MaxLength(1000)]
+        public string? Avatar { get; set; }
 
         [Required]
         public int RoleId { get; set; }

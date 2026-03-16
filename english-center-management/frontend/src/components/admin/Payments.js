@@ -15,12 +15,14 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add } from '@mui/icons-material';
-import { paymentsAPI, studentsAPI } from '../services/api';
+import { paymentsAPI, studentsAPI } from '../../services/api';
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
     studentId: '',
@@ -33,17 +35,23 @@ const Payments = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [paginationModel]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [paymentsRes, studentsRes] = await Promise.all([
-        paymentsAPI.getAll(),
+        paymentsAPI.getAll({
+          page: paginationModel.page + 1,
+          pageSize: paginationModel.pageSize,
+        }),
         studentsAPI.getAll({ isActive: true }),
       ]);
-      setPayments(Array.isArray(paymentsRes.data) ? paymentsRes.data : []);
+      
+      const paymentsData = Array.isArray(paymentsRes.data?.data) ? paymentsRes.data.data : [];
+      setPayments(paymentsData);
       setStudents(Array.isArray(studentsRes.data?.data) ? studentsRes.data.data : []);
+      setRowCount(paymentsRes.data?.totalCount || paymentsData.length);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -81,6 +89,7 @@ const Payments = () => {
         amount: parseFloat(formData.amount),
       });
       handleCloseDialog();
+      setPaginationModel(prev => ({ ...prev, page: 0 }));
       loadData();
     } catch (error) {
       console.error('Error saving payment:', error);
@@ -153,8 +162,11 @@ const Payments = () => {
           columns={columns}
           getRowId={(row) => row.paymentId}
           loading={loading}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[1, 10, 25, 50]}
+          rowCount={rowCount}
+          paginationMode="server"
           disableSelectionOnClick
         />
       </Paper>

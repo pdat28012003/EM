@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, Room } from '@mui/icons-material';
-import { roomsAPI } from '../services/api';
+import { roomsAPI } from '../../services/api';
 
 const Rooms = () => {
   const formatTimeHHmm = (value) => {

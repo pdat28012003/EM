@@ -22,11 +22,17 @@ import {
   DialogActions,
   TextField,
   Alert,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { CheckCircle, Cancel, Schedule, Person } from '@mui/icons-material';
-import { curriculumAPI, attendanceAPI } from '../services/api';
+import { curriculumAPI, attendanceAPI } from '../../services/api';
 
 const Attendance = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const [curriculums, setCurriculums] = useState([]);
   const [selectedCurriculum, setSelectedCurriculum] = useState('');
   const [selectedDay, setSelectedDay] = useState('');
@@ -53,7 +59,12 @@ const Attendance = () => {
   const loadCurriculums = async () => {
     try {
       const response = await curriculumAPI.getAll();
-      setCurriculums(response.data);
+      const curriculumData = Array.isArray(response.data?.data) 
+        ? response.data.data 
+        : Array.isArray(response.data) 
+          ? response.data 
+          : [];
+      setCurriculums(curriculumData);
     } catch (error) {
       console.error('Error loading curriculums:', error);
     }
@@ -65,7 +76,8 @@ const Attendance = () => {
     try {
       setLoading(true);
       const response = await attendanceAPI.getByLesson(selectedLesson);
-      setAttendanceData(response.data);
+      const attendanceData = response.data?.data || response.data || [];
+      setAttendanceData(Array.isArray(attendanceData) ? attendanceData : []);
     } catch (error) {
       console.error('Error loading attendance:', error);
       setMessage('Lỗi khi tải dữ liệu điểm danh');
@@ -170,8 +182,8 @@ const Attendance = () => {
   };
 
   return (
-    <Container maxWidth="xl">
-      <Typography variant="h4" gutterBottom>
+    <Container maxWidth={isSmallMobile ? "sm" : "xl"}>
+      <Typography variant={isMobile ? "h5" : "h4"} gutterBottom>
         Quản Lý Điểm Danh
       </Typography>
 
@@ -181,12 +193,18 @@ const Attendance = () => {
         </Alert>
       )}
 
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <Paper sx={{ p: isSmallMobile ? 2 : 3, mb: 3 }}>
+        <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
           Chọn Bài Học
         </Typography>
-        <Box display="flex" gap={2} mb={2} flexWrap="wrap">
-          <FormControl sx={{ minWidth: 200 }}>
+        <Box 
+          display="flex" 
+          gap={isSmallMobile ? 1 : 2} 
+          mb={2} 
+          flexWrap="wrap"
+          flexDirection={isSmallMobile ? "column" : "row"}
+        >
+          <FormControl sx={{ minWidth: isSmallMobile ? "100%" : 200 }}>
             <InputLabel>Chương Trình Học</InputLabel>
             <Select
               value={selectedCurriculum}
@@ -195,6 +213,7 @@ const Attendance = () => {
                 resetSelections('curriculum');
               }}
               label="Chương Trình Học"
+              size={isSmallMobile ? "small" : "medium"}
             >
               {curriculums.map((curriculum) => (
                 <MenuItem key={curriculum.curriculumId} value={curriculum.curriculumId}>
@@ -205,7 +224,7 @@ const Attendance = () => {
           </FormControl>
 
           {selectedCurriculum && (
-            <FormControl sx={{ minWidth: 200 }}>
+            <FormControl sx={{ minWidth: isSmallMobile ? "100%" : 200 }}>
               <InputLabel>Ngày Học</InputLabel>
               <Select
                 value={selectedDay}
@@ -214,6 +233,7 @@ const Attendance = () => {
                   resetSelections('day');
                 }}
                 label="Ngày Học"
+                size={isSmallMobile ? "small" : "medium"}
               >
                 {getSelectedCurriculum()?.curriculumDays?.map((day) => (
                   <MenuItem key={day.curriculumDayId} value={day.curriculumDayId}>
@@ -225,7 +245,7 @@ const Attendance = () => {
           )}
 
           {selectedDay && (
-            <FormControl sx={{ minWidth: 200 }}>
+            <FormControl sx={{ minWidth: isSmallMobile ? "100%" : 200 }}>
               <InputLabel>Buổi Học</InputLabel>
               <Select
                 value={selectedSession}
@@ -234,6 +254,7 @@ const Attendance = () => {
                   resetSelections('session');
                 }}
                 label="Buổi Học"
+                size={isSmallMobile ? "small" : "medium"}
               >
                 {getSelectedDay()?.curriculumSessions?.map((session) => (
                   <MenuItem key={session.curriculumSessionId} value={session.curriculumSessionId}>
@@ -245,12 +266,13 @@ const Attendance = () => {
           )}
 
           {selectedSession && (
-            <FormControl sx={{ minWidth: 200 }}>
+            <FormControl sx={{ minWidth: isSmallMobile ? "100%" : 200 }}>
               <InputLabel>Bài Học</InputLabel>
               <Select
                 value={selectedLesson}
                 onChange={(e) => setSelectedLesson(e.target.value)}
                 label="Bài Học"
+                size={isSmallMobile ? "small" : "medium"}
               >
                 {getSelectedSession()?.lessons?.map((lesson) => (
                   <MenuItem key={lesson.lessonId} value={lesson.lessonId}>
@@ -264,57 +286,108 @@ const Attendance = () => {
       </Paper>
 
       {selectedLesson && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Paper sx={{ p: isSmallMobile ? 2 : 3 }}>
+          <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
             Điểm Danh - {getSelectedLesson()?.lessonTitle}
           </Typography>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Học Viên</TableCell>
-                  <TableCell>Trạng Thái</TableCell>
-                  <TableCell>Ghi Chú</TableCell>
-                  <TableCell>Thao Tác</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {attendanceData.map((attendance) => (
-                  <TableRow key={attendance.studentId}>
-                    <TableCell>{attendance.studentName}</TableCell>
-                    <TableCell>
-                      <FormControl size="small" sx={{ minWidth: 120 }}>
-                        <Select
-                          value={attendance.status === 'Not Marked' ? 'Present' : attendance.status}
-                          onChange={(e) => handleStatusChange(attendance.attendanceId, e.target.value, attendance.studentId)}
-                        >
-                          {statusOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>
-                              <Chip
-                                label={option.label}
-                                color={option.color}
-                                size="small"
-                                variant={attendance.status === option.value ? 'filled' : 'outlined'}
-                              />
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </TableCell>
-                    <TableCell>{attendance.notes || '-'}</TableCell>
-                    <TableCell>
-                      <Button
-                        size="small"
-                        onClick={() => handleNotesClick(attendance)}
-                      >
-                        Ghi chú
-                      </Button>
-                    </TableCell>
+          {!isSmallMobile ? (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Học Viên</TableCell>
+                    <TableCell>Trạng Thái</TableCell>
+                    <TableCell>Ghi Chú</TableCell>
+                    <TableCell>Thao Tác</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {attendanceData.map((attendance) => (
+                    <TableRow key={attendance.studentId}>
+                      <TableCell>{attendance.studentName}</TableCell>
+                      <TableCell>
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                          <Select
+                            value={attendance.status === 'Not Marked' ? 'Present' : attendance.status}
+                            onChange={(e) => handleStatusChange(attendance.attendanceId, e.target.value, attendance.studentId)}
+                          >
+                            {statusOptions.map((option) => (
+                              <MenuItem key={option.value} value={option.value}>
+                                <Chip
+                                  label={option.label}
+                                  color={option.color}
+                                  size="small"
+                                  variant={attendance.status === option.value ? 'filled' : 'outlined'}
+                                />
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </TableCell>
+                      <TableCell>{attendance.notes || '-'}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="small"
+                          onClick={() => handleNotesClick(attendance)}
+                        >
+                          Ghi chú
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Box>
+              {attendanceData.map((attendance) => (
+                <Paper key={attendance.studentId} sx={{ p: 2, mb: 2 }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {attendance.studentName}
+                    </Typography>
+                    <Chip
+                      label={statusOptions.find(o => o.value === (attendance.status === 'Not Marked' ? 'Present' : attendance.status))?.label || 'Có mặt'}
+                      color={statusOptions.find(o => o.value === (attendance.status === 'Not Marked' ? 'Present' : attendance.status))?.color || 'success'}
+                      size="small"
+                    />
+                  </Box>
+                  <Box mb={2}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Trạng Thái</InputLabel>
+                      <Select
+                        value={attendance.status === 'Not Marked' ? 'Present' : attendance.status}
+                        onChange={(e) => handleStatusChange(attendance.attendanceId, e.target.value, attendance.studentId)}
+                        label="Trạng Thái"
+                      >
+                        {statusOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  <Box mb={2}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Ghi chú:
+                    </Typography>
+                    <Typography variant="body2">
+                      {attendance.notes || 'Chưa có ghi chú'}
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    onClick={() => handleNotesClick(attendance)}
+                  >
+                    Ghi chú
+                  </Button>
+                </Paper>
+              ))}
+            </Box>
+          )}
         </Paper>
       )}
 

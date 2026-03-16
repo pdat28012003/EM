@@ -3,187 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
-using EnglishCenter.API.Services;
 
 namespace EnglishCenter.API.Controllers
 {
-    // TEACHERS CONTROLLER
-    [ApiController]
-    [Route("api/[controller]")]
-    public class TeachersController : ControllerBase
-    {
-        private readonly ApplicationDbContext _context;
-        private readonly IPasswordService _passwordService;
-
-        public TeachersController(ApplicationDbContext context, IPasswordService passwordService)
-        {
-            _context = context;
-            _passwordService = passwordService;
-        }
-
-        /// <summary>
-        /// Gets all teachers. (Lấy danh sách tất cả giáo viên.)
-
-        /// </summary>
-        /// <param name="isActive">Status (Trạng thái hoạt động)</param>
-        /// <param name="pageNumber">Page number (Số trang)</param>
-        /// <param name="pageSize">Page size (Số lượng mỗi trang)</param>
-        /// <returns>Paged list of teachers (Danh sách giáo viên có phân trang)</returns>
-        [HttpGet]
-        public async Task<ActionResult<PagedResult<TeacherDto>>> GetTeachers(
-            [FromQuery] bool? isActive = null,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
-        {
-            var query = _context.Teachers.AsQueryable();
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(t => t.IsActive == isActive.Value);
-            }
-
-            var totalCount = await query.CountAsync();
-
-            var teachers = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(t => new TeacherDto
-                {
-                    TeacherId = t.TeacherId,
-                    FullName = t.FullName,
-                    Email = t.Email,
-                    PhoneNumber = t.PhoneNumber,
-                    Username = t.Username,
-                    Avatar = t.Avatar,
-                    Specialization = t.Specialization,
-                    Qualifications = t.Qualifications,
-                    HireDate = t.HireDate,
-                    HourlyRate = t.HourlyRate,
-                    IsActive = t.IsActive
-                })
-                .ToListAsync();
-        var pagedResult = new PagedResult<TeacherDto>
-                {
-                    Data = teachers,
-                    TotalCount = totalCount,
-                    Page = page,
-                    PageSize = pageSize,
-                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
-                };
-
-
-            return Ok(pagedResult);
-        }
-
-        /// <summary>
-        /// Gets a teacher by ID. (Lấy thông tin chi tiết của giáo viên theo ID.)
-        /// </summary>
-        /// <param name="id">Teacher ID (ID giáo viên)</param>
-        /// <returns>Teacher details (Thông tin giáo viên)</returns>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TeacherDto>> GetTeacher(int id)
-        {
-            var teacher = await _context.Teachers
-                .Where(t => t.TeacherId == id)
-                .Select(t => new TeacherDto
-                {
-                    TeacherId = t.TeacherId,
-                    FullName = t.FullName,
-                    Email = t.Email,
-                    PhoneNumber = t.PhoneNumber,
-                    Username = t.Username,
-                    Avatar = t.Avatar,
-                    Specialization = t.Specialization,
-                    Qualifications = t.Qualifications,
-                    HireDate = t.HireDate,
-                    HourlyRate = t.HourlyRate,
-                    IsActive = t.IsActive
-                })
-                .FirstOrDefaultAsync();
-                
-
-            if (teacher == null)
-            {
-                return NotFound(new { message = "Teacher not found" });
-            }
-
-            return Ok(teacher);
-        }
-
-        /// <summary>
-        /// Creates a new teacher. (Thêm giáo viên mới.)
-        /// </summary>
-        /// <param name="dto">Teacher creation data (Dữ liệu tạo giáo viên)</param>
-        /// <returns>Created teacher (Thông tin giáo viên vừa tạo)</returns>
-        [HttpPost]
-        public async Task<ActionResult<TeacherDto>> CreateTeacher(CreateTeacherDto dto)
-        {
-            var teacher = new Teacher
-            {
-                FullName = dto.FullName,
-                Email = dto.Email,
-                PhoneNumber = dto.PhoneNumber,
-                Username = dto.Username,
-                Password = _passwordService.HashPassword(dto.Password),
-                Avatar = dto.Avatar,
-                Specialization = dto.Specialization,
-                Qualifications = dto.Qualifications,
-                HireDate = DateTime.Now,
-                HourlyRate = dto.HourlyRate,
-                IsActive = true
-            };
-
-            _context.Teachers.Add(teacher);
-            await _context.SaveChangesAsync();
-
-            var teacherDto = new TeacherDto
-            {
-                TeacherId = teacher.TeacherId,
-                FullName = teacher.FullName,
-                Email = teacher.Email,
-                PhoneNumber = teacher.PhoneNumber,
-                Username= teacher.Username,
-                Avatar = teacher.Avatar,
-                Specialization = teacher.Specialization,
-                Qualifications = teacher.Qualifications,
-                HireDate = teacher.HireDate,
-                HourlyRate = teacher.HourlyRate,
-                IsActive = teacher.IsActive
-            };
-
-            return CreatedAtAction(nameof(GetTeacher), new { id = teacher.TeacherId }, teacherDto);
-        }
-
-        /// <summary>
-        /// Gets teacher's schedule. (Lấy lịch dạy của giáo viên.)
-        /// </summary>
-        /// <param name="id">Teacher ID (ID giáo viên)</param>
-        /// <returns>Teacher's schedule (Lịch dạy của giáo viên)</returns>
-        [HttpGet("{id}/schedule")]
-        public async Task<ActionResult<IEnumerable<ScheduleDto>>> GetTeacherSchedule(int id)
-        {
-            var schedules = await _context.Schedules
-                .Include(s => s.Class)
-                .Include(s => s.Teacher)
-                .Where(s => s.TeacherId == id)
-                .Select(s => new ScheduleDto
-                {
-                    ScheduleId = s.ScheduleId,
-                    ClassId = s.ClassId,
-                    ClassName = s.Class.ClassName,
-                    TeacherId = s.TeacherId,
-                    TeacherName = s.Teacher.FullName,
-                    DayOfWeek = s.DayOfWeek,
-                    StartTime = s.StartTime,
-                    EndTime = s.EndTime,
-                    Room = s.Room
-                })
-                .ToListAsync();
-
-            return Ok(schedules);
-        }
-    }
-
     // COURSES CONTROLLER
     [ApiController]
     [Route("api/[controller]")]
@@ -325,12 +147,14 @@ namespace EnglishCenter.API.Controllers
         /// Gets all classes. (Lấy danh sách tất cả các lớp học.)
         /// </summary>
         /// <param name="status">Class status filter (Lọc theo trạng thái lớp học)</param>
+        /// <param name="teacherId">Teacher ID filter (Lọc theo giáo viên)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Số lượng mỗi trang)</param>
         /// <returns>Paged list of classes (Danh sách lớp học có phân trang)</returns>
         [HttpGet]
         public async Task<ActionResult<PagedResult<ClassDto>>> GetClasses(
             [FromQuery] string? status = null,
+            [FromQuery] int? teacherId = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
@@ -343,6 +167,11 @@ namespace EnglishCenter.API.Controllers
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(c => c.Status == status);
+            }
+
+            if (teacherId.HasValue)
+            {
+                query = query.Where(c => c.TeacherId == teacherId.Value);
             }
 
             var totalCount = await query.CountAsync();
@@ -469,6 +298,123 @@ namespace EnglishCenter.API.Controllers
                 .ToListAsync();
 
             return Ok(students);
+        }
+    }
+
+    // STATISTICS CONTROLLER
+    [ApiController]
+    [Route("api/[controller]")]
+    public class StatisticsController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+
+        public StatisticsController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        /// <summary>
+        /// Gets teacher dashboard statistics with week-over-week comparison. (Lấy thống kê dashboard giảng viên với so sánh tuần qua.)
+        /// </summary>
+        /// <param name="teacherId">Teacher ID (ID giảng viên)</param>
+        /// <returns>Teacher dashboard statistics (Thống kê dashboard giảng viên)</returns>
+        [HttpGet("teacher-dashboard/{teacherId}")]
+        public async Task<ActionResult<DashboardStatisticsDto>> GetTeacherDashboardStatistics(int teacherId)
+        {
+            var now = DateTime.Now;
+            var startOfThisWeek = StartOfWeek(now);
+            var startOfLastWeek = startOfThisWeek.AddDays(-7);
+            var endOfLastWeek = startOfThisWeek.AddSeconds(-1);
+
+            // Get teacher's classes
+            var teacherClasses = await _context.Classes
+                .Where(c => c.TeacherId == teacherId)
+                .ToListAsync();
+
+            var teacherClassIds = teacherClasses.Select(c => c.ClassId).ToList();
+
+            // Total Classes for this teacher (using StartDate as creation proxy)
+            var totalClassesThisWeek = teacherClasses
+                .Where(c => c.StartDate >= startOfThisWeek && c.StartDate <= now)
+                .Count();
+            var totalClassesLastWeek = teacherClasses
+                .Where(c => c.StartDate >= startOfLastWeek && c.StartDate <= endOfLastWeek)
+                .Count();
+
+            // Total Students in teacher's classes (via enrollments)
+            var totalStudentsThisWeek = await _context.Enrollments
+                .Where(e => teacherClassIds.Contains(e.ClassId) && 
+                           e.Status == "Active" && 
+                           e.EnrollmentDate >= startOfThisWeek && 
+                           e.EnrollmentDate <= now)
+                .Select(e => e.StudentId)
+                .Distinct()
+                .CountAsync();
+
+            var totalStudentsLastWeek = await _context.Enrollments
+                .Where(e => teacherClassIds.Contains(e.ClassId) && 
+                           e.Status == "Active" && 
+                           e.EnrollmentDate >= startOfLastWeek && 
+                           e.EnrollmentDate <= endOfLastWeek)
+                .Select(e => e.StudentId)
+                .Distinct()
+                .CountAsync();
+
+            // Total current students in all teacher's classes
+            var totalCurrentStudents = await _context.Enrollments
+                .Where(e => teacherClassIds.Contains(e.ClassId) && e.Status == "Active")
+                .Select(e => e.StudentId)
+                .Distinct()
+                .CountAsync();
+
+            // Pending Assignments for this teacher (placeholder - would need assignment table with teacher filter)
+            var pendingAssignments = 8;
+            var pendingAssignmentsLastWeek = 11;
+
+            // Weekly Schedule for this teacher
+            var weeklyScheduleThisWeek = await _context.Schedules
+                .Include(s => s.Class)
+                .Where(s => s.TeacherId == teacherId && s.Class.Status == "Active")
+                .CountAsync();
+            var weeklyScheduleLastWeek = weeklyScheduleThisWeek; // Same schedules as last week for now
+
+            var statistics = new DashboardStatisticsDto
+            {
+                TotalClasses = new StatisticItem
+                {
+                    CurrentValue = totalClassesThisWeek,
+                    ChangeFromLastWeek = totalClassesThisWeek - totalClassesLastWeek,
+                    ChangeType = totalClassesThisWeek >= totalClassesLastWeek ? "increase" : "decrease"
+                },
+                TotalStudents = new StatisticItem
+                {
+                    CurrentValue = totalCurrentStudents, // Use total current students instead of weekly new students
+                    ChangeFromLastWeek = totalStudentsThisWeek - totalStudentsLastWeek,
+                    ChangeType = totalStudentsThisWeek >= totalStudentsLastWeek ? "increase" : "decrease"
+                },
+                PendingAssignments = new StatisticItem
+                {
+                    CurrentValue = pendingAssignments,
+                    ChangeFromLastWeek = pendingAssignments - pendingAssignmentsLastWeek,
+                    ChangeType = pendingAssignments >= pendingAssignmentsLastWeek ? "increase" : "decrease"
+                },
+                WeeklySchedule = new StatisticItem
+                {
+                    CurrentValue = weeklyScheduleThisWeek,
+                    ChangeFromLastWeek = weeklyScheduleThisWeek - weeklyScheduleLastWeek,
+                    ChangeType = weeklyScheduleThisWeek >= weeklyScheduleLastWeek ? "increase" : "decrease"
+                }
+            };
+
+            return Ok(statistics);
+        }
+
+        private DateTime StartOfWeek(DateTime date)
+        {
+            // Assuming week starts on Monday
+            var diff = date.DayOfWeek - DayOfWeek.Monday;
+            if (diff < 0) diff += 7;
+            return date.AddDays(-diff).Date;
         }
     }
 }

@@ -23,8 +23,6 @@ namespace EnglishCenter.API.DTOs
         public string PhoneNumber { get; set; } = string.Empty;
         public DateTime DateOfBirth { get; set; }
         public string Address { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
-        public string Avatar { get; set; } = string.Empty;
         public DateTime EnrollmentDate { get; set; }
         public string Level { get; set; } = string.Empty;
         public bool IsActive { get; set; }
@@ -44,7 +42,7 @@ namespace EnglishCenter.API.DTOs
         [Required(ErrorMessage = "Phone number is required")]
         [Phone(ErrorMessage = "Invalid phone number format")]
         [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
-        public string PhoneNumber { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty; 
 
         [Required(ErrorMessage = "Date of birth is required")]
         public DateTime DateOfBirth { get; set; }
@@ -52,18 +50,10 @@ namespace EnglishCenter.API.DTOs
         [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
         public string Address { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Username is required")]
-        [MinLength(3, ErrorMessage = "Username must be at least 3 characters")]
-        [MaxLength(30, ErrorMessage = "Username cannot exceed 30 characters")]
-        public string Username { get; set; } = string.Empty;
-
         [Required(ErrorMessage = "Password is required")]
         [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         [MaxLength(30, ErrorMessage = "Password cannot exceed 30 characters")]
         public string Password { get; set; } = string.Empty;
-
-        [MaxLength(500, ErrorMessage = "Avatar URL cannot exceed 500 characters")]
-        public string Avatar { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Level is required")]
         [RegularExpression("^(Beginner|Elementary|Intermediate|Advanced)$", ErrorMessage = "Level must be one of: Beginner, Elementary, Intermediate, Advanced")]
@@ -94,16 +84,8 @@ namespace EnglishCenter.API.DTOs
         [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
         public string Address { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Username is required")]
-        [MinLength(3, ErrorMessage = "Username must be at least 3 characters")]
-        [MaxLength(30, ErrorMessage = "Username cannot exceed 30 characters")]
-        public string Username { get; set; } = string.Empty;
-
         [MaxLength(500, ErrorMessage = "Password cannot exceed 500 characters")]
         public string Password { get; set; } = string.Empty;
-
-        [MaxLength(500, ErrorMessage = "Avatar URL cannot exceed 500 characters")]
-        public string Avatar { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Level is required")]
         [RegularExpression("^(Beginner|Elementary|Intermediate|Advanced)$", ErrorMessage = "Level must be one of: Beginner, Elementary, Intermediate, Advanced")]
@@ -121,8 +103,6 @@ namespace EnglishCenter.API.DTOs
         public string Email { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
-        public string Avatar { get; set; } = string.Empty;
         public string Specialization { get; set; } = string.Empty;
         public string Qualifications { get; set; } = string.Empty;
         public DateTime HireDate { get; set; }
@@ -147,16 +127,8 @@ namespace EnglishCenter.API.DTOs
         [Phone(ErrorMessage = "Invalid phone number format")]
         [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
         public string PhoneNumber { get; set; } = string.Empty; 
-        [Required(ErrorMessage = "Username is required")]
-        [MinLength(3, ErrorMessage = "Username must be at least 3 characters")]
-        [MaxLength(30, ErrorMessage = "Username cannot exceed 30 characters")]
-        public string Username { get; set; } = string.Empty;
-
         [MaxLength(500, ErrorMessage = "Password cannot exceed 500 characters")]
         public string Password { get; set; } = string.Empty;
-
-        [MaxLength(500, ErrorMessage = "Avatar URL cannot exceed 500 characters")]
-        public string Avatar { get; set; } = string.Empty;
 
         public string Specialization { get; set; } = string.Empty;
         public string Qualifications { get; set; } = string.Empty;
@@ -511,5 +483,21 @@ namespace EnglishCenter.API.DTOs
         public int ActiveClasses { get; set; }
         public decimal TotalRevenue { get; set; }
         public decimal MonthlyRevenue { get; set; }
+    }
+
+    // Dashboard Statistics with week-over-week comparison
+    public class DashboardStatisticsDto
+    {
+        public StatisticItem TotalClasses { get; set; } = new StatisticItem();
+        public StatisticItem TotalStudents { get; set; } = new StatisticItem();
+        public StatisticItem PendingAssignments { get; set; } = new StatisticItem();
+        public StatisticItem WeeklySchedule { get; set; } = new StatisticItem();
+    }
+
+    public class StatisticItem
+    {
+        public int CurrentValue { get; set; }
+        public int ChangeFromLastWeek { get; set; }
+        public string ChangeType { get; set; } = "increase"; // "increase" or "decrease"
     }
 }
