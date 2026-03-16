@@ -14,7 +14,7 @@ import {
   Class,
   AttachMoney,
 } from '@mui/icons-material';
-import { dashboardAPI } from '../services/api';
+import { dashboardAPI } from '../../services/api';
 
 const StatCard = ({ title, value, icon: Icon, color }) => (
   <Card sx={{ height: '100%', bgcolor: color, color: 'white' }}>

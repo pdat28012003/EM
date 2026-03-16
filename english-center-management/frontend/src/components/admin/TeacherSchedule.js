@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { teachersAPI, curriculumAPI } from '../services/api';
+import { teachersAPI, curriculumAPI } from '../../services/api';
 
 const TeacherSchedule = () => {
   const { teacherId } = useParams();
@@ -27,11 +27,12 @@ const TeacherSchedule = () => {
       setLoading(true);
       // Load teacher info
       const teacherResponse = await teachersAPI.getById(teacherId);
-      setTeacher(teacherResponse.data);
+      const teacherData = teacherResponse.data.data || teacherResponse.data;
+      setTeacher(teacherData);
 
       // Load all curriculums
       const curriculumResponse = await curriculumAPI.getAll();
-      const allCurriculums = curriculumResponse.data;
+      const allCurriculums = curriculumResponse.data.data || [];
 
       console.log('All Curriculums:', allCurriculums); // Debug
 

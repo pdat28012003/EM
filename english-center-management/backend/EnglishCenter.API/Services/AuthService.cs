@@ -107,6 +107,7 @@ namespace EnglishCenter.API.Services
                     Email = user.Email,
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
+                    Avatar = user.Avatar,
                     Role = user.Role.RoleName
                 }
             };
@@ -148,6 +149,7 @@ namespace EnglishCenter.API.Services
                     Email = user.Email,
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
+                    Avatar = user.Avatar,
                     Role = user.Role.RoleName
                 }
             };
@@ -197,6 +199,7 @@ namespace EnglishCenter.API.Services
                 Email = user.Email,
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
+                Avatar = user.Avatar,
                 Role = user.Role.RoleName
             };
         }
@@ -207,7 +210,9 @@ namespace EnglishCenter.API.Services
             if (user == null) return false;
 
             if (request.FullName != null) user.FullName = request.FullName;
+            if (request.Email != null) user.Email = request.Email;
             if (request.PhoneNumber != null) user.PhoneNumber = request.PhoneNumber;
+            if (request.Avatar != null) user.Avatar = request.Avatar;
 
             await _context.SaveChangesAsync();
             return true;

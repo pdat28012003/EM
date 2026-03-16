@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, Info, People } from '@mui/icons-material';
-import { curriculumAPI, classesAPI, teachersAPI } from '../services/api';
+import { curriculumAPI, classesAPI, teachersAPI } from '../../services/api';
 
 const Curriculum = () => {
   const [curriculums, setCurriculums] = useState([]);
@@ -49,9 +49,10 @@ const Curriculum = () => {
         pageSize: paginationModel.pageSize,
       });
       console.log('Curriculums Response:', response.data);
-      const curriculumData = Array.isArray(response.data?.Data) ? response.data.Data : Array.isArray(response.data?.data) ? response.data.data : [];
+      const curriculumData = Array.isArray(response.data?.data) ? response.data.data : [];
+      console.log('Curriculum data after parsing:', curriculumData);
       setCurriculums(curriculumData);
-      setRowCount(response.data?.TotalCount || response.data?.totalCount || 0);
+      setRowCount(response.data?.totalCount || 0);
     } catch (error) {
       console.error('Error loading curriculums:', error);
       console.error('Error details:', error.response?.data);
@@ -60,8 +61,12 @@ const Curriculum = () => {
 
   const loadClasses = async () => {
     try {
-      const response = await classesAPI.getAll();
-      setClasses(response.data);
+      const response = await classesAPI.getAll({
+        page: 1,
+        pageSize: 100,
+      });
+      const classesData = Array.isArray(response.data?.data) ? response.data.data : Array.isArray(response.data) ? response.data : [];
+      setClasses(classesData);
     } catch (error) {
       console.error('Error loading classes:', error);
       alert('Lỗi khi tải dữ liệu lớp học');
@@ -463,7 +468,7 @@ const Curriculum = () => {
         .modal {
           display: flex;
           position: fixed;
-          z-index: 1;
+          z-index: 9999;
           left: 0;
           top: 0;
           width: 100%;
@@ -481,6 +486,8 @@ const Curriculum = () => {
           width: 500px;
           max-height: 90vh;
           overflow-y: auto;
+          position: relative;
+          z-index: 10000;
         }
 
         .modal-header {

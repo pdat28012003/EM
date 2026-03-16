@@ -220,6 +220,272 @@ namespace EnglishCenter.API.Data
                     IsActive = true
                 }
             );
+
+            // Seed Classes
+            modelBuilder.Entity<Class>().HasData(
+                new Class
+                {
+                    ClassId = 1,
+                    ClassName = "test",
+                    CourseId = 1,
+                    TeacherId = 1,
+                    StartDate = new DateTime(2024, 3, 1),
+                    EndDate = new DateTime(2024, 5, 31),
+                    MaxStudents = 20,
+                    Room = "Room 101",
+                    Status = "Active"
+                },
+                new Class
+                {
+                    ClassId = 2,
+                    ClassName = "ENG101-A2",
+                    CourseId = 1,
+                    TeacherId = 2,
+                    StartDate = new DateTime(2024, 3, 15),
+                    EndDate = new DateTime(2024, 6, 15),
+                    MaxStudents = 15,
+                    Room = "Room 102",
+                    Status = "Active"
+                }
+            );
+
+            // Seed Students
+            modelBuilder.Entity<Student>().HasData(
+                new Student
+                {
+                    StudentId = 1,
+                    FullName = "Nguyễn Văn A",
+                    Email = "a.nguyen@email.com",
+                    PhoneNumber = "0901234567",
+                    DateOfBirth = new DateTime(1995, 5, 15),
+                    Address = "123 Nguyễn Huệ, Q1, TP.HCM",
+                    Level = "Beginner",
+                    IsActive = true,
+                    EnrollmentDate = new DateTime(2024, 2, 28)
+                },
+                new Student
+                {
+                    StudentId = 2,
+                    FullName = "Trần Thị B",
+                    Email = "b.tran@email.com",
+                    PhoneNumber = "0902345678",
+                    DateOfBirth = new DateTime(1998, 8, 20),
+                    Address = "456 Lê Lợi, Q3, TP.HCM",
+                    Level = "Elementary",
+                    IsActive = true,
+                    EnrollmentDate = new DateTime(2024, 3, 1)
+                },
+                new Student
+                {
+                    StudentId = 3,
+                    FullName = "Lê Văn C",
+                    Email = "c.le@email.com",
+                    PhoneNumber = "0903456789",
+                    DateOfBirth = new DateTime(2000, 12, 10),
+                    Address = "789 Đồng Khởi, Q5, TP.HCM",
+                    Level = "Pre-Intermediate",
+                    IsActive = true,
+                    EnrollmentDate = new DateTime(2024, 3, 5)
+                }
+            );
+
+            // Seed Enrollments
+            modelBuilder.Entity<Enrollment>().HasData(
+                new Enrollment
+                {
+                    EnrollmentId = 1,
+                    StudentId = 1,
+                    ClassId = 1,
+                    EnrollmentDate = new DateTime(2024, 2, 28),
+                    Status = "Active"
+                },
+                new Enrollment
+                {
+                    EnrollmentId = 2,
+                    StudentId = 2,
+                    ClassId = 1,
+                    EnrollmentDate = new DateTime(2024, 3, 1),
+                    Status = "Active"
+                },
+                new Enrollment
+                {
+                    EnrollmentId = 3,
+                    StudentId = 3,
+                    ClassId = 1,
+                    EnrollmentDate = new DateTime(2024, 3, 5),
+                    Status = "Active"
+                }
+            );
+
+            // Seed Test Scores
+            modelBuilder.Entity<TestScore>().HasData(
+                new TestScore
+                {
+                    TestScoreId = 1,
+                    StudentId = 1,
+                    ClassId = 1,
+                    TestName = "Midterm Exam - Unit 1",
+                    ListeningScore = 8.5m,
+                    ReadingScore = 7.8m,
+                    WritingScore = 8.2m,
+                    SpeakingScore = 7.5m,
+                    TotalScore = 8.0m,
+                    TestDate = new DateTime(2024, 3, 15),
+                    Comments = "Good performance in listening and writing. Need more practice in speaking."
+                },
+                new TestScore
+                {
+                    TestScoreId = 2,
+                    StudentId = 1,
+                    ClassId = 1,
+                    TestName = "Final Exam - Unit 1",
+                    ListeningScore = 9.0m,
+                    ReadingScore = 8.5m,
+                    WritingScore = 8.8m,
+                    SpeakingScore = 8.2m,
+                    TotalScore = 8.6m,
+                    TestDate = new DateTime(2024, 4, 20),
+                    Comments = "Excellent improvement in all skills. Keep up the good work!"
+                },
+                new TestScore
+                {
+                    TestScoreId = 3,
+                    StudentId = 2,
+                    ClassId = 1,
+                    TestName = "Midterm Exam - Unit 1",
+                    ListeningScore = 6.5m,
+                    ReadingScore = 7.0m,
+                    WritingScore = 6.8m,
+                    SpeakingScore = 7.2m,
+                    TotalScore = 6.9m,
+                    TestDate = new DateTime(2024, 3, 15),
+                    Comments = "Average performance. Should focus more on listening comprehension."
+                },
+                new TestScore
+                {
+                    TestScoreId = 4,
+                    StudentId = 2,
+                    ClassId = 1,
+                    TestName = "Quiz - Grammar & Vocabulary",
+                    ListeningScore = 7.2m,
+                    ReadingScore = 8.0m,
+                    WritingScore = 7.5m,
+                    SpeakingScore = 7.8m,
+                    TotalScore = 7.6m,
+                    TestDate = new DateTime(2024, 3, 25),
+                    Comments = "Good understanding of grammar. Vocabulary needs improvement."
+                },
+                new TestScore
+                {
+                    TestScoreId = 5,
+                    StudentId = 1,
+                    ClassId = 1,
+                    TestName = "Quiz - Conversation Skills",
+                    ListeningScore = 8.8m,
+                    ReadingScore = 8.2m,
+                    WritingScore = 8.5m,
+                    SpeakingScore = 9.2m,
+                    TotalScore = 8.7m,
+                    TestDate = new DateTime(2024, 4, 5),
+                    Comments = "Outstanding speaking skills! Very fluent and confident."
+                },
+                new TestScore
+                {
+                    TestScoreId = 6,
+                    StudentId = 3,
+                    ClassId = 1,
+                    TestName = "Midterm Exam - Unit 1",
+                    ListeningScore = 5.5m,
+                    ReadingScore = 6.0m,
+                    WritingScore = 5.8m,
+                    SpeakingScore = 6.2m,
+                    TotalScore = 5.9m,
+                    TestDate = new DateTime(2024, 3, 15),
+                    Comments = "Below average performance. Requires additional support and practice."
+                },
+                new TestScore
+                {
+                    TestScoreId = 7,
+                    StudentId = 3,
+                    ClassId = 1,
+                    TestName = "Assignment - Writing Practice",
+                    ListeningScore = 6.0m,
+                    ReadingScore = 6.5m,
+                    WritingScore = 6.8m,
+                    SpeakingScore = 6.0m,
+                    TotalScore = 6.3m,
+                    TestDate = new DateTime(2024, 3, 28),
+                    Comments = "Writing has improved. Still needs work on basic grammar."
+                },
+                new TestScore
+                {
+                    TestScoreId = 8,
+                    StudentId = 1,
+                    ClassId = 1,
+                    TestName = "Final Exam - Unit 2",
+                    ListeningScore = 9.2m,
+                    ReadingScore = 8.8m,
+                    WritingScore = 9.0m,
+                    SpeakingScore = 8.5m,
+                    TotalScore = 8.9m,
+                    TestDate = new DateTime(2024, 5, 15),
+                    Comments = "Consistent high performance. Ready for advanced level."
+                }
+            );
+
+            // Seed Payments
+            modelBuilder.Entity<Payment>().HasData(
+                new Payment
+                {
+                    PaymentId = 1,
+                    StudentId = 1,
+                    Amount = 2000000m,
+                    PaymentDate = new DateTime(2024, 2, 28),
+                    PaymentMethod = "Bank Transfer",
+                    Status = "Completed",
+                    Notes = "Full payment for English for Beginners course"
+                },
+                new Payment
+                {
+                    PaymentId = 2,
+                    StudentId = 2,
+                    Amount = 2000000m,
+                    PaymentDate = new DateTime(2024, 3, 1),
+                    PaymentMethod = "Cash",
+                    Status = "Completed",
+                    Notes = "Full payment for English for Beginners course"
+                },
+                new Payment
+                {
+                    PaymentId = 3,
+                    StudentId = 3,
+                    Amount = 2000000m,
+                    PaymentDate = new DateTime(2024, 3, 5),
+                    PaymentMethod = "Credit Card",
+                    Status = "Completed",
+                    Notes = "Full payment for English for Beginners course"
+                },
+                new Payment
+                {
+                    PaymentId = 4,
+                    StudentId = 1,
+                    Amount = 500000m,
+                    PaymentDate = new DateTime(2024, 4, 10),
+                    PaymentMethod = "Bank Transfer",
+                    Status = "Completed",
+                    Notes = "Partial payment for additional materials"
+                },
+                new Payment
+                {
+                    PaymentId = 5,
+                    StudentId = 2,
+                    Amount = 300000m,
+                    PaymentDate = new DateTime(2024, 4, 15),
+                    PaymentMethod = "Cash",
+                    Status = "Completed",
+                    Notes = "Late fee payment"
+                }
+            );
         }
     }
 }

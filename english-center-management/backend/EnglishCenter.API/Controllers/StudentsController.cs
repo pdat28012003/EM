@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
@@ -87,8 +89,6 @@ namespace EnglishCenter.API.Controllers
                         PhoneNumber = s.PhoneNumber,
                         DateOfBirth = s.DateOfBirth,
                         Address = s.Address,
-                        Username = s.Username,
-                        Avatar = s.Avatar,
                         EnrollmentDate = s.EnrollmentDate,
                         Level = s.Level,
                         IsActive = s.IsActive
@@ -132,8 +132,6 @@ namespace EnglishCenter.API.Controllers
                         PhoneNumber = s.PhoneNumber,
                         DateOfBirth = s.DateOfBirth,
                         Address = s.Address,
-                        Username = s.Username,
-                        Avatar = s.Avatar,
                         EnrollmentDate = s.EnrollmentDate,
                         Level = s.Level,
                         IsActive = s.IsActive
@@ -176,8 +174,48 @@ namespace EnglishCenter.API.Controllers
                     return Conflict(new { message = "A student with this email already exists" });
                 }
 
+                // Ensure no existing user with the same email
+                var existingUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == dto.Email);
+                if (existingUser != null)
+                {
+                    return Conflict(new { message = "A user with this email already exists" });
+                }
+
+                // Ensure Student role exists
+                var studentRole = await _context.Roles
+                    .FirstOrDefaultAsync(r => r.RoleName == "Student");
+                if (studentRole == null)
+                {
+                    studentRole = new Role
+                    {
+                        RoleName = "Student",
+                        Description = "Student account"
+                    };
+                    _context.Roles.Add(studentRole);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Create authentication user for this student (for login)
+                CreatePasswordHash(dto.Password, out byte[] passwordHash, out byte[] passwordSalt);
+                var user = new User
+                {
+                    Email = dto.Email,
+                    FullName = dto.FullName,
+                    PhoneNumber = dto.PhoneNumber,
+                    PasswordHash = passwordHash,
+                    PasswordSalt = passwordSalt,
+                    RoleId = studentRole.RoleId,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
                 var student = _mappingService.MapToStudent(dto);
                 student.Password = _passwordService.HashPassword(dto.Password);
+                student.UserId = user.UserId;
 
                 _context.Students.Add(student);
                 await _context.SaveChangesAsync();
@@ -188,6 +226,15 @@ namespace EnglishCenter.API.Controllers
             catch (Exception)
             {
                 return StatusCode(500, new { message = "Error creating student" });
+            }
+        }
+
+        private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
+        {
+            using (var hmac = new HMACSHA512())
+            {
+                passwordSalt = hmac.Key;
+                passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
             }
         }
 
@@ -395,9 +442,11 @@ namespace EnglishCenter.API.Controllers
         /// Gets student's schedule. (Lấy thời khóa biểu cá nhân của học viên.)
         /// </summary>
         /// <param name="id">Student ID (ID học viên)</param>
-        /// <returns>List of curriculums (Danh sách lịch học)</returns>
+        /// <param name="page">Page number (Số trang)</param>
+        /// <param name="pageSize">Page size (Kích thước trang)</param>
+        /// <returns>Paginated list of curriculums (Danh sách lịch học phân trang)</returns>
         [HttpGet("{id}/schedule")]
-        public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetStudentSchedule(int id)
+        public async Task<ActionResult<PagedResult<CurriculumDto>>> GetStudentSchedule(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -412,15 +461,22 @@ namespace EnglishCenter.API.Controllers
                     .Select(e => e.ClassId)
                     .ToListAsync();
 
-                var curriculums = await _context.Curriculums
+                var query = _context.Curriculums
                     .Where(c => activeEnrollments.Contains(c.ClassId))
                     .Include(c => c.Class)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
-                            .ThenInclude(cs => cs.AssignedRoom)
+                            .ThenInclude(cs => cs.AssignedRoom);
+
+                var totalCount = await query.CountAsync();
+                
+                var curriculums = await query
+                    .OrderBy(c => c.StartDate)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
-                return Ok(curriculums.Select(c => new CurriculumDto
+                var curriculumDtos = curriculums.Select(c => new CurriculumDto
                 {
                     CurriculumId = c.CurriculumId,
                     CurriculumName = c.CurriculumName,
@@ -451,7 +507,16 @@ namespace EnglishCenter.API.Controllers
                             RoomName = cs.AssignedRoom?.RoomName ?? "N/A"
                         }).ToList()
                     }).ToList()
-                }));
+                }).ToList();
+
+                return Ok(new PagedResult<CurriculumDto>
+                {
+                    Data = curriculumDtos,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                });
             }
             catch (Exception)
             {

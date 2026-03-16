@@ -22,8 +22,6 @@ namespace EnglishCenter.API.Services
                 PhoneNumber = student.PhoneNumber,
                 DateOfBirth = student.DateOfBirth,
                 Address = student.Address,
-                Username = student.Username,
-                Avatar = student.Avatar,
                 EnrollmentDate = student.EnrollmentDate,
                 Level = student.Level,
                 IsActive = student.IsActive
@@ -39,9 +37,7 @@ namespace EnglishCenter.API.Services
                 PhoneNumber = dto.PhoneNumber,
                 DateOfBirth = dto.DateOfBirth,
                 Address = dto.Address,
-                Username = dto.Username,
                 Password = dto.Password, // Will be hashed in service layer
-                Avatar = dto.Avatar,
                 EnrollmentDate = DateTime.Now,
                 Level = dto.Level,
                 IsActive = true
@@ -55,8 +51,6 @@ namespace EnglishCenter.API.Services
             student.PhoneNumber = dto.PhoneNumber;
             student.DateOfBirth = dto.DateOfBirth;
             student.Address = dto.Address;
-            student.Username = dto.Username;
-            student.Avatar = dto.Avatar;
             student.Level = dto.Level;
             student.IsActive = dto.IsActive;
             

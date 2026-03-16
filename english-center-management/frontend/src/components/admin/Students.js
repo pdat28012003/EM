@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, Visibility, VisibilityOff, CalendarMonth, AssignmentInd, CloudUpload } from '@mui/icons-material';
-import { studentsAPI, enrollmentsAPI, classesAPI, UPLOAD_URL } from '../services/api';
+import { studentsAPI, enrollmentsAPI, classesAPI, UPLOAD_URL } from '../../services/api';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -28,9 +28,11 @@ const Students = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [openEnrollDialog, setOpenEnrollDialog] = useState(false);
   const [openScheduleDialog, setOpenScheduleDialog] = useState(false);
-  const [editMode, setEditMode] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(null);
   const [studentSchedule, setStudentSchedule] = useState([]);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
@@ -38,17 +40,15 @@ const Students = () => {
     phoneNumber: '',
     dateOfBirth: '',
     address: '',
-    username: '',
     password: '',
     avatar: '',
     level: 'Beginner',
+    isActive: true
   });
   const [enrollData, setEnrollData] = useState({
     classId: '',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState('');
 
   const levels = ['Beginner', 'Elementary', 'Intermediate', 'Advanced'];
 
@@ -93,42 +93,34 @@ const Students = () => {
 
   const handleOpenDialog = (student = null) => {
     if (student) {
-      setEditMode(true);
-      setCurrentStudent(student);
+      setEditingStudent(student);
       setFormData({
-        fullName: student.fullName,
-        email: student.email,
-        phoneNumber: student.phoneNumber,
-        dateOfBirth: toDateInputValue(student.dateOfBirth),
-        address: student.address,
-        username: student.username,
-        password: '', // Không hiển thị password khi edit
-        avatar: student.avatar || '',
-        level: student.level,
+        fullName: student.fullName || '',
+        email: student.email || '',
+        phoneNumber: student.phoneNumber || '',
+        dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth).toISOString().split('T')[0] : '',
+        address: student.address || '',
+        level: student.level || 'Beginner',
+        isActive: student.isActive
       });
-      setAvatarPreview(student.avatar || '');
     } else {
-      setEditMode(false);
-      setCurrentStudent(null);
+      setEditingStudent(null);
       setFormData({
         fullName: '',
         email: '',
         phoneNumber: '',
         dateOfBirth: '',
         address: '',
-        username: '',
         password: '',
-        avatar: '',
         level: 'Beginner',
+        isActive: true
       });
-      setAvatarPreview('');
     }
-    setAvatarFile(null);
     setOpenDialog(true);
   };
 
   const handleOpenEnrollDialog = (student) => {
-    setCurrentStudent(student);
+    setEditingStudent(student);
     setEnrollData({ classId: '' });
     setOpenEnrollDialog(true);
   };
@@ -160,64 +152,16 @@ const Students = () => {
     }));
   };
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setAvatarFile(file);
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveAvatar = () => {
-    setAvatarFile(null);
-    setAvatarPreview('');
-    setFormData(prev => ({ ...prev, avatar: '' }));
-  };
-
   const handleEnrollChange = (e) => {
     setEnrollData({ classId: e.target.value });
   };
 
   const handleSubmit = async () => {
     try {
-      let submitData = { ...formData };
-      
-      // Handle avatar upload
-      if (avatarFile) {
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', avatarFile);
-        
-        try {
-          const uploadResponse = await fetch(UPLOAD_URL, {
-            method: 'POST',
-            body: formDataUpload,
-          });
-          
-          if (uploadResponse.ok) {
-            const uploadResult = await uploadResponse.json();
-            submitData.avatar = uploadResult.url;
-          } else {
-            throw new Error('Upload failed');
-          }
-        } catch (uploadError) {
-          console.error('Avatar upload error:', uploadError);
-          alert('Có lỗi xảy ra khi upload avatar. Vui lòng thử lại.');
-          return;
-        }
-      }
-      
-      if (editMode) {
-        await studentsAPI.update(currentStudent.studentId, {
-          ...submitData,
-          isActive: currentStudent?.isActive ?? true,
-        });
+      if (editingStudent) {
+        await studentsAPI.update(editingStudent.studentId, formData);
       } else {
-        await studentsAPI.create(submitData);
+        await studentsAPI.create(formData);
       }
       handleCloseDialog();
       setPaginationModel(prev => ({ ...prev, page: 0 })); // Reset về trang 1 sau khi tạo/sửa
@@ -274,35 +218,6 @@ const Students = () => {
       valueFormatter: (params) => new Date(params.value).toLocaleDateString('vi-VN'),
     },
     { field: 'address', headerName: 'Địa Chỉ', width: 180 },
-    { field: 'username', headerName: 'Tên Đăng Nhập', width: 130 },
-    { field: 'avatar', headerName: 'Avatar', width: 80,
-      renderCell: (params) => (
-        params.value ? (
-          <Box display="flex" justifyContent="center" alignItems="center" p={1}>
-            <img 
-              src={params.value.startsWith('http') ? params.value : `http://localhost:5000${params.value}`} 
-              alt="Avatar" 
-              onError={(e) => {
-                console.log('Avatar load error:', params.value);
-                e.target.onerror = null;
-                e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUiIGhlaWdodD0iMzUiIHZpZXdCb3g9IjAgMCAzNSAzNSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTcuNSIgY3k9IjE3LjUiIHI9IjE3LjUiIGZpbGw9IiNGNUY1RjUiLz4KPHR5cG8gZD0iTTE3LjUgMTJDMTkuOTg5MyAxMiAyMiAxNC4wMTA3IDIyIDE2LjVDMjIgMTguOTg5MyAxOS45ODkzIDIxIDE3LjUgMjFDMTUuMDEwNyAyMSAxMyAxOC45ODkzIDEzIDE2LjVDMTMgMTQuMDEwNyAxNS4wMTA3IDEyIDE3LjUgMTJaIiBmaWxsPSIjOTk5OTk5Ii8+Cjwvc3ZnPgo=';
-              }}
-              style={{ 
-                width: 35, 
-                height: 35, 
-                borderRadius: '50%', 
-                objectFit: 'cover',
-                border: '1px solid #e0e0e0'
-              }}
-            />
-          </Box>
-        ) : (
-          <Box display="flex" justifyContent="center" alignItems="center" p={1}>
-            <Typography variant="caption" color="textSecondary">Không có</Typography>
-          </Box>
-        )
-      ),
-    },
     {
       field: 'level',
       headerName: 'Trình Độ',
@@ -420,7 +335,7 @@ const Students = () => {
       {/* Dialog Thêm/Sửa Học Viên */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {editMode ? 'Chỉnh Sửa Học Viên' : 'Thêm Học Viên Mới'}
+          {editingStudent ? 'Chỉnh Sửa Học Viên' : 'Thêm Học Viên Mới'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
@@ -469,22 +384,14 @@ const Students = () => {
               fullWidth
             />
             <TextField
-              name="username"
-              label="Tên Đăng Nhập"
-              value={formData.username}
-              onChange={handleInputChange}
-              required
-              fullWidth
-            />
-            <TextField
               name="password"
-              label="Mật Khẩu"
+              label="Mật khẩu"
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={handleInputChange}
-              required={!editMode} // Bắt buộc khi tạo mới, không bắt buộc khi edit
               fullWidth
-              helperText={editMode ? "Để trống nếu không muốn đổi mật khẩu" : ""}
+              required={!editingStudent}
+              helperText={!editingStudent ? 'Bắt buộc khi tạo học viên mới' : 'Để trống nếu không muốn đổi mật khẩu'}
               InputProps={{
                 endAdornment: (
                   <IconButton
@@ -497,53 +404,6 @@ const Students = () => {
                 ),
               }}
             />
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Avatar
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                {avatarPreview ? (
-                  <>
-                    <Avatar
-                      src={avatarPreview}
-                      sx={{ width: 80, height: 80 }}
-                    />
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={handleRemoveAvatar}
-                      size="small"
-                    >
-                      Xóa Avatar
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Avatar sx={{ width: 80, height: 80, bgcolor: 'grey.300' }}>
-                      <CloudUpload sx={{ fontSize: 40, color: 'grey.600' }} />
-                    </Avatar>
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      startIcon={<CloudUpload />}
-                    >
-                      Chọn Ảnh
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*"
-                        onChange={handleAvatarChange}
-                      />
-                    </Button>
-                  </>
-                )}
-              </Box>
-              {avatarFile && (
-                <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-                  Đã chọn: {avatarFile.name}
-                </Typography>
-              )}
-            </Box>
             <TextField
               name="level"
               label="Trình Độ"
@@ -564,7 +424,7 @@ const Students = () => {
         <DialogActions>
           <Button onClick={handleCloseDialog}>Hủy</Button>
           <Button onClick={handleSubmit} variant="contained">
-            {editMode ? 'Cập Nhật' : 'Thêm Mới'}
+            {editingStudent ? 'Cập Nhật' : 'Thêm Mới'}
           </Button>
         </DialogActions>
       </Dialog>

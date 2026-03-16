@@ -126,7 +126,10 @@ namespace EnglishCenter.API.Controllers
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var result = await _authService.UpdateProfileAsync(userId, request);
             if (!result) return BadRequest();
-            return Ok("Cập nhật thông tin thành công.");
+            
+            // Return updated user data
+            var updatedUser = await _authService.GetCurrentUserAsync(userId);
+            return Ok(updatedUser);
         }
     }
 }

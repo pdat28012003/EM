@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const UPLOAD_URL = process.env.REACT_APP_UPLOAD_URL || 'http://localhost:5000/api/upload/avatar';
 
 const toCamelCase = (key) => {
@@ -40,12 +41,41 @@ const api = axios.create({
   },
 });
 
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 api.interceptors.response.use(
   (response) => {
     response.data = keysToCamelCaseDeep(response.data);
     return response;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    const status = error.response?.status;
+    const originalRequest = error.config || {};
+    const url = originalRequest.url || '';
+
+    const isLoginRequest = url.includes('/auth/login');
+
+    if (status === 401 && !isLoginRequest) {
+      // Token expired or invalid for protected APIs
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 // Students API
@@ -63,10 +93,10 @@ export const studentsAPI = {
 
 // Teachers API
 export const teachersAPI = {
-  getAll: (params) => api.get('/teachers', { params }),
-  getById: (id) => api.get(`/teachers/${id}`),
-  create: (data) => api.post('/teachers', data),
-  getSchedule: (id) => api.get(`/teachers/${id}/schedule`),
+  getAll: (params) => api.get('/teacher', { params }),
+  getById: (id) => api.get(`/teacher/${id}`),
+  create: (data) => api.post('/teacher', data),
+  getSchedule: (id) => api.get(`/teacher/${id}/schedule`),
 };
 
 // Courses API
@@ -99,20 +129,15 @@ export const paymentsAPI = {
 
 // Schedules API
 export const schedulesAPI = {
-  getAll: () => api.get('/schedules'),
+  getAll: (params) => api.get('/schedules', { params }),
   create: (data) => api.post('/schedules', data),
   delete: (id) => api.delete(`/schedules/${id}`),
-};
-
-// Test Scores API
-export const testScoresAPI = {
-  getAll: () => api.get('/testscores'),
-  create: (data) => api.post('/testscores', data),
 };
 
 // Dashboard API
 export const dashboardAPI = {
   getStats: () => api.get('/dashboard/stats'),
+  getTeacherDashboardStatistics: (teacherId) => api.get(`/statistics/teacher-dashboard/${teacherId}`),
 };
 
 // Curriculum API
@@ -153,5 +178,23 @@ export const attendanceAPI = {
   getByLesson: (lessonId) => api.get(`/attendance/lesson/${lessonId}`),
 };
 
+// Auth API
+export const authAPI = {
+  login: (credentials) => api.post('/auth/login', credentials),
+  logout: () => api.post('/auth/logout'),
+  refreshToken: () => api.post('/auth/refresh-token'),
+  getProfile: () => api.get('/auth/me'),
+  updateProfile: (data) => api.put('/auth/update-profile', data),
+};
+
+// Test Scores API
+export const testScoresAPI = {
+  getAll: (params) => api.get('/testscores', { params }),
+  getById: (id) => api.get(`/testscores/${id}`),
+  create: (data) => api.post('/testscores', data),
+  update: (id, data) => api.put(`/testscores/${id}`, data),
+  delete: (id) => api.delete(`/testscores/${id}`),
+};
+
 export default api;
-export { UPLOAD_URL };
+export { UPLOAD_URL, BASE_URL };
