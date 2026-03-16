@@ -129,6 +129,13 @@ namespace EnglishCenter.API.Data
 
         private void SeedData(ModelBuilder modelBuilder)
         {
+            // Seed Roles
+            modelBuilder.Entity<Role>().HasData(
+                new Role { RoleId = 1, RoleName = "Admin", Description = "System Administrator" },
+                new Role { RoleId = 2, RoleName = "Teacher", Description = "Center Teacher" },
+                new Role { RoleId = 3, RoleName = "Student", Description = "Center Student" }
+            );
+
             // Seed Courses
             modelBuilder.Entity<Course>().HasData(
                 new Course

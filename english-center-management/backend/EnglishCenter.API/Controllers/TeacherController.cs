@@ -6,6 +6,7 @@ using EnglishCenter.API.Data;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -110,6 +111,7 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="dto">Teacher creation data (Dữ liệu tạo giáo viên)</param>
         /// <returns>Created teacher (Thông tin giáo viên vừa tạo)</returns>
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<TeacherDto>> CreateTeacher(CreateTeacherDto dto)
         {

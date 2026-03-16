@@ -43,33 +43,12 @@ namespace EnglishCenter.API.Services
                 PasswordHash = passwordHash,
                 PasswordSalt = passwordSalt,
                 RoleId = role.RoleId,
-                IsActive = false
+                IsActive = true
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            await GenerateAndSendOtp(user.Email, "Registration");
-
-            return true;
-        }
-
-        public async Task<bool> VerifyRegistrationAsync(VerifyRegistrationRequest request)
-        {
-            var otp = await _context.UserOtps
-                .Where(o => o.Email == request.Email && o.OtpCode == request.OtpCode && o.Type == "Registration" && !o.IsUsed && o.ExpiryTime > DateTime.Now)
-                .OrderByDescending(o => o.CreatedAt)
-                .FirstOrDefaultAsync();
-
-            if (otp == null) return false;
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-            if (user == null) return false;
-
-            user.IsActive = true;
-            otp.IsUsed = true;
-
-            await _context.SaveChangesAsync();
             return true;
         }
 
@@ -204,7 +183,7 @@ namespace EnglishCenter.API.Services
             };
         }
 
-        public async Task<bool> UpdateProfileAsync(int userId, UpdateProfileRequest request)
+        public async Task<bool> UpdateProfileAsync(int userId, UpdateProfileRequest request, string? avatarUrl = null)
         {
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return false;
@@ -212,7 +191,11 @@ namespace EnglishCenter.API.Services
             if (request.FullName != null) user.FullName = request.FullName;
             if (request.Email != null) user.Email = request.Email;
             if (request.PhoneNumber != null) user.PhoneNumber = request.PhoneNumber;
-            if (request.Avatar != null) user.Avatar = request.Avatar;
+            
+            if (avatarUrl != null)
+            {
+                user.Avatar = avatarUrl;
+            }
 
             await _context.SaveChangesAsync();
             return true;
