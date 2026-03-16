@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
 namespace EnglishCenter.API.DTOs
@@ -18,16 +19,6 @@ namespace EnglishCenter.API.DTOs
         public string? PhoneNumber { get; set; }
         
         public string Role { get; set; } = "Student"; // Default to Student
-    }
-
-    public class VerifyRegistrationRequest
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
-
-        [Required]
-        public string OtpCode { get; set; } = string.Empty;
     }
 
     public class LoginRequest
@@ -91,6 +82,6 @@ namespace EnglishCenter.API.DTOs
         public string? FullName { get; set; }
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
-        public string? Avatar { get; set; }
+        public IFormFile? AvatarFile { get; set; }
     }
 }

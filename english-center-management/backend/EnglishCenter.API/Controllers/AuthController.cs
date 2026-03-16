@@ -3,6 +3,7 @@ using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EnglishCenter.API.Helpers;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -11,34 +12,25 @@ namespace EnglishCenter.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IWebHostEnvironment _environment;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IWebHostEnvironment environment)
         {
             _authService = authService;
+            _environment = environment;
         }
 
         /// <summary>
-        /// Starts the registration process for a new account (Gửi mã OTP).
-        /// (Bắt đầu quá trình đăng ký tài khoản mới (gửi OTP))
+        /// Registers a new account. (Admin only)
+        /// (Đăng ký tài khoản mới. Chỉ dành cho Admin)
         /// </summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequest request)
         {
             var result = await _authService.RegisterAsync(request);
-            if (!result) return BadRequest("Email đã tồn tại hoặc Role không hợp lệ.");
-            return Ok("Đăng ký thành công. Vui lòng kiểm tra email để lấy mã OTP.");
-        }
-
-        /// <summary>
-        /// Verifies the OTP to activate the account.
-        /// (Xác thực OTP để kích hoạt tài khoản)
-        /// </summary>
-        [HttpPost("verify-registration")]
-        public async Task<IActionResult> VerifyRegistration(VerifyRegistrationRequest request)
-        {
-            var result = await _authService.VerifyRegistrationAsync(request);
-            if (!result) return BadRequest("Mã OTP không hợp lệ hoặc đã hết hạn.");
-            return Ok("Xác thực thành công. Tài khoản của bạn đã được kích hoạt.");
+            if (!result) return ResponseHelper.BadRequest("Email đã tồn tại hoặc Role không hợp lệ.", "Email already exists or Role is invalid.");
+            return ResponseHelper.Success("Đăng ký thành công. Tài khoản đã được tạo và kích hoạt.", "Registration successful. Account created and activated.");
         }
 
         /// <summary>
@@ -49,8 +41,8 @@ namespace EnglishCenter.API.Controllers
         public async Task<IActionResult> ResendOtp(string email, string type)
         {
             var result = await _authService.ResendOtpAsync(email, type);
-            if (!result) return BadRequest("Không thể gửi lại mã OTP.");
-            return Ok("Mã OTP mới đã được gửi.");
+            if (!result) return ResponseHelper.BadRequest("Không thể gửi lại mã OTP.", "Could not resend OTP.");
+            return ResponseHelper.Success("Mã OTP mới đã được gửi.", "New OTP code has been sent.");
         }
 
         /// <summary>
@@ -61,8 +53,8 @@ namespace EnglishCenter.API.Controllers
         public async Task<IActionResult> Login(LoginRequest request)
         {
             var response = await _authService.LoginAsync(request);
-            if (response == null) return Unauthorized("Email hoặc mật khẩu không chính xác, hoặc tài khoản chưa được kích hoạt.");
-            return Ok(response);
+            if (response == null) return ResponseHelper.Unauthorized("Email hoặc mật khẩu không chính xác, hoặc tài khoản chưa được kích hoạt.", "Incorrect email or password, or account strongly not activated.");
+            return ResponseHelper.Success("Đăng nhập thành công.", response, "Login successful.");
         }
 
         /// <summary>
@@ -73,20 +65,20 @@ namespace EnglishCenter.API.Controllers
         public async Task<IActionResult> RefreshToken(RefreshTokenRequest request)
         {
             var response = await _authService.RefreshTokenAsync(request);
-            if (response == null) return Unauthorized("Refresh Token không hợp lệ hoặc đã hết hạn.");
-            return Ok(response);
+            if (response == null) return ResponseHelper.Unauthorized("Refresh Token không hợp lệ hoặc đã hết hạn.", "Invalid or expired Refresh Token.");
+            return ResponseHelper.Success("Làm mới token thành công.", response, "Token refreshed successfully.");
         }
 
         /// <summary>
-        /// Requests an OTP code to reset the password.
-        /// (Yêu cầu mã OTP để đặt lại mật khẩu)
+        /// Forgot password.
+        /// (Quên mật khẩu)
         /// </summary>
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
         {
             var result = await _authService.ForgotPasswordAsync(request);
-            if (!result) return BadRequest("Email không tồn tại trong hệ thống.");
-            return Ok("Mã OTP khôi phục mật khẩu đã được gửi qua email.");
+            if (!result) return ResponseHelper.BadRequest("Email không tồn tại trong hệ thống.", "Email does not exist in the system.");
+            return ResponseHelper.Success("Mã OTP khôi phục mật khẩu đã được gửi qua email.", "Password recovery OTP has been sent via email.");
         }
 
         /// <summary>
@@ -97,8 +89,8 @@ namespace EnglishCenter.API.Controllers
         public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
         {
             var result = await _authService.ResetPasswordAsync(request);
-            if (!result) return BadRequest("Mã OTP không hợp lệ hoặc đã hết hạn.");
-            return Ok("Mật khẩu đã được đặt lại thành công.");
+            if (!result) return ResponseHelper.BadRequest("Mã OTP không hợp lệ hoặc đã hết hạn.", "Invalid or expired OTP.");
+            return ResponseHelper.Success("Mật khẩu đã được đặt lại thành công.", "Password has been reset successfully.");
         }
 
         /// <summary>
@@ -111,8 +103,8 @@ namespace EnglishCenter.API.Controllers
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var user = await _authService.GetCurrentUserAsync(userId);
-            if (user == null) return NotFound();
-            return Ok(user);
+            if (user == null) return ResponseHelper.NotFound("Không tìm thấy người dùng.", "User not found.");
+            return ResponseHelper.Success("Lấy thông tin thành công.", user, "Successfully retrieved profile.");
         }
 
         /// <summary>
@@ -121,15 +113,50 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         [Authorize]
         [HttpPut("update-profile")]
-        public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request)
+        public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileRequest request)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var result = await _authService.UpdateProfileAsync(userId, request);
-            if (!result) return BadRequest();
+            string? avatarUrl = null;
+
+            // Handle Avatar Upload if provided
+            if (request.AvatarFile != null && request.AvatarFile.Length > 0)
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                var fileExtension = Path.GetExtension(request.AvatarFile.FileName).ToLowerInvariant();
+                
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    return ResponseHelper.BadRequest("Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif, webp).", "Only image files (jpg, jpeg, png, gif, webp) are allowed.");
+                }
+
+                if (request.AvatarFile.Length > 5 * 1024 * 1024)
+                {
+                    return ResponseHelper.BadRequest("Kích thước file không được vượt quá 5MB.", "File size must not exceed 5MB.");
+                }
+
+                var webRootPath = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
+                if (!Directory.Exists(webRootPath)) Directory.CreateDirectory(webRootPath);
+
+                var uploadsFolder = Path.Combine(webRootPath, "uploads", "avatars");
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await request.AvatarFile.CopyToAsync(stream);
+                }
+
+                avatarUrl = $"/uploads/avatars/{uniqueFileName}";
+            }
+
+            var result = await _authService.UpdateProfileAsync(userId, request, avatarUrl);
+            if (!result) return ResponseHelper.BadRequest("Không thể cập nhật thông tin.", "Could not update profile.");
             
             // Return updated user data
             var updatedUser = await _authService.GetCurrentUserAsync(userId);
-            return Ok(updatedUser);
+            return ResponseHelper.Success("Cập nhật thông tin thành công.", updatedUser, "Profile updated successfully.");
         }
     }
 }

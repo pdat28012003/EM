@@ -6,6 +6,8 @@ using EnglishCenter.API.Data;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
+using Microsoft.AspNetCore.Authorization;
+using EnglishCenter.API.Helpers;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -104,11 +106,11 @@ namespace EnglishCenter.API.Controllers
                     TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
                 };
 
-                return Ok(pagedResult);
+                return ResponseHelper.Success("Lấy danh sách học viên thành công.", pagedResult, "Students retrieved successfully.");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error retrieving students" });
+                return ResponseHelper.InternalServerError(ex);
             }
         }
 
@@ -140,14 +142,14 @@ namespace EnglishCenter.API.Controllers
 
                 if (studentDto == null)
                 {
-                    return NotFound(new { message = "Student not found" });
+                    return ResponseHelper.NotFound("Không tìm thấy học viên.", "Student not found.");
                 }
 
-                return Ok(studentDto);
+                return ResponseHelper.Success("Lấy chi tiết học viên thành công.", studentDto, "Student details retrieved successfully.");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error retrieving student" });
+                return ResponseHelper.InternalServerError(ex);
             }
         }
 
@@ -156,6 +158,7 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="dto">Student creation data (Dữ liệu tạo học viên)</param>
         /// <returns>Created student (Học viên vừa tạo)</returns>
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<StudentDto>> CreateStudent(CreateStudentDto dto)
         {
