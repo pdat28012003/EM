@@ -34,18 +34,14 @@ const NavigationMenu = ({
       <MenuItem component={Link} to="/teacher/classes" onClick={onClose}>
         Lớp học
       </MenuItem>
-      <MenuItem component={Link} to="/teacher/assignments" onClick={onClose}>
-        Bài tập
-      </MenuItem>
-      <MenuItem component={Link} to="/teacher/grades" onClick={onClose}>
-        Điểm số
-      </MenuItem>
+
       <MenuItem component={Link} to="/teacher/schedule" onClick={onClose}>
         Lịch dạy
       </MenuItem>
-      <MenuItem component={Link} to="/teacher/materials" onClick={onClose}>
+      <MenuItem component={Link} to="/teacher/documents" onClick={onClose}>
         Tài liệu
-      </MenuItem>
+      </MenuItem> 
+
       {isAuthenticated && user ? (
         <>
           <MenuItem disabled>

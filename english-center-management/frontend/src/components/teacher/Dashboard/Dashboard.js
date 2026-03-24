@@ -31,10 +31,11 @@ import {
   ArrowDownward,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { dashboardAPI } from '../../../services/api';
+import { dashboardAPI, classesAPI } from '../../../services/api';
 
 const TeacherDashboard = () => {
   const [teacher, setTeacher] = useState(null);
+  const [recentClasses, setRecentClasses] = useState([]);
   const [stats, setStats] = useState({
     totalClasses: { currentValue: 0, changeFromLastWeek: 0, changeType: 'increase' },
     totalStudents: { currentValue: 0, changeFromLastWeek: 0, changeType: 'increase' },
@@ -50,17 +51,30 @@ const TeacherDashboard = () => {
       const parsedUser = JSON.parse(userData);
       setTeacher(parsedUser);
       if (parsedUser.teacherId || parsedUser.userId) {
-        loadTeacherStats(parsedUser.teacherId || parsedUser.userId);
+        loadTeacherData(parsedUser.teacherId || parsedUser.userId);
       }
     }
   }, []);
 
-  const loadTeacherStats = async (teacherId) => {
+  const loadTeacherData = async (teacherId) => {
     try {
-      const response = await dashboardAPI.getTeacherDashboardStatistics(teacherId);
-      setStats(response.data);
+      // Load stats
+      const statsResponse = await dashboardAPI.getTeacherDashboardStatistics(teacherId);
+      setStats(statsResponse.data);
+      
+      // Load recent classes
+      const classesResponse = await classesAPI.getAll({ teacherId, limit: 3 });
+      const classesData = classesResponse.data?.data || classesResponse.data?.Data || [];
+      const mappedClasses = Array.isArray(classesData) ? classesData.map(cls => ({
+        id: cls.classId,
+        name: cls.className || 'Lớp không tên',
+        students: cls.currentStudents || 0,
+        nextClass: cls.schedule || 'Chưa có lịch',
+        progress: cls.progress || 0
+      })) : [];
+      setRecentClasses(mappedClasses);
     } catch (error) {
-      console.error('Error loading teacher dashboard stats:', error);
+      console.error('Error loading teacher dashboard data:', error);
       // Fallback to mock data if API fails
       setStats({
         totalClasses: { currentValue: 5, changeFromLastWeek: 2, changeType: 'increase' },
@@ -68,6 +82,29 @@ const TeacherDashboard = () => {
         pendingAssignments: { currentValue: 12, changeFromLastWeek: -3, changeType: 'decrease' },
         weeklySchedule: { currentValue: 8, changeFromLastWeek: 2, changeType: 'increase' },
       });
+      setRecentClasses([
+        { 
+          id: 1,
+          name: 'IELTS 201',
+          students: 15,
+          nextClass: 'Hôm nay, 14:00',
+          progress: 65
+        },
+        { 
+          id: 2,
+          name: 'Python 101',
+          students: 20,
+          nextClass: 'Mai, 10:00',
+          progress: 40
+        },
+        { 
+          id: 3,
+          name: 'TOEIC Basic',
+          students: 18,
+          nextClass: 'Thứ 5, 16:00',
+          progress: 80
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -139,40 +176,21 @@ icon,
       title: 'Lớp học', 
       subtitle: 'Quản lý lớp học',
       path: '/teacher/classes',
-      color: '#1976d2',
-      count: stats.totalClasses.currentValue
-    },
-    { 
-      icon: <Assignment />, 
-      title: 'Bài tập', 
-      subtitle: 'Giao và chấm bài tập',
-      path: '/teacher/assignments',
-      color: '#388e3c',
-      count: stats.pendingAssignments.currentValue
-    },
-    { 
-      icon: <Assessment />, 
-      title: 'Điểm số', 
-      subtitle: 'Xem kết quả học tập',
-      path: '/teacher/grades',
-      color: '#f57c00',
-      count: stats.totalStudents.currentValue
+      color: '#1976d2'
     },
     { 
       icon: <Schedule />, 
       title: 'Lịch dạy', 
-      subtitle: 'Quản lý lịch giảng dạy',
+      subtitle: 'Xem lịch giảng dạy',
       path: '/teacher/schedule',
-      color: '#7c4dff',
-      count: stats.weeklySchedule.currentValue
+      color: '#7c4dff'
     },
     { 
       icon: <Book />, 
       title: 'Tài liệu', 
       subtitle: 'Quản lý tài liệu giảng dạy',
-      path: '/teacher/materials',
-      color: '#4caf50',
-      count: 23
+      path: '/teacher/documents',
+      color: '#4caf50'
     },
   ];
 
@@ -306,7 +324,7 @@ icon,
             </Typography>
             <Grid container spacing={2}>
               {menuItems.map((item, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
+                <Grid item xs={12} sm={4} key={index}>
                   <Card 
                     sx={{ 
                       cursor: 'pointer',
@@ -328,7 +346,6 @@ icon,
                       <Typography variant="body2" color="textSecondary">
                         {item.subtitle}
                       </Typography>
-                     
                     </CardContent>
                   </Card>
                 </Grid>
@@ -338,9 +355,78 @@ icon,
         </Grid>
       </Grid>
 
-      {/* Recent Activities */}
+      {/* Recent Classes & Activities */}
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">
+                Lớp học gần đây
+              </Typography>
+              <Button 
+                size="small" 
+                variant="outlined"
+                startIcon={<Class />}
+                onClick={() => navigate('/teacher/classes')}
+              >
+                Xem tất cả
+              </Button>
+            </Box>
+            
+            <Box>
+              {recentClasses.map((classItem) => (
+                <Card 
+                  key={classItem.id}
+                  sx={{ 
+                    cursor: 'pointer',
+                    mb: 2,
+                    '&:hover': {
+                      boxShadow: 2
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                  onClick={() => navigate(`/teacher/classes/${classItem.id}`)}
+                >
+                  <CardContent sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                        {classItem.name}
+                      </Typography>
+                      <Chip 
+                        label={`${classItem.students} học viên`} 
+                        size="small" 
+                        color="primary" 
+                        variant="outlined"
+                      />
+                    </Box>
+                    <Box sx={{ mb: 1 }}>
+                      <Typography variant="body2" color="textSecondary">
+                        Buổi tiếp theo: {classItem.nextClass}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" color="textSecondary">
+                        Tiến độ:
+                      </Typography>
+                      <Box sx={{ flex: 1 }}>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={classItem.progress} 
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                      </Box>
+                      <Typography variant="body2" color="textSecondary">
+                        {classItem.progress}%
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6">
@@ -396,49 +482,63 @@ icon,
             </Box>
           </Paper>
         </Grid>
-        
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, height: '100%' }}>
+      </Grid>
+
+      {/* Notifications */}
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Thông báo
+              Nhắc nhở quan trọng
             </Typography>
             
-            <Box sx={{ mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Notifications color="warning" />
-                <Box>
-                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                    3 bài tập chờ chấm
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Hạn trong 2 ngày
-                  </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'rgba(255,152,0,0.08)', borderRadius: 2 }}>
+                  <Box sx={{ color: '#f57c00', p: 1, borderRadius: 1, bgcolor: 'rgba(245,124,0,0.12)' }}>
+                    <Assignment sx={{ fontSize: 24 }} />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                      {stats.pendingAssignments.currentValue} bài tập chờ chấm
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Cần hoàn thành trong vài ngày tới
+                    </Typography>
+                  </Box>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={() => navigate('/teacher/assignments')}
+                  >
+                    Xem ngay
+                  </Button>
                 </Box>
-              </Box>
-            </Box>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Box sx={{ color: '#f57c00', p: 1, borderRadius: 1, bgcolor: 'rgba(245,124,0,0.04)' }}>
-                <Assessment sx={{ fontSize: 20 }} />
-              </Box>
-              <Box>
-                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                  5 điểm số cần nhập
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  Lớp IELTS 201
-                </Typography>
-              </Box>
-            </Box>
-            
-            <Button 
-              variant="contained" 
-              fullWidth
-              sx={{ mt: 2 }}
-              onClick={() => navigate('/teacher/notifications')}
-            >
-              Xem tất cả thông báo
-            </Button>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'rgba(33,150,243,0.08)', borderRadius: 2 }}>
+                  <Box sx={{ color: '#1976d2', p: 1, borderRadius: 1, bgcolor: 'rgba(25,118,210,0.12)' }}>
+                    <Schedule sx={{ fontSize: 24 }} />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                      {stats.weeklySchedule.currentValue} buổi học tuần này
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Chuẩn bị tài liệu và giáo án
+                    </Typography>
+                  </Box>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={() => navigate('/teacher/schedule')}
+                  >
+                    Xem lịch
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
           </Paper>
         </Grid>
       </Grid>

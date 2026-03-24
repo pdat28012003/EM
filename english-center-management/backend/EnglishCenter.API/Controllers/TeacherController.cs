@@ -203,32 +203,99 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets teacher's schedule. (Lấy lịch dạy của giáo viên.)
+        /// Gets teacher's schedule based on Curriculum. (Lấy lịch dạy của giáo viên theo Curriculum.)
         /// </summary>
         /// <param name="id">Teacher ID (ID giáo viên)</param>
-        /// <returns>Teacher's schedule (Lịch dạy của giáo viên)</returns>
+        /// <param name="date">Filter by specific date (Lọc theo ngày cụ thể)</param>
+        /// <param name="startDate">Filter by start date (Lọc từ ngày)</param>
+        /// <param name="endDate">Filter by end date (Lọc đến ngày)</param>
+        /// <param name="page">Page number (Số trang)</param>
+        /// <param name="pageSize">Page size (Kích thước trang)</param>
+        /// <returns>Paginated list of curriculum sessions (Danh sách buổi học phân trang)</returns>
         [HttpGet("{id}/schedule")]
-        public async Task<ActionResult<IEnumerable<ScheduleDto>>> GetTeacherSchedule(int id)
+        public async Task<ActionResult<PagedResult<object>>> GetTeacherSchedule(
+            int id, 
+            [FromQuery] DateTime? date = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var schedules = await _context.Schedules
-                .Include(s => s.Class)
-                .Include(s => s.Teacher)
-                .Where(s => s.TeacherId == id)
-                .Select(s => new ScheduleDto
+            try
+            {
+                var teacher = await _context.Teachers.FindAsync(id);
+                if (teacher == null || !teacher.IsActive)
                 {
-                    ScheduleId = s.ScheduleId,
-                    ClassId = s.ClassId,
-                    ClassName = s.Class.ClassName,
-                    TeacherId = s.TeacherId,
-                    TeacherName = s.Teacher.FullName,
-                    DayOfWeek = s.DayOfWeek,
-                    StartTime = s.StartTime,
-                    EndTime = s.EndTime,
-                    Room = s.Room
-                })
-                .ToListAsync();
+                    return NotFound(new { message = "Teacher not found or inactive" });
+                }
 
-            return Ok(schedules);
+                // Query curriculum sessions assigned to this teacher
+                var query = _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .ThenInclude(cd => cd.Curriculum)
+                    .ThenInclude(c => c.Course)
+                    .Include(cs => cs.AssignedRoom)
+                    .Include(cs => cs.Teacher)
+                    .Where(cs => cs.TeacherId == id);
+
+                // Filter by specific date if provided
+                if (date.HasValue)
+                {
+                    query = query.Where(cs => cs.CurriculumDay.ScheduleDate.Date == date.Value.Date);
+                }
+                // Filter by date range if provided
+                else if (startDate.HasValue && endDate.HasValue)
+                {
+                    query = query.Where(cs => cs.CurriculumDay.ScheduleDate.Date >= startDate.Value.Date && 
+                                             cs.CurriculumDay.ScheduleDate.Date <= endDate.Value.Date);
+                }
+                else if (startDate.HasValue)
+                {
+                    query = query.Where(cs => cs.CurriculumDay.ScheduleDate.Date >= startDate.Value.Date);
+                }
+                else if (endDate.HasValue)
+                {
+                    query = query.Where(cs => cs.CurriculumDay.ScheduleDate.Date <= endDate.Value.Date);
+                }
+
+                var totalCount = await query.CountAsync();
+                
+                var sessions = await query
+                    .OrderBy(cs => cs.CurriculumDay.ScheduleDate)
+                    .ThenBy(cs => cs.StartTime)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                var scheduleDtos = sessions.Select(cs => new {
+                    SessionId = cs.CurriculumSessionId,
+                    TeacherId = id,
+                    Date = cs.CurriculumDay.ScheduleDate.ToString("yyyy-MM-dd"),
+                    DayOfWeek = cs.CurriculumDay.ScheduleDate.DayOfWeek.ToString(),
+                    StartTime = cs.StartTime.ToString(@"hh\:mm"),
+                    EndTime = cs.EndTime.ToString(@"hh\:mm"),
+                    CourseName = cs.CurriculumDay.Curriculum.Course.CourseName,
+                    CurriculumName = cs.CurriculumDay.Curriculum.CurriculumName,
+                    SessionName = cs.SessionName,
+                    SessionNumber = cs.SessionNumber,
+                    Topic = cs.CurriculumDay.Topic,
+                    RoomName = cs.AssignedRoom?.RoomName ?? "Not assigned",
+                    Status = "Scheduled"
+                }).ToList();
+
+                return Ok(new PagedResult<object>
+                {
+                    Data = scheduleDtos.Cast<object>().ToList(),
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Error retrieving teacher schedule" });
+            }
         }
     }
 }

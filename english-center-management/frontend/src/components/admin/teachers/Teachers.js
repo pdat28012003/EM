@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Schedule, Visibility, VisibilityOff } from '@mui/icons-material';
-import { teachersAPI } from '../../services/api';
+import { teachersAPI } from '../../../services/api';
 
 const Teachers = () => {
   const navigate = useNavigate();

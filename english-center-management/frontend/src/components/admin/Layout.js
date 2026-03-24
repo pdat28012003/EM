@@ -30,6 +30,7 @@ import {
   CheckCircle,
   AccountCircle,
   Logout,
+  Description,
 } from '@mui/icons-material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
@@ -40,6 +41,8 @@ const menuItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/' },
   { text: 'Học Viên', icon: <People />, path: '/students' },
   { text: 'Giáo Viên', icon: <School />, path: '/teachers' },
+  { text: 'Khóa Học', icon: <LibraryBooks />, path: '/courses' },
+  { text: 'Kỹ Năng', icon: <School />, path: '/skills' },
   { text: 'Lớp Học', icon: <Class />, path: '/classes' },
   { text: 'Phòng Học', icon: <Room />, path: '/rooms' },
   { text: 'Chương Trình Học', icon: <LibraryBooks />, path: '/curriculum' },
@@ -47,6 +50,7 @@ const menuItems = [
   { text: 'Lịch Học', icon: <Schedule />, path: '/schedules' },
   { text: 'Điểm Số', icon: <Assessment />, path: '/test-scores' },
   { text: 'Điểm Danh', icon: <CheckCircle />, path: '/attendance' },
+  { text: 'Tài Liệu', icon: <Description />, path: '/documents' },
 ];
 
 const Layout = ({ children }) => {

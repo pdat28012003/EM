@@ -6,6 +6,56 @@ using EnglishCenter.API.DTOs;
 
 namespace EnglishCenter.API.Controllers
 {
+    // TEACHER SCHEDULE CONTROLLER
+    [ApiController]
+    [Route("api/[controller]")]
+    public class TeacherScheduleController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+
+        public TeacherScheduleController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        /// <summary>
+        /// Gets schedule by teacher ID. (Lấy lịch dạy theo ID giáo viên.)
+        /// </summary>
+        /// <param name="teacherId">Teacher ID (ID giáo viên)</param>
+        /// <returns>Teacher's schedule (Lịch dạy của giáo viên)</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<TeacherScheduleDto>>> GetTeacherSchedule([FromQuery] int teacherId)
+        {
+            var schedules = await _context.CurriculumSessions
+                .Where(s => s.TeacherId == teacherId)
+                .Include(s => s.CurriculumDay)
+                .ThenInclude(cd => cd.Curriculum)
+                .ThenInclude(c => c.Course)
+                .Include(s => s.AssignedRoom)
+                .ToListAsync();
+
+            var scheduleDtos = schedules.Select(s => new TeacherScheduleDto
+                {
+                    ScheduleId = s.CurriculumSessionId,
+                    ClassId = s.CurriculumDay.Curriculum.CourseId,
+                    ClassName = s.CurriculumDay.Curriculum.Course.CourseName,
+                    TeacherId = s.TeacherId ?? 0,
+                    TeacherName = s.Teacher != null ? s.Teacher.FullName : "",
+                    DayOfWeek = s.CurriculumDay.ScheduleDate.DayOfWeek.ToString(),
+                    Date = s.CurriculumDay.ScheduleDate,
+                    StartTime = s.StartTime.ToString(@"hh\:mm\:ss"),
+                    EndTime = s.EndTime.ToString(@"hh\:mm\:ss"),
+                    Room = s.AssignedRoom != null ? s.AssignedRoom.RoomName : "",
+                    Status = "Scheduled"
+                })
+                .OrderBy(dto => dto.Date)
+                .ThenBy(dto => dto.StartTime)
+                .ToList();
+
+            return Ok(scheduleDtos);
+        }
+    }
+
     // ENROLLMENTS CONTROLLER
     [ApiController]
     [Route("api/[controller]")]
@@ -228,7 +278,7 @@ namespace EnglishCenter.API.Controllers
                 PaymentDate = DateTime.Now,
                 PaymentMethod = dto.PaymentMethod,
                 Status = "Completed",
-                Notes = dto.Notes
+                Notes = dto.Notes ?? ""
             };
 
             _context.Payments.Add(payment);
@@ -243,95 +293,131 @@ namespace EnglishCenter.API.Controllers
                 PaymentDate = payment.PaymentDate,
                 PaymentMethod = payment.PaymentMethod,
                 Status = payment.Status,
-                Notes = payment.Notes
+                Notes = payment.Notes ?? ""
             };
 
             return CreatedAtAction(nameof(GetPayments), new { id = payment.PaymentId }, paymentDto);
         }
     }
 
-    // SCHEDULES CONTROLLER
+    // ROOMS CONTROLLER
     [ApiController]
     [Route("api/[controller]")]
-    public class SchedulesController : ControllerBase
+    public class RoomsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
 
-        public SchedulesController(ApplicationDbContext context)
+        public RoomsController(ApplicationDbContext context)
         {
             _context = context;
         }
 
         /// <summary>
-        /// Gets all schedules. (Lấy danh sách lịch học tổng thể.)
+        /// Gets all rooms. (Lấy danh sách phòng học.)
         /// </summary>
-        /// <returns>List of schedules (Danh sách lịch học)</returns>
+        /// <returns>List of rooms (Danh sách phòng học)</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ScheduleDto>>> GetSchedules()
+        public async Task<ActionResult<IEnumerable<RoomDto>>> GetRooms()
         {
-            var schedules = await _context.Schedules
-                .Include(s => s.Class)
-                .Include(s => s.Teacher)
-                .Select(s => new ScheduleDto
+            var rooms = await _context.Rooms
+                .Where(r => r.IsActive)
+                .Select(r => new RoomDto
                 {
-                    ScheduleId = s.ScheduleId,
-                    ClassId = s.ClassId,
-                    ClassName = s.Class.ClassName,
-                    TeacherId = s.TeacherId,
-                    TeacherName = s.Teacher.FullName,
-                    DayOfWeek = s.DayOfWeek,
-                    StartTime = s.StartTime,
-                    EndTime = s.EndTime,
-                    Room = s.Room
+                    RoomId = r.RoomId,
+                    RoomName = r.RoomName,
+                    Description = r.Description,
+                    Capacity = r.Capacity,
+                    AvailableStartTime = r.AvailableStartTime,
+                    AvailableEndTime = r.AvailableEndTime,
+                    IsActive = r.IsActive
                 })
                 .ToListAsync();
 
-            return Ok(schedules);
+            return Ok(rooms);
         }
 
         /// <summary>
-        /// Creates a new schedule. (Tạo lịch học mới.)
+        /// Creates a new room. (Tạo phòng học mới.)
         /// </summary>
-        /// <param name="dto">Schedule creation data (Dữ liệu tạo lịch học)</param>
-        /// <returns>Created schedule (Thông tin lịch học vừa tạo)</returns>
+        /// <param name="dto">Room creation data (Dữ liệu tạo phòng học)</param>
+        /// <returns>Created room (Thông tin phòng học vừa tạo)</returns>
         [HttpPost]
-        public async Task<ActionResult<ScheduleDto>> CreateSchedule(CreateScheduleDto dto)
+        public async Task<ActionResult<RoomDto>> CreateRoom(CreateRoomDto dto)
         {
-            var schedule = new Schedule
+            var room = new Room
             {
-                ClassId = dto.ClassId,
-                TeacherId = dto.TeacherId,
-                DayOfWeek = dto.DayOfWeek,
-                StartTime = dto.StartTime,
-                EndTime = dto.EndTime,
-                Room = dto.Room
+                RoomName = dto.RoomName,
+                Description = dto.Description,
+                Capacity = dto.Capacity,
+                AvailableStartTime = dto.AvailableStartTime,
+                AvailableEndTime = dto.AvailableEndTime,
+                IsActive = true
             };
 
-            _context.Schedules.Add(schedule);
+            _context.Rooms.Add(room);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetSchedules), new { id = schedule.ScheduleId }, schedule);
+            var roomDto = new RoomDto
+            {
+                RoomId = room.RoomId,
+                RoomName = room.RoomName,
+                Description = room.Description,
+                Capacity = room.Capacity,
+                AvailableStartTime = room.AvailableStartTime,
+                AvailableEndTime = room.AvailableEndTime,
+                IsActive = room.IsActive
+            };
+
+            return CreatedAtAction(nameof(GetRooms), new { id = room.RoomId }, roomDto);
         }
 
         /// <summary>
-        /// Deletes a schedule. (Xóa một lịch học cụ thể.)
+        /// Gets room availability for a specific date. (Kiểm tra tình trạng phòng học theo ngày.)
         /// </summary>
-        /// <param name="id">Schedule ID (ID lịch học)</param>
-        /// <returns>No Content</returns>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSchedule(int id)
+        /// <param name="roomId">Room ID (ID phòng học)</param>
+        /// <param name="date">Date to check (Ngày cần kiểm tra)</param>
+        /// <returns>Room availability (Tình trạng phòng học)</returns>
+        [HttpGet("{roomId}/availability")]
+        public async Task<ActionResult<object>> GetRoomAvailability(int roomId, DateTime date)
         {
-            var schedule = await _context.Schedules.FindAsync(id);
-
-            if (schedule == null)
+            var room = await _context.Rooms.FindAsync(roomId);
+            if (room == null || !room.IsActive)
             {
-                return NotFound(new { message = "Schedule not found" });
+                return NotFound(new { message = "Room not found or inactive" });
             }
 
-            _context.Schedules.Remove(schedule);
-            await _context.SaveChangesAsync();
+            var dayOfWeek = date.DayOfWeek.ToString();
+            var schedules = await _context.CurriculumSessions
+                .Include(cs => cs.CurriculumDay)
+                .ThenInclude(cd => cd.Curriculum)
+                .ThenInclude(c => c.Course)
+                .Include(cs => cs.Teacher)
+                .Where(cs => cs.RoomId == roomId 
+                           && cs.CurriculumDay.ScheduleDate.Date == date.Date)
+                .ToListAsync();
 
-            return NoContent();
+            var scheduleDtos = schedules.Select(cs => new
+                {
+                    cs.CurriculumSessionId,
+                    cs.StartTime,
+                    cs.EndTime,
+                    ClassName = cs.CurriculumDay.Curriculum.Course.CourseName,
+                    TeacherName = cs.Teacher != null ? cs.Teacher.FullName : ""
+                })
+                .OrderBy(cs => cs.StartTime)
+                .ToList();
+
+            return Ok(new
+            {
+                RoomId = room.RoomId,
+                RoomName = room.RoomName,
+                Date = date.ToString("yyyy-MM-dd"),
+                DayOfWeek = dayOfWeek,
+                AvailableStartTime = room.AvailableStartTime,
+                AvailableEndTime = room.AvailableEndTime,
+                Capacity = room.Capacity,
+                Schedules = scheduleDtos
+            });
         }
     }
 
@@ -354,16 +440,35 @@ namespace EnglishCenter.API.Controllers
         /// <param name="pageSize">Page size (Kích thước trang)</param>
         /// <returns>Paginated list of test scores (Danh sách điểm thi phân trang)</returns>
         [HttpGet]
-        public async Task<ActionResult<PagedResult<TestScoreDto>>> GetTestScores([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PagedResult<TestScoreDto>>> GetTestScores(
+            [FromQuery] int? classId = null,
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 10)
         {
-            var query = _context.TestScores
-                .Include(ts => ts.Student)
-                .Include(ts => ts.Class)
-                .AsQueryable();
+            try
+            {
+                Console.WriteLine($"DEBUG: GetTestScores called with classId: {classId}");
+                
+                var query = _context.TestScores
+                    .Include(ts => ts.Student)
+                    .Include(ts => ts.Class)
+                    .AsQueryable();
 
-            var totalCount = await query.CountAsync();
-            
-            var testScores = await query
+                Console.WriteLine($"DEBUG: Before filter - Total records: {await query.CountAsync()}");
+
+                if (classId.HasValue)
+                {
+                    Console.WriteLine($"DEBUG: Filtering by ClassId: {classId.Value}");
+                    query = query.Where(ts => ts.ClassId == classId.Value);
+                    
+                    var filteredCount = await query.CountAsync();
+                    Console.WriteLine($"DEBUG: After filter - Filtered records: {filteredCount}");
+                }
+
+                var totalCount = await query.CountAsync();
+                Console.WriteLine($"DEBUG: Final totalCount: {totalCount}");
+                
+                var testScores = await query
                 .Select(ts => new TestScoreDto
                 {
                     TestScoreId = ts.TestScoreId,
@@ -393,6 +498,12 @@ namespace EnglishCenter.API.Controllers
                 PageSize = pageSize,
                 TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
             });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR in GetTestScores: {ex.Message}");
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
         }
 
         /// <summary>

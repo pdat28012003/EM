@@ -439,14 +439,23 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets student's schedule. (Lấy thời khóa biểu cá nhân của học viên.)
+        /// Gets student's schedule based on Curriculum. (Lấy thời khóa biểu cá nhân của học viên theo Curriculum.)
         /// </summary>
         /// <param name="id">Student ID (ID học viên)</param>
+        /// <param name="date">Filter by specific date (Lọc theo ngày cụ thể)</param>
+        /// <param name="startDate">Filter by start date (Lọc từ ngày)</param>
+        /// <param name="endDate">Filter by end date (Lọc đến ngày)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
-        /// <returns>Paginated list of curriculums (Danh sách lịch học phân trang)</returns>
+        /// <returns>Paginated list of curriculum sessions (Danh sách buổi học phân trang)</returns>
         [HttpGet("{id}/schedule")]
-        public async Task<ActionResult<PagedResult<CurriculumDto>>> GetStudentSchedule(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PagedResult<object>>> GetStudentSchedule(
+            int id, 
+            [FromQuery] DateTime? date = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -456,62 +465,94 @@ namespace EnglishCenter.API.Controllers
                     return NotFound(new { message = "Student not found" });
                 }
 
+                // Get active enrollments for this student
                 var activeEnrollments = await _context.Enrollments
                     .Where(e => e.StudentId == id && e.Status == "Active")
                     .Select(e => e.ClassId)
                     .ToListAsync();
 
-                var query = _context.Curriculums
-                    .Where(c => activeEnrollments.Contains(c.ClassId))
-                    .Include(c => c.Class)
-                    .Include(c => c.CurriculumDays)
-                        .ThenInclude(cd => cd.CurriculumSessions)
-                            .ThenInclude(cs => cs.AssignedRoom);
+                // Get classes with their curriculums
+                var studentClasses = await _context.Classes
+                    .Where(c => activeEnrollments.Contains(c.ClassId) && c.Status == "Active")
+                    .Include(c => c.Curriculum)
+                    .ToListAsync();
+
+                if (!studentClasses.Any())
+                {
+                    return Ok(new PagedResult<object>
+                    {
+                        Data = new List<object>(),
+                        TotalCount = 0,
+                        Page = page,
+                        PageSize = pageSize,
+                        TotalPages = 0
+                    });
+                }
+
+                // Get curriculum IDs
+                var curriculumIds = studentClasses
+                    .Where(c => c.Curriculum != null)
+                    .Select(c => c.Curriculum!.CurriculumId)
+                    .ToList();
+
+                // Query curriculum sessions
+                var query = _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .ThenInclude(cd => cd.Curriculum)
+                    .ThenInclude(c => c.Course)
+                    .Include(cs => cs.AssignedRoom)
+                    .Include(cs => cs.Teacher)
+                    .Where(cs => curriculumIds.Contains(cs.CurriculumDay.CurriculumId));
+
+                // Filter by specific date if provided
+                if (date.HasValue)
+                {
+                    query = query.Where(cs => cs.CurriculumDay.ScheduleDate.Date == date.Value.Date);
+                }
+                // Filter by date range if provided
+                else if (startDate.HasValue && endDate.HasValue)
+                {
+                    query = query.Where(cs => cs.CurriculumDay.ScheduleDate.Date >= startDate.Value.Date && 
+                                             cs.CurriculumDay.ScheduleDate.Date <= endDate.Value.Date);
+                }
+                else if (startDate.HasValue)
+                {
+                    query = query.Where(cs => cs.CurriculumDay.ScheduleDate.Date >= startDate.Value.Date);
+                }
+                else if (endDate.HasValue)
+                {
+                    query = query.Where(cs => cs.CurriculumDay.ScheduleDate.Date <= endDate.Value.Date);
+                }
 
                 var totalCount = await query.CountAsync();
                 
-                var curriculums = await query
-                    .OrderBy(c => c.StartDate)
+                var sessions = await query
+                    .OrderBy(cs => cs.CurriculumDay.ScheduleDate)
+                    .ThenBy(cs => cs.StartTime)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                var curriculumDtos = curriculums.Select(c => new CurriculumDto
-                {
-                    CurriculumId = c.CurriculumId,
-                    CurriculumName = c.CurriculumName,
-                    ClassId = c.ClassId,
-                    ClassName = c.Class.ClassName,
-                    StartDate = c.StartDate,
-                    EndDate = c.EndDate,
-                    Description = c.Description,
-                    Status = c.Status,
-                    CurriculumDays = c.CurriculumDays.Select(cd => new CurriculumDayDto
-                    {
-                        CurriculumDayId = cd.CurriculumDayId,
-                        CurriculumId = cd.CurriculumId,
-                        ScheduleDate = cd.ScheduleDate,
-                        Topic = cd.Topic,
-                        Description = cd.Description,
-                        SessionCount = cd.SessionCount,
-                        CurriculumSessions = cd.CurriculumSessions.Select(cs => new CurriculumSessionDto
-                        {
-                            CurriculumSessionId = cs.CurriculumSessionId,
-                            CurriculumDayId = cs.CurriculumDayId,
-                            SessionNumber = cs.SessionNumber,
-                            StartTime = cs.StartTime,
-                            EndTime = cs.EndTime,
-                            SessionName = cs.SessionName,
-                            SessionDescription = cs.SessionDescription,
-                            RoomId = cs.RoomId,
-                            RoomName = cs.AssignedRoom?.RoomName ?? "N/A"
-                        }).ToList()
-                    }).ToList()
+                var scheduleDtos = sessions.Select(cs => new {
+                    SessionId = cs.CurriculumSessionId,
+                    StudentId = id,
+                    Date = cs.CurriculumDay.ScheduleDate.ToString("yyyy-MM-dd"),
+                    DayOfWeek = cs.CurriculumDay.ScheduleDate.DayOfWeek.ToString(),
+                    StartTime = cs.StartTime.ToString(@"hh\:mm"),
+                    EndTime = cs.EndTime.ToString(@"hh\:mm"),
+                    CourseName = cs.CurriculumDay.Curriculum.Course.CourseName,
+                    CurriculumName = cs.CurriculumDay.Curriculum.CurriculumName,
+                    SessionName = cs.SessionName,
+                    SessionNumber = cs.SessionNumber,
+                    Topic = cs.CurriculumDay.Topic,
+                    RoomName = cs.AssignedRoom?.RoomName ?? "Not assigned",
+                    TeacherName = cs.Teacher?.FullName ?? "Not assigned",
+                    Status = "Scheduled"
                 }).ToList();
 
-                return Ok(new PagedResult<CurriculumDto>
+                return Ok(new PagedResult<object>
                 {
-                    Data = curriculumDtos,
+                    Data = scheduleDtos.Cast<object>().ToList(),
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
@@ -520,7 +561,7 @@ namespace EnglishCenter.API.Controllers
             }
             catch (Exception)
             {
-                return StatusCode(500, new { message = "Error retrieving schedule" });
+                return StatusCode(500, new { message = "Error retrieving student schedule" });
             }
         }
     }

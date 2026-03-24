@@ -88,7 +88,7 @@ export const studentsAPI = {
   getEnrollments: (id) => api.get(`/students/${id}/enrollments`),
   getPayments: (id) => api.get(`/students/${id}/payments`),
   getTestScores: (id) => api.get(`/students/${id}/testscores`),
-  getSchedule: (id) => api.get(`/students/${id}/schedule`),
+  getSchedule: (id, params) => api.get(`/students/${id}/schedule`, { params }),
 };
 
 // Teachers API
@@ -96,7 +96,8 @@ export const teachersAPI = {
   getAll: (params) => api.get('/teacher', { params }),
   getById: (id) => api.get(`/teacher/${id}`),
   create: (data) => api.post('/teacher', data),
-  getSchedule: (id) => api.get(`/teacher/${id}/schedule`),
+  update: (id, data) => api.put(`/teacher/${id}`, data),
+  getSchedule: (id, params) => api.get(`/teacher/${id}/schedule`, { params }),
 };
 
 // Courses API
@@ -104,6 +105,8 @@ export const coursesAPI = {
   getAll: (params) => api.get('/courses', { params }),
   getById: (id) => api.get(`/courses/${id}`),
   create: (data) => api.post('/courses', data),
+  update: (id, data) => api.put(`/courses/${id}`, data),
+  delete: (id) => api.delete(`/courses/${id}`),
 };
 
 // Classes API
@@ -111,7 +114,47 @@ export const classesAPI = {
   getAll: (params) => api.get('/classes', { params }),
   getById: (id) => api.get(`/classes/${id}`),
   create: (data) => api.post('/classes', data),
+  delete: (id) => api.delete(`/classes/${id}`),
   getStudents: (id) => api.get(`/classes/${id}/students`),
+  getStudentClasses: (studentId) => api.get(`/students/${studentId}/classes`),
+};
+
+// Skills API (NEW - Dynamic Skill System)
+export const skillsAPI = {
+  getAll: (params) => api.get('/skill', { params }),
+  getById: (id) => api.get(`/skill/${id}`),
+  create: (data) => api.post('/skill', data),
+  update: (id, data) => api.put(`/skill/${id}`, data),
+  delete: (id) => api.delete(`/skill/${id}`)
+};
+
+// Assignment Skills API (NEW)
+export const assignmentSkillsAPI = {
+  getByAssignment: (assignmentId) => api.get(`/assignment/${assignmentId}/skills`),
+  create: (assignmentId, data) => api.post(`/assignment/${assignmentId}/skills`, data),
+  update: (assignmentId, skillId, data) => api.put(`/assignment/${assignmentId}/skills/${skillId}`, data),
+  delete: (assignmentId, skillId) => api.delete(`/assignment/${assignmentId}/skills/${skillId}`)
+};
+
+// Grades API (NEW - Dynamic Skill System)
+export const gradesAPI = {
+  getByAssignment: (assignmentId) => api.get(`/grade/assignment/${assignmentId}`),
+  getByStudent: (studentId) => api.get(`/grade/student/${studentId}`),
+  getByClass: (classId) => api.get(`/grade/class/${classId}`),
+  create: (data) => api.post('/grade', data),
+  update: (id, data) => api.put(`/grade/${id}`, data),
+  delete: (id) => api.delete(`/grade/${id}`)
+};
+
+// Assignments API
+export const assignmentsAPI = {
+  getAll: (params = {}) => api.get('/assignment', { params }),
+  getById: (id) => api.get(`/assignment/${id}`),
+  create: (data) => api.post('/assignment', data),
+  update: (id, data) => api.put(`/assignment/${id}`, data),
+  delete: (id) => api.delete(`/assignment/${id}`),
+  getSubmissions: (assignmentId, params = {}) => api.get(`/assignment/${assignmentId}/submissions`, { params }),
+  gradeSubmission: (submissionId, data) => api.put(`/assignment/submissions/${submissionId}/grade`, data)
 };
 
 // Enrollments API
@@ -127,13 +170,6 @@ export const paymentsAPI = {
   create: (data) => api.post('/payments', data),
 };
 
-// Schedules API
-export const schedulesAPI = {
-  getAll: (params) => api.get('/schedules', { params }),
-  create: (data) => api.post('/schedules', data),
-  delete: (id) => api.delete(`/schedules/${id}`),
-};
-
 // Dashboard API
 export const dashboardAPI = {
   getStats: () => api.get('/dashboard/stats'),
@@ -144,7 +180,7 @@ export const dashboardAPI = {
 export const curriculumAPI = {
   getAll: (params) => api.get('/curriculum', { params }),
   getById: (id) => api.get(`/curriculum/${id}`),
-  getByClass: (classId) => api.get(`/curriculum/class/${classId}`),
+  getByCourse: (courseId) => api.get(`/curriculum/course/${courseId}`),
   create: (data) => api.post('/curriculum', data),
   update: (id, data) => api.put(`/curriculum/${id}`, data),
   delete: (id) => api.delete(`/curriculum/${id}`),
@@ -185,6 +221,23 @@ export const authAPI = {
   refreshToken: () => api.post('/auth/refresh-token'),
   getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/update-profile', data),
+};
+
+// Documents API
+export const documentsAPI = {
+  getAll: (params) => api.get('/documents', { params }),
+  getById: (id) => api.get(`/documents/${id}`),
+  create: (data) => api.post('/documents', data),
+  update: (id, data) => api.put(`/documents/${id}`, data),
+  delete: (id) => api.delete(`/documents/${id}`),
+  upload: (formData) => api.post('/documents/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  download: (id) => api.get(`/documents/${id}/download`, { responseType: 'blob' }),
+  getTeacherDocuments: (teacherId, params) => api.get(`/documents/teacher/${teacherId}`, { params }),
+  getStudentDocuments: (studentId, params) => api.get(`/documents/student/${studentId}`, { params }),
 };
 
 // Test Scores API

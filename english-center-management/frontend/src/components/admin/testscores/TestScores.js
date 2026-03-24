@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, School, Person } from '@mui/icons-material';
-import { testScoresAPI, studentsAPI, classesAPI } from '../../services/api';
+import { testScoresAPI, studentsAPI, classesAPI } from '../../../services/api';
 
 const TestScores = () => {
   const [testScores, setTestScores] = useState([]);

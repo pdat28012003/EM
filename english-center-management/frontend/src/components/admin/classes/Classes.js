@@ -16,13 +16,15 @@ import {
   Alert,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, People, PersonAdd } from '@mui/icons-material';
-import { classesAPI, coursesAPI, teachersAPI, enrollmentsAPI, studentsAPI } from '../../services/api';
+import { Add, Edit, People, PersonAdd, Delete } from '@mui/icons-material';
+import { classesAPI, coursesAPI, teachersAPI, enrollmentsAPI, studentsAPI, roomsAPI, curriculumAPI } from '../../../services/api';
 
 const Classes = () => {
   const [classes, setClasses] = useState([]);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [curriculums, setCurriculums] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
@@ -31,6 +33,8 @@ const Classes = () => {
   const [enrollDialog, setEnrollDialog] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState('');
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [classToDelete, setClassToDelete] = useState(null);
   const [formData, setFormData] = useState({
     className: '',
     courseId: '',
@@ -38,7 +42,8 @@ const Classes = () => {
     startDate: '',
     endDate: '',
     maxStudents: 20,
-    room: '',
+    roomId: '',
+    curriculumId: '',
   });
 
   useEffect(() => {
@@ -48,20 +53,21 @@ const Classes = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [classesRes, coursesRes, teachersRes, studentsRes] = await Promise.all([
-        classesAPI.getAll({
-          page: paginationModel.page + 1,
-          pageSize: paginationModel.pageSize,
-        }),
-        coursesAPI.getAll({ isActive: true }),
-        teachersAPI.getAll({ isActive: true }),
-        studentsAPI.getAll({ isActive: true }),
+      const [classesRes, coursesRes, teachersRes, studentsRes, roomsRes, curriculumsRes] = await Promise.all([
+        classesAPI.getAll({ page: paginationModel.page + 1, pageSize: paginationModel.pageSize }),
+        coursesAPI.getAll(),
+        teachersAPI.getAll(),
+        studentsAPI.getAll(),
+        roomsAPI.getAll(),
+        curriculumAPI.getAll({ page: 1, pageSize: 100 })
       ]);
       const classesData = Array.isArray(classesRes.data?.data) ? classesRes.data.data : [];
       setClasses(classesData);
-      setCourses(Array.isArray(coursesRes.data?.data) ? coursesRes.data.data : []);
+      setCourses(Array.isArray(coursesRes.data?.data) ? coursesRes.data.data : Array.isArray(coursesRes.data) ? coursesRes.data : []);
       setTeachers(Array.isArray(teachersRes.data?.data) ? teachersRes.data.data : []);
       setStudents(Array.isArray(studentsRes.data?.data) ? studentsRes.data.data : []);
+      setRooms(Array.isArray(roomsRes.data?.data) ? roomsRes.data.data : Array.isArray(roomsRes.data) ? roomsRes.data : []);
+      setCurriculums(Array.isArray(curriculumsRes.data?.data) ? curriculumsRes.data.data : Array.isArray(curriculumsRes.data) ? curriculumsRes.data : []);
       setRowCount(classesRes.data?.totalCount || classesData.length);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -78,7 +84,8 @@ const Classes = () => {
       startDate: '',
       endDate: '',
       maxStudents: 20,
-      room: '',
+      roomId: '',
+      curriculumId: '',
     });
     setOpenDialog(true);
   };
@@ -102,6 +109,8 @@ const Classes = () => {
         courseId: parseInt(formData.courseId),
         teacherId: parseInt(formData.teacherId),
         maxStudents: parseInt(formData.maxStudents),
+        roomId: formData.roomId ? parseInt(formData.roomId) : null,
+        curriculumId: formData.curriculumId ? parseInt(formData.curriculumId) : null,
       });
       handleCloseDialog();
       setPaginationModel(prev => ({ ...prev, page: 0 }));
@@ -116,6 +125,7 @@ const Classes = () => {
     { field: 'classId', headerName: 'ID', width: 70 },
     { field: 'className', headerName: 'Tên Lớp', width: 180 },
     { field: 'courseName', headerName: 'Khóa Học', width: 200 },
+    { field: 'curriculumName', headerName: 'Chương trình', width: 200 },
     { field: 'teacherName', headerName: 'Giáo Viên', width: 180 },
     {
       field: 'startDate',
@@ -135,7 +145,7 @@ const Classes = () => {
       width: 100,
       renderCell: (params) => `${params.row.currentStudents}/${params.row.maxStudents}`,
     },
-    { field: 'room', headerName: 'Phòng', width: 100 },
+    { field: 'roomName', headerName: 'Phòng', width: 100 },
     {
       field: 'status',
       headerName: 'Trạng Thái',
@@ -160,14 +170,25 @@ const Classes = () => {
       width: 120,
       sortable: false,
       renderCell: (params) => (
-        <IconButton
-          size="small"
-          color="primary"
-          onClick={() => handleEnrollStudent(params.row)}
-          title="Thêm học viên"
-        >
-          <PersonAdd />
-        </IconButton>
+        <>
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={() => handleEnrollStudent(params.row)}
+            title="Thêm học viên"
+          >
+            <PersonAdd />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => handleDeleteClass(params.row)}
+            title="Xóa lớp học"
+            disabled={params.row.currentStudents > 0}
+          >
+            <Delete />
+          </IconButton>
+        </>
       ),
     },
   ];
@@ -176,6 +197,33 @@ const Classes = () => {
     setSelectedClass(classItem);
     setSelectedStudent('');
     setEnrollDialog(true);
+  };
+
+  const handleDeleteClass = (classItem) => {
+    setClassToDelete(classItem);
+    setDeleteDialog(true);
+  };
+
+  const confirmDeleteClass = async () => {
+    if (!classToDelete) return;
+
+    try {
+      await classesAPI.delete(classToDelete.classId);
+      alert('Xóa lớp học thành công!');
+      setDeleteDialog(false);
+      setClassToDelete(null);
+      setPaginationModel(prev => ({ ...prev, page: 0 }));
+      loadData();
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.errors?.[0] || 
+                          error.message || 
+                          'Lỗi không xác định khi xóa lớp học';
+      
+      alert('Lỗi xóa: ' + errorMessage);
+    }
   };
 
   const handleSaveEnrollment = async () => {
@@ -196,7 +244,6 @@ const Classes = () => {
     } catch (error) {
       console.error('Error enrolling student:', error);
       
-      // Hiển thị lỗi rõ ràng từ backend
       const errorMessage = error.response?.data?.message || 
                           error.response?.data?.errors?.[0] || 
                           error.message || 
@@ -320,14 +367,39 @@ const Classes = () => {
               fullWidth
             />
             <TextField
-              name="room"
+              name="roomId"
               label="Phòng Học"
-              value={formData.room}
+              value={formData.roomId}
               onChange={handleInputChange}
+              select
               required
               fullWidth
-              placeholder="VD: A101, B205"
-            />
+            >
+              {rooms.map((room) => (
+                <MenuItem key={room.roomId} value={room.roomId}>
+                  {room.roomName}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              name="curriculumId"
+              label="Chương trình học"
+              value={formData.curriculumId}
+              onChange={handleInputChange}
+              select
+              fullWidth
+            >
+              <MenuItem value="">
+                <em>-- Không chọn --</em>
+              </MenuItem>
+              {curriculums
+                .filter((c) => !formData.courseId || c.courseId === parseInt(formData.courseId))
+                .map((curriculum) => (
+                  <MenuItem key={curriculum.curriculumId} value={curriculum.curriculumId}>
+                    {curriculum.curriculumName}
+                  </MenuItem>
+                ))}
+            </TextField>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -378,6 +450,32 @@ const Classes = () => {
             disabled={!selectedStudent || getAvailableStudents().length === 0}
           >
             Đăng ký
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Xác nhận xóa lớp học</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn xóa lớp học "{classToDelete?.className}"?
+          </Typography>
+          {classToDelete?.currentStudents > 0 && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              Lớp học này có {classToDelete.currentStudents} học viên. Không thể xóa lớp học có học viên đang hoạt động.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog(false)}>Hủy</Button>
+          <Button 
+            onClick={confirmDeleteClass} 
+            variant="contained" 
+            color="error"
+            disabled={classToDelete?.currentStudents > 0}
+          >
+            Xóa
           </Button>
         </DialogActions>
       </Dialog>

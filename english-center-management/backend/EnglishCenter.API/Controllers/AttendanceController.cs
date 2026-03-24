@@ -180,17 +180,14 @@ namespace EnglishCenter.API.Controllers
         /// Gets attendances for a specific lesson. (Lấy danh sách điểm danh của một buổi học cụ thể.)
         /// </summary>
         /// <param name="lessonId">Lesson ID (ID buổi học)</param>
+        /// <param name="classId">Class ID (ID lớp học)</param>
         /// <returns>List of attendance records (Danh sách các bản ghi điểm danh)</returns>
         [HttpGet("lesson/{lessonId}")]
-        public async Task<ActionResult<IEnumerable<AttendanceDto>>> GetAttendancesByLesson(int lessonId)
+        public async Task<ActionResult<IEnumerable<AttendanceDto>>> GetAttendancesByLesson(int lessonId, [FromQuery] int classId)
         {
             var lesson = await _context.Lessons
                 .Include(l => l.CurriculumSession)
                     .ThenInclude(cs => cs.CurriculumDay)
-                        .ThenInclude(cd => cd.Curriculum)
-                            .ThenInclude(c => c.Class)
-                                .ThenInclude(cl => cl.Enrollments)
-                                    .ThenInclude(e => e.Student)
                 .FirstOrDefaultAsync(l => l.LessonId == lessonId);
 
             if (lesson == null)
@@ -198,12 +195,23 @@ namespace EnglishCenter.API.Controllers
                 return NotFound("Lesson not found");
             }
 
-            if (lesson.CurriculumSession == null || lesson.CurriculumSession.CurriculumDay == null || lesson.CurriculumSession.CurriculumDay.Curriculum == null || lesson.CurriculumSession.CurriculumDay.Curriculum.Class == null)
+            if (lesson.CurriculumSession == null || lesson.CurriculumSession.CurriculumDay == null)
             {
-                return BadRequest("Lesson is not properly associated with curriculum and class");
+                return BadRequest("Lesson is not properly associated with curriculum");
             }
 
-            var enrolledStudents = lesson.CurriculumSession.CurriculumDay.Curriculum.Class.Enrollments
+            // Get class and enrolled students
+            var classEntity = await _context.Classes
+                .Include(c => c.Enrollments)
+                    .ThenInclude(e => e.Student)
+                .FirstOrDefaultAsync(c => c.ClassId == classId);
+
+            if (classEntity == null)
+            {
+                return NotFound("Class not found");
+            }
+
+            var enrolledStudents = classEntity.Enrollments
                 .Where(e => e.Student.IsActive)
                 .Where(e => (e.Status ?? string.Empty).ToLower() == "active")
                 .Select(e => e.Student)

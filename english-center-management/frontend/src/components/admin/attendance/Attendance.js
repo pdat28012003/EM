@@ -26,7 +26,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { CheckCircle, Cancel, Schedule, Person } from '@mui/icons-material';
-import { curriculumAPI, attendanceAPI } from '../../services/api';
+import { curriculumAPI, attendanceAPI } from '../../../services/api';
 
 const Attendance = () => {
   const theme = useTheme();

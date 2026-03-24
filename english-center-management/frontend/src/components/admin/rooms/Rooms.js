@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, Room } from '@mui/icons-material';
-import { roomsAPI } from '../../services/api';
+import { roomsAPI } from '../../../services/api';
 
 const Rooms = () => {
   const formatTimeHHmm = (value) => {
@@ -187,7 +187,7 @@ const Rooms = () => {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={1}>
-          <Room color="primary" fontSize="large" />
+        
           <Typography variant="h4" fontWeight="bold">
             Quản Lý Phòng Học
           </Typography>
