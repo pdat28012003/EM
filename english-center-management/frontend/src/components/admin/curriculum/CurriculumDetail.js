@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { curriculumAPI, roomsAPI, teachersAPI } from '../../services/api';
+import { 
+  Add, 
+  Edit, 
+  Delete, 
+  Close, 
+  Schedule, 
+  School, 
+  Person, 
+  Room, 
+  AccessTime,
+  MenuBook,
+  Group,
+  EventNote
+} from '@mui/icons-material';
+import { curriculumAPI, roomsAPI, teachersAPI } from '../../../services/api';
 
 const CurriculumDetail = () => {
   const { curriculumId } = useParams();
@@ -63,18 +77,22 @@ const CurriculumDetail = () => {
   const loadRooms = async () => {
     try {
       const response = await roomsAPI.getAll();
-      setRooms(response.data);
+      const roomsData = Array.isArray(response.data) ? response.data : response.data?.data || response.data?.Data || [];
+      setRooms(Array.isArray(roomsData) ? roomsData : []);
     } catch (error) {
       console.error('Error loading rooms:', error);
+      setRooms([]);
     }
   };
 
   const loadTeachers = async () => {
     try {
       const response = await teachersAPI.getAll({ isActive: true });
-      setTeachers(response.data);
+      const teachersData = response.data?.Data || response.data?.data || response.data || [];
+      setTeachers(Array.isArray(teachersData) ? teachersData : []);
     } catch (error) {
       console.error('Error loading teachers:', error);
+      setTeachers([]);
     }
   };
 
@@ -326,139 +344,147 @@ const CurriculumDetail = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h2>{curriculum.curriculumName}</h2>
-            <p>Lớp: {curriculum.className} | {new Date(curriculum.startDate).toLocaleDateString()} - {new Date(curriculum.endDate).toLocaleDateString()}</p>
+            <p>Khóa học: {curriculum.courseName} | {new Date(curriculum.startDate).toLocaleDateString()} - {new Date(curriculum.endDate).toLocaleDateString()}</p>
           </div>
           <button 
             className="btn btn-success"
             onClick={() => setShowTeacherModal(true)}
           >
-            👨‍🏫 Quản lý giáo viên
+            <Group />
+            Quản lý giáo viên
           </button>
         </div>
       </div>
 
       <div className="curriculum-timeline">
         <h3>Lịch sắp xếp buổi học</h3>
-        
-        <div className="date-range">
-          {dateRange.map((date, index) => {
-            const dateStr = formatDate(date);
-            const curriculumDay = curriculum.curriculumDays?.find(
-              d => d.scheduleDate.split('T')[0] === dateStr
-            );
-            
-            return (
-              <div key={index} className="date-card">
-                <div className="date-header">
-                  <h4>{date.toLocaleDateString('vi-VN', { weekday: 'long', month: 'long', day: 'numeric' })}</h4>
-                </div>
+        {dateRange.map((date, index) => {
+          const dateStr = formatDate(date);
+          const curriculumDay = curriculum.curriculumDays?.find(
+            d => d.scheduleDate.split('T')[0] === dateStr
+          );
+          
+          return (
+            <div key={index} className="date-card">
+              <div className="date-header">
+                <h4>{date.toLocaleDateString('vi-VN', { weekday: 'long', month: 'long', day: 'numeric' })}</h4>
+              </div>
 
-                {curriculumDay ? (
-                  <div className="day-content">
-                    <p className="topic"><strong>Chủ đề:</strong> {curriculumDay.topic}</p>
-                    <p className="description">{curriculumDay.description}</p>
-                    
-                    <div className="sessions">
-                      <div className="sessions-header">
-                        <h5>Buổi học ({curriculumDay.sessionCount}/3)</h5>
-                        {curriculumDay.sessionCount < 3 && (
-                          <button 
-                            className="btn btn-success btn-sm"
-                            onClick={() => handleAddSession(curriculumDay)}
-                          >
-                            + Thêm buổi
-                          </button>
-                        )}
-                      </div>
-
-                      {curriculumDay.curriculumSessions?.length > 0 ? (
-                        curriculumDay.curriculumSessions?.map((session) => (
-                          <div key={session.curriculumSessionId} className="session-card">
-                            <div className="session-header">
-                              <strong>📚 Buổi {session.sessionNumber}: {session.sessionName}</strong>
-                              <span className="time">{session.startTime} - {session.endTime}</span>
-                            </div>
-                            <p className="room">Phòng: {session.roomName || 'Chưa xếp phòng'}</p>
-                            <p className="teacher">Giảng viên: {session.teacherName || 'Chưa phân công'}</p>
-                            
-                            <div className="lessons">
-                              <div className="lessons-header">
-                                <strong>Tiết học:</strong>
-                                <button 
-                                  className="btn btn-sm btn-primary"
-                                  onClick={() => handleAddLesson(session)}
-                                  title="Thêm tiết học vào buổi này"
-                                >
-                                  + Thêm tiết
-                                </button>
-                              </div>
-
-                              {session.lessons?.length > 0 ? (
-                                <ul className="lessons-list">
-                                  {session.lessons.map((lesson) => (
-                                    <li key={lesson.lessonId} className="lesson-item">
-                                      <div className="lesson-info">
-                                        <span className="lesson-num">Tiết {lesson.lessonNumber}</span>
-                                        <span className="lesson-title">{lesson.lessonTitle}</span>
-                                        <span className="lesson-duration">({lesson.duration})</span>
-                                      </div>
-                                      <button 
-                                        className="btn btn-sm btn-danger"
-                                        onClick={() => handleDeleteLesson(lesson.lessonId)}
-                                      >
-                                        Xóa
-                                      </button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="no-lessons">❌ Chưa có tiết học. Nhấp "+ Thêm tiết" để thêm</p>
-                              )}
-                            </div>
-
-                            <div className="session-actions" style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
-                              <button 
-                                className="btn btn-sm btn-info"
-                                onClick={() => handleEditSession(curriculumDay, session)}
-                              >
-                                Sửa buổi
-                              </button>
-                              <button 
-                                className="btn btn-sm btn-danger"
-                                onClick={() => handleDeleteSession(session.curriculumSessionId)}
-                              >
-                                Xóa buổi
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="no-sessions">❌ Chưa có buổi học. Nhấp "+ Thêm buổi" để bắt đầu</p>
+              {curriculumDay ? (
+                <div className="day-content">
+                  <p className="topic"><strong>Chủ đề:</strong> {curriculumDay.topic}</p>
+                  <p className="description">{curriculumDay.description}</p>
+                  
+                  <div className="sessions">
+                    <div className="sessions-header">
+                      <h5>Buổi học ({curriculumDay.sessionCount}/3)</h5>
+                      {curriculumDay.sessionCount < 3 && (
+                        <button 
+                          className="btn btn-success btn-sm"
+                          onClick={() => handleAddSession(curriculumDay)}
+                        >
+                          <Add />
+                          Thêm buổi
+                        </button>
                       )}
                     </div>
 
-                    <button 
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleDeleteDay(curriculumDay.curriculumDayId)}
-                    >
-                      Xóa ngày
-                    </button>
+                    {curriculumDay.curriculumSessions?.length > 0 ? (
+                      curriculumDay.curriculumSessions?.map((session) => (
+                        <div key={session.curriculumSessionId} className="session-card">
+                          <div className="session-header">
+                            <AccessTime />
+                            <strong>Buổi {session.sessionNumber}: {session.sessionName}</strong>
+                            <span className="time">{session.startTime} - {session.endTime}</span>
+                          </div>
+                          <p className="room"><Room />
+                          Phòng: {session.roomName || 'Chưa xếp phòng'}</p>
+                          <p className="teacher"><Person />
+                          Giảng viên: {session.teacherName || 'Chưa phân công'}</p>
+                          
+                          <div className="lessons">
+                            <div className="lessons-header">
+                              <strong>Tiết học:</strong>
+                              <button 
+                                className="btn btn-sm btn-primary"
+                                onClick={() => handleAddLesson(session)}
+                                title="Thêm tiết học vào buổi này"
+                              >
+                                <MenuBook />
+                              Thêm tiết
+                              </button>
+                            </div>
+
+                            {session.lessons?.length > 0 ? (
+                              <ul className="lessons-list">
+                                {session.lessons.map((lesson) => (
+                                  <li key={lesson.lessonId} className="lesson-item">
+                                    <div className="lesson-info">
+                                      <span className="lesson-num">Tiết {lesson.lessonNumber}</span>
+                                      <span className="lesson-title">{lesson.lessonTitle}</span>
+                                      <span className="lesson-duration">({lesson.duration})</span>
+                                    </div>
+                                    <button 
+                                      className="btn btn-sm btn-danger"
+                                      onClick={() => handleDeleteLesson(lesson.lessonId)}
+                                    >
+                                      <Delete />
+                                      Xóa
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="no-lessons">❌ Chưa có tiết học. Nhấp "Thêm tiết" để thêm</p>
+                            )}
+                          </div>
+
+                          <div className="session-actions" style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
+                            <button 
+                              className="btn btn-sm btn-info"
+                              onClick={() => handleEditSession(curriculumDay, session)}
+                            >
+                              <Edit />
+                              Sửa buổi
+                            </button>
+                            <button 
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleDeleteSession(session.curriculumSessionId)}
+                            >
+                              <Delete />
+                              Xóa buổi
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="no-sessions">❌ Chưa có buổi học. Nhấp "Thêm buổi" để bắt đầu</p>
+                    )}
                   </div>
-                ) : (
-                  <div className="day-empty">
-                    <p>❌ Chưa có buổi học</p>
-                    <button 
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleAddDay(date)}
-                    >
-                      + Thêm buổi học
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+
+                  <button 
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleDeleteDay(curriculumDay.curriculumDayId)}
+                  >
+                    <Delete />
+                    Xóa ngày
+                  </button>
+                </div>
+              ) : (
+                <div className="day-empty">
+                  <p>❌ Chưa có buổi học</p>
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleAddDay(date)}
+                  >
+                    <Add />
+                          Thêm buổi học
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Modals */}
@@ -467,7 +493,9 @@ const CurriculumDetail = () => {
           <div className="modal-content">
             <div className="modal-header">
               <h3>Quản lý giáo viên tham gia chương trình</h3>
-              <button className="close-btn" onClick={() => setShowTeacherModal(false)}>×</button>
+              <button className="close-btn" onClick={() => setShowTeacherModal(false)}>
+                <Close />
+              </button>
             </div>
             <div className="teacher-list" style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: '20px' }}>
               <p style={{ marginBottom: '15px', color: '#666' }}>Chọn các giáo viên có thể giảng dạy trong chương trình này:</p>
@@ -481,9 +509,10 @@ const CurriculumDetail = () => {
                         onChange={() => handleTeacherToggle(teacher.teacherId)}
                         style={{ width: 'auto', marginRight: '10px' }}
                       />
-                      <span className="teacher-name">
+                      <Person />
+                      <span style={{ marginLeft: '8px' }}>
                         <strong>{teacher.fullName}</strong>
-                        <span style={{ fontSize: '12px', color: '#666' }}> ({teacher.specialization})</span>
+                        <span style={{ color: '#666', fontSize: '13px', marginLeft: '5px' }}> ({teacher.email})</span>
                       </span>
                     </label>
                   </div>
@@ -509,7 +538,9 @@ const CurriculumDetail = () => {
           <div className="modal-content">
             <div className="modal-header">
               <h3>{isEditingSession ? 'Sửa buổi học' : 'Thêm buổi học'}</h3>
-              <button className="close-btn" onClick={() => setShowSessionModal(false)}>×</button>
+              <button className="close-btn" onClick={() => setShowSessionModal(false)}>
+                <Close />
+              </button>
             </div>
             <form onSubmit={handleSubmitSession}>
               <div className="form-group">
@@ -618,7 +649,9 @@ const CurriculumDetail = () => {
           <div className="modal-content">
             <div className="modal-header">
               <h3>Thêm tiết học</h3>
-              <button className="close-btn" onClick={() => setShowLessonModal(false)}>×</button>
+              <button className="close-btn" onClick={() => setShowLessonModal(false)}>
+                <Close />
+              </button>
             </div>
             <form onSubmit={handleSubmitLesson}>
               <div className="form-group">
@@ -912,7 +945,7 @@ const CurriculumDetail = () => {
         .modal {
           display: flex;
           position: fixed;
-          z-index: 1;
+          z-index: 99999;
           left: 0;
           top: 0;
           width: 100%;
@@ -931,6 +964,8 @@ const CurriculumDetail = () => {
           max-width: 500px;
           max-height: 80vh;
           overflow-y: auto;
+          position: relative;
+          z-index: 100000;
         }
 
         .modal-header {
@@ -981,6 +1016,9 @@ const CurriculumDetail = () => {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .btn-primary {
@@ -1007,6 +1045,12 @@ const CurriculumDetail = () => {
           padding: 4px 8px;
           font-size: 12px;
           margin-right: 5px;
+        }
+
+        .btn svg {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
         }
       `}</style>
     </div>

@@ -2,6 +2,22 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EnglishCenter.API.DTOs
 {
+    // Teacher Schedule DTO
+    public class TeacherScheduleDto
+    {
+        public int ScheduleId { get; set; }
+        public int ClassId { get; set; }
+        public string ClassName { get; set; } = string.Empty;
+        public int TeacherId { get; set; }
+        public string TeacherName { get; set; } = string.Empty;
+        public string DayOfWeek { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public string StartTime { get; set; } = string.Empty;
+        public string EndTime { get; set; } = string.Empty;
+        public string Room { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
+
     // Pagination result class
     public class PagedResult<T>
     {
@@ -160,6 +176,18 @@ namespace EnglishCenter.API.DTOs
         public decimal Fee { get; set; }
     }
 
+    public class UpdateCourseDto
+    {
+        public string CourseName { get; set; } = string.Empty;
+        public string CourseCode { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Level { get; set; } = string.Empty;
+        public int DurationInWeeks { get; set; }
+        public int TotalHours { get; set; }
+        public decimal Fee { get; set; }
+        public bool IsActive { get; set; }
+    }
+
     // Class DTOs
     public class ClassDto
     {
@@ -167,13 +195,16 @@ namespace EnglishCenter.API.DTOs
         public string ClassName { get; set; } = string.Empty;
         public int CourseId { get; set; }
         public string CourseName { get; set; } = string.Empty;
+        public int? CurriculumId { get; set; }
+        public string CurriculumName { get; set; } = string.Empty;
         public int TeacherId { get; set; }
         public string TeacherName { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public int MaxStudents { get; set; }
         public int CurrentStudents { get; set; }
-        public string Room { get; set; } = string.Empty;
+        public int? RoomId { get; set; }
+        public string RoomName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
     }
 
@@ -181,11 +212,12 @@ namespace EnglishCenter.API.DTOs
     {
         public string ClassName { get; set; } = string.Empty;
         public int CourseId { get; set; }
+        public int? CurriculumId { get; set; }
         public int TeacherId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public int MaxStudents { get; set; }
-        public string Room { get; set; } = string.Empty;
+        public int? RoomId { get; set; }
     }
 
     // Enrollment DTOs
@@ -206,30 +238,6 @@ namespace EnglishCenter.API.DTOs
         public int ClassId { get; set; }
     }
 
-    // Schedule DTOs
-    public class ScheduleDto
-    {
-        public int ScheduleId { get; set; }
-        public int ClassId { get; set; }
-        public string ClassName { get; set; } = string.Empty;
-        public int TeacherId { get; set; }
-        public string TeacherName { get; set; } = string.Empty;
-        public string DayOfWeek { get; set; } = string.Empty;
-        public TimeSpan StartTime { get; set; }
-        public TimeSpan EndTime { get; set; }
-        public string Room { get; set; } = string.Empty;
-    }
-
-    public class CreateScheduleDto
-    {
-        public int ClassId { get; set; }
-        public int TeacherId { get; set; }
-        public string DayOfWeek { get; set; } = string.Empty;
-        public TimeSpan StartTime { get; set; }
-        public TimeSpan EndTime { get; set; }
-        public string Room { get; set; } = string.Empty;
-    }
-
     // Payment DTOs
     public class PaymentDto
     {
@@ -245,13 +253,19 @@ namespace EnglishCenter.API.DTOs
 
     public class CreatePaymentDto
     {
+        [Required]
         public int StudentId { get; set; }
+
+        [Required]
         public decimal Amount { get; set; }
+
+        [Required]
         public string PaymentMethod { get; set; } = string.Empty;
-        public string Notes { get; set; } = string.Empty;
+
+        public string? Notes { get; set; }
     }
 
-    // TestScore DTOs
+    // Test Score DTOs
     public class TestScoreDto
     {
         public int TestScoreId { get; set; }
@@ -316,8 +330,8 @@ namespace EnglishCenter.API.DTOs
     {
         public int CurriculumId { get; set; }
         public string CurriculumName { get; set; } = string.Empty;
-        public int ClassId { get; set; }
-        public string ClassName { get; set; } = string.Empty;
+        public int CourseId { get; set; }
+        public string CourseName { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string Description { get; set; } = string.Empty;
@@ -331,7 +345,7 @@ namespace EnglishCenter.API.DTOs
     public class CreateCurriculumDto
     {
         public string CurriculumName { get; set; } = string.Empty;
-        public int ClassId { get; set; }
+        public int CourseId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string Description { get; set; } = string.Empty;
@@ -499,5 +513,99 @@ namespace EnglishCenter.API.DTOs
         public int CurrentValue { get; set; }
         public int ChangeFromLastWeek { get; set; }
         public string ChangeType { get; set; } = "increase"; // "increase" or "decrease"
+    }
+
+    // Assignment DTOs
+    public class AssignmentDto
+    {
+        public int AssignmentId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public int ClassId { get; set; }
+        public int TeacherId { get; set; }
+        public DateTime DueDate { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public int MaxScore { get; set; }
+        public string? AttachmentUrl { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string? ClassName { get; set; }
+        public string? TeacherName { get; set; }
+        public int SubmissionsCount { get; set; }
+        public int GradedCount { get; set; }
+    }
+
+    public class AssignmentSubmissionDto
+    {
+        public int SubmissionId { get; set; }
+        public int AssignmentId { get; set; }
+        public int StudentId { get; set; }
+        public string? Content { get; set; }
+        public string? AttachmentUrl { get; set; }
+        public DateTime SubmittedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public decimal? Score { get; set; }
+        public string? Feedback { get; set; }
+        public DateTime? GradedAt { get; set; }
+        public int? GradedBy { get; set; }
+        public string? StudentName { get; set; }
+        public string? AssignmentTitle { get; set; }
+    }
+
+    public class CreateAssignmentDto
+    {
+        [Required]
+        [StringLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
+        public string Description { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(50)]
+        public string Type { get; set; } = string.Empty;
+
+        [Required]
+        public int ClassId { get; set; }
+
+        [Required]
+        public DateTime DueDate { get; set; }
+
+        public string? AttachmentUrl { get; set; }
+
+        [Required]
+        [Range(1, 1000)]
+        public int MaxScore { get; set; } = 100;
+    }
+
+    public class UpdateAssignmentDto
+    {
+        [StringLength(200)]
+        public string? Title { get; set; }
+
+        public string? Description { get; set; }
+
+        [StringLength(50)]
+        public string? Type { get; set; }
+
+        public DateTime? DueDate { get; set; }
+
+        public string? AttachmentUrl { get; set; }
+
+        [Range(1, 1000)]
+        public int? MaxScore { get; set; }
+
+        public string? Status { get; set; }
+    }
+
+    public class GradeSubmissionDto
+    {
+        [Required]
+        [Range(0, 1000)]
+        public decimal Score { get; set; }
+
+        public string? Feedback { get; set; }
     }
 }

@@ -43,6 +43,7 @@ namespace EnglishCenter.API.Models
         public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
         public ICollection<Payment> Payments { get; set; } = new List<Payment>();
         public ICollection<TestScore> TestScores { get; set; } = new List<TestScore>();
+        public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
         public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
     }
 
@@ -86,8 +87,9 @@ namespace EnglishCenter.API.Models
         [ForeignKey("UserId")]
         public User? User { get; set; }
         public ICollection<Class> Classes { get; set; } = new List<Class>();
-        public ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
+        public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
         public ICollection<Curriculum> ParticipatedCurriculums { get; set; } = new List<Curriculum>();
+        public ICollection<Document> Documents { get; set; } = new List<Document>();
     }
 
     public class Course
@@ -119,6 +121,7 @@ namespace EnglishCenter.API.Models
 
         // Navigation properties
         public ICollection<Class> Classes { get; set; } = new List<Class>();
+        public ICollection<Curriculum> Curriculums { get; set; } = new List<Curriculum>();
     }
 
     public class Class
@@ -142,8 +145,9 @@ namespace EnglishCenter.API.Models
 
         public int MaxStudents { get; set; } = 20;
 
-        [MaxLength(100)]
-        public string Room { get; set; } = string.Empty;
+        public int? RoomId { get; set; }
+
+        public int? CurriculumId { get; set; }
 
         [MaxLength(50)]
         public string Status { get; set; } = "Active"; // Active, Completed, Cancelled
@@ -155,8 +159,15 @@ namespace EnglishCenter.API.Models
         [ForeignKey("TeacherId")]
         public Teacher Teacher { get; set; } = null!;
 
+        [ForeignKey("RoomId")]
+        public Room? Room { get; set; }
+
+        [ForeignKey("CurriculumId")]
+        public Curriculum? Curriculum { get; set; }
+
         public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
-        public ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
+        public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
+        public ICollection<Document> Documents { get; set; } = new List<Document>();
     }
 
     public class Enrollment
@@ -181,36 +192,6 @@ namespace EnglishCenter.API.Models
 
         [ForeignKey("ClassId")]
         public Class Class { get; set; } = null!;
-    }
-
-    public class Schedule
-    {
-        [Key]
-        public int ScheduleId { get; set; }
-
-        [Required]
-        public int ClassId { get; set; }
-
-        [Required]
-        public int TeacherId { get; set; }
-
-        [Required]
-        [MaxLength(20)]
-        public string DayOfWeek { get; set; } = string.Empty; // Monday, Tuesday, etc.
-
-        public TimeSpan StartTime { get; set; }
-
-        public TimeSpan EndTime { get; set; }
-
-        [MaxLength(100)]
-        public string Room { get; set; } = string.Empty;
-
-        // Navigation properties
-        [ForeignKey("ClassId")]
-        public Class Class { get; set; } = null!;
-
-        [ForeignKey("TeacherId")]
-        public Teacher Teacher { get; set; } = null!;
     }
 
     public class Payment
@@ -315,7 +296,7 @@ namespace EnglishCenter.API.Models
         public string CurriculumName { get; set; } = string.Empty;
 
         [Required]
-        public int ClassId { get; set; }
+        public int CourseId { get; set; }
 
         [Required]
         public DateTime StartDate { get; set; }
@@ -334,9 +315,10 @@ namespace EnglishCenter.API.Models
         public string Status { get; set; } = "Active"; // Active, Completed, Draft
 
         // Navigation properties
-        [ForeignKey("ClassId")]
-        public Class Class { get; set; } = null!;
+        [ForeignKey("CourseId")]
+        public Course Course { get; set; } = null!;
 
+        public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<CurriculumDay> CurriculumDays { get; set; } = new List<CurriculumDay>();
         public ICollection<Teacher> ParticipantTeachers { get; set; } = new List<Teacher>();
     }
@@ -573,5 +555,55 @@ namespace EnglishCenter.API.Models
 
         [ForeignKey("UserId")]
         public User User { get; set; } = null!;
+    }
+
+    public class Document
+    {
+        [Key]
+        public int DocumentId { get; set; }
+
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string Description { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(50)]
+        public string Type { get; set; } = string.Empty; // material, exercise, presentation, audio, video
+
+        [Required]
+        [MaxLength(255)]
+        public string FileName { get; set; } = string.Empty; // Unique filename on server
+
+        [Required]
+        [MaxLength(255)]
+        public string OriginalFileName { get; set; } = string.Empty; // Original filename
+
+        [Required]
+        public long FileSize { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string FilePath { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime UploadDate { get; set; }
+
+        [Required]
+        public int DownloadCount { get; set; } = 0;
+
+        [Required]
+        public int TeacherId { get; set; }
+
+        public int? ClassId { get; set; }
+
+        // Navigation properties
+        [ForeignKey("TeacherId")]
+        public Teacher Teacher { get; set; } = null!;
+
+        [ForeignKey("ClassId")]
+        public Class? Class { get; set; }
     }
 }

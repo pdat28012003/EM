@@ -14,7 +14,6 @@ namespace EnglishCenter.API.Data
         public DbSet<Course> Courses { get; set; }
         public DbSet<Class> Classes { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
-        public DbSet<Schedule> Schedules { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<TestScore> TestScores { get; set; }
         public DbSet<Curriculum> Curriculums { get; set; }
@@ -22,15 +21,25 @@ namespace EnglishCenter.API.Data
         public DbSet<CurriculumSession> CurriculumSessions { get; set; }
         public DbSet<Lesson> Lessons { get; set; }
         public DbSet<Room> Rooms { get; set; }
-        public DbSet<Attendance> Attendances { get; set; }
+        public DbSet<Assignment> Assignments { get; set; }
+    public DbSet<AssignmentSubmission> AssignmentSubmissions { get; set; }
+    public DbSet<AssignmentSkill> AssignmentSkills { get; set; }
+    public DbSet<Skill> Skills { get; set; }
+    public DbSet<Grade> Grades { get; set; }
+    public DbSet<Attendance> Attendances { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserOtp> UserOtps { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<Document> Documents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Configure composite key for AssignmentSkill
+            modelBuilder.Entity<AssignmentSkill>()
+                .HasKey(asg => new { asg.AssignmentId, asg.SkillId });
 
             // Configure relationships
             modelBuilder.Entity<Class>()
@@ -45,6 +54,18 @@ namespace EnglishCenter.API.Data
                 .HasForeignKey(c => c.TeacherId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Class>()
+                .HasOne(c => c.Room)
+                .WithMany()
+                .HasForeignKey(c => c.RoomId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Class>()
+                .HasOne(c => c.Curriculum)
+                .WithMany(cur => cur.Classes)
+                .HasForeignKey(c => c.CurriculumId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<Enrollment>()
                 .HasOne(e => e.Student)
                 .WithMany(s => s.Enrollments)
@@ -55,18 +76,6 @@ namespace EnglishCenter.API.Data
                 .HasOne(e => e.Class)
                 .WithMany(c => c.Enrollments)
                 .HasForeignKey(e => e.ClassId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Schedule>()
-                .HasOne(s => s.Class)
-                .WithMany(c => c.Schedules)
-                .HasForeignKey(s => s.ClassId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Schedule>()
-                .HasOne(s => s.Teacher)
-                .WithMany(t => t.Schedules)
-                .HasForeignKey(s => s.TeacherId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Payment>()
@@ -81,10 +90,40 @@ namespace EnglishCenter.API.Data
                 .HasForeignKey(ts => ts.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Curriculum>()
-                .HasOne(c => c.Class)
+            modelBuilder.Entity<Assignment>()
+                .HasOne(a => a.Class)
+                .WithMany(c => c.Assignments)
+                .HasForeignKey(a => a.ClassId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Assignment>()
+                .HasOne(a => a.Teacher)
+                .WithMany(t => t.Assignments)
+                .HasForeignKey(a => a.TeacherId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AssignmentSubmission>()
+                .HasOne(asub => asub.Assignment)
+                .WithMany(a => a.Submissions)
+                .HasForeignKey(asub => asub.AssignmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AssignmentSubmission>()
+                .HasOne(asub => asub.Student)
+                .WithMany(s => s.Submissions)
+                .HasForeignKey(asub => asub.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AssignmentSubmission>()
+                .HasOne(asub => asub.Grader)
                 .WithMany()
-                .HasForeignKey(c => c.ClassId)
+                .HasForeignKey(asub => asub.GradedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Curriculum>()
+                .HasOne(c => c.Course)
+                .WithMany(co => co.Curriculums)
+                .HasForeignKey(c => c.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<CurriculumDay>()
@@ -122,6 +161,19 @@ namespace EnglishCenter.API.Data
                 .HasMany(c => c.ParticipantTeachers)
                 .WithMany(t => t.ParticipatedCurriculums)
                 .UsingEntity(j => j.ToTable("CurriculumTeacher"));
+
+            // Configure Document relationships
+            modelBuilder.Entity<Document>()
+                .HasOne(d => d.Teacher)
+                .WithMany(t => t.Documents)
+                .HasForeignKey(d => d.TeacherId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Document>()
+                .HasOne(d => d.Class)
+                .WithMany(c => c.Documents)
+                .HasForeignKey(d => d.ClassId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Seed initial data
             SeedData(modelBuilder);
@@ -239,7 +291,7 @@ namespace EnglishCenter.API.Data
                     StartDate = new DateTime(2024, 3, 1),
                     EndDate = new DateTime(2024, 5, 31),
                     MaxStudents = 20,
-                    Room = "Room 101",
+                    RoomId = 1,
                     Status = "Active"
                 },
                 new Class
@@ -251,7 +303,7 @@ namespace EnglishCenter.API.Data
                     StartDate = new DateTime(2024, 3, 15),
                     EndDate = new DateTime(2024, 6, 15),
                     MaxStudents = 15,
-                    Room = "Room 102",
+                    RoomId = 2,
                     Status = "Active"
                 }
             );
@@ -491,6 +543,64 @@ namespace EnglishCenter.API.Data
                     PaymentMethod = "Cash",
                     Status = "Completed",
                     Notes = "Late fee payment"
+                }
+            );
+
+            // Seed Skills data
+            modelBuilder.Entity<Skill>().HasData(
+                new Skill
+                {
+                    SkillId = 1,
+                    Name = "Listening",
+                    Description = "Kỹ năng nghe hiểu tiếng Anh",
+                    IsActive = true,
+                    CreatedAt = new DateTime(2024, 1, 1),
+                    UpdatedAt = new DateTime(2024, 1, 1)
+                },
+                new Skill
+                {
+                    SkillId = 2,
+                    Name = "Speaking",
+                    Description = "Kỹ năng nói tiếng Anh",
+                    IsActive = true,
+                    CreatedAt = new DateTime(2024, 1, 1),
+                    UpdatedAt = new DateTime(2024, 1, 1)
+                },
+                new Skill
+                {
+                    SkillId = 3,
+                    Name = "Reading",
+                    Description = "Kỹ năng đọc hiểu tiếng Anh",
+                    IsActive = true,
+                    CreatedAt = new DateTime(2024, 1, 1),
+                    UpdatedAt = new DateTime(2024, 1, 1)
+                },
+                new Skill
+                {
+                    SkillId = 4,
+                    Name = "Writing",
+                    Description = "Kỹ năng viết tiếng Anh",
+                    IsActive = true,
+                    CreatedAt = new DateTime(2024, 1, 1),
+                    UpdatedAt = new DateTime(2024, 1, 1)
+                },
+                new Skill
+                {
+                    SkillId = 5,
+                    Name = "Grammar",
+                    Description = "Ngữ pháp tiếng Anh",
+                    IsActive = true,
+                    CreatedAt = new DateTime(2024, 1, 1),
+                    UpdatedAt = new DateTime(2024, 1, 1)
+                },
+                new Skill
+                {
+                    SkillId = 6,
+                    Name = "Vocabulary",
+                    Description = "Từ vựng tiếng Anh",
+                    IsActive = true,
+                    CreatedAt = new DateTime(2024, 1, 1),
+                    UpdatedAt = new DateTime(2024, 1, 1)
                 }
             );
         }

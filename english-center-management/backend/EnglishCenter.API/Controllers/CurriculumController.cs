@@ -32,7 +32,7 @@ namespace EnglishCenter.API.Controllers
             {
                 var totalCount = await _context.Curriculums.CountAsync();
                 var curriculums = await _context.Curriculums
-                    .Include(c => c.Class)
+                    .Include(c => c.Course)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Lessons)
@@ -78,7 +78,7 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var curriculum = await _context.Curriculums
-                    .Include(c => c.Class)
+                    .Include(c => c.Course)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Lessons)
@@ -104,18 +104,18 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets curriculums for a specific class. (Lấy khung chương trình của một lớp học cụ thể.)
+        /// Gets curriculums for a specific course. (Lấy khung chương trình của một khóa học cụ thể.)
         /// </summary>
-        /// <param name="classId">Class ID (ID lớp học)</param>
+        /// <param name="courseId">Course ID (ID khóa học)</param>
         /// <returns>List of curriculums (Danh sách khung chương trình)</returns>
-        [HttpGet("class/{classId}")]
-        public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetCurriculumsByClass(int classId)
+        [HttpGet("course/{courseId}")]
+        public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetCurriculumsByCourse(int courseId)
         {
             try
             {
                 var curriculums = await _context.Curriculums
-                    .Where(c => c.ClassId == classId)
-                    .Include(c => c.Class)
+                    .Where(c => c.CourseId == courseId)
+                    .Include(c => c.Course)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Lessons)
@@ -132,7 +132,7 @@ namespace EnglishCenter.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting curriculums for class {classId}");
+                _logger.LogError(ex, $"Error getting curriculums for course {courseId}");
                 return StatusCode(500, new { message = "Error retrieving curriculums", error = ex.Message });
             }
         }
@@ -147,10 +147,10 @@ namespace EnglishCenter.API.Controllers
         {
             try
             {
-                // Validate class exists
-                var classExists = await _context.Classes.AnyAsync(c => c.ClassId == createCurriculumDto.ClassId);
-                if (!classExists)
-                    return BadRequest(new { message = "Class not found" });
+                // Validate course exists
+                var courseExists = await _context.Courses.AnyAsync(c => c.CourseId == createCurriculumDto.CourseId);
+                if (!courseExists)
+                    return BadRequest(new { message = "Course not found" });
 
                 // Validate dates
                 if (createCurriculumDto.StartDate >= createCurriculumDto.EndDate)
@@ -159,7 +159,7 @@ namespace EnglishCenter.API.Controllers
                 var curriculum = new Curriculum
                 {
                     CurriculumName = createCurriculumDto.CurriculumName,
-                    ClassId = createCurriculumDto.ClassId,
+                    CourseId = createCurriculumDto.CourseId,
                     StartDate = createCurriculumDto.StartDate,
                     EndDate = createCurriculumDto.EndDate,
                     Description = createCurriculumDto.Description,
@@ -180,7 +180,7 @@ namespace EnglishCenter.API.Controllers
 
                 // Re-load to include related data for mapping
                 var savedCurriculum = await _context.Curriculums
-                    .Include(c => c.Class)
+                    .Include(c => c.Course)
                     .Include(c => c.ParticipantTeachers)
                     .FirstOrDefaultAsync(c => c.CurriculumId == curriculum.CurriculumId);
 
@@ -963,8 +963,8 @@ namespace EnglishCenter.API.Controllers
             {
                 CurriculumId = curriculum.CurriculumId,
                 CurriculumName = curriculum.CurriculumName,
-                ClassId = curriculum.ClassId,
-                ClassName = curriculum.Class?.ClassName ?? string.Empty,
+                CourseId = curriculum.CourseId,
+                CourseName = curriculum.Course?.CourseName ?? string.Empty,
                 StartDate = curriculum.StartDate,
                 EndDate = curriculum.EndDate,
                 Description = curriculum.Description,

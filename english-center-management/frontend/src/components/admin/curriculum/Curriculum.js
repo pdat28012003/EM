@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, Info, People } from '@mui/icons-material';
-import { curriculumAPI, classesAPI, teachersAPI } from '../../services/api';
+import { curriculumAPI, coursesAPI, teachersAPI } from '../../../services/api';
 
 const Curriculum = () => {
   const [curriculums, setCurriculums] = useState([]);
@@ -23,14 +23,14 @@ const Curriculum = () => {
   const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [editingCurriculum, setEditingCurriculum] = useState(null);
   const [selectedCurriculumForTeachers, setSelectedCurriculumForTeachers] = useState(null);
-  const [classes, setClasses] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [rowCount, setRowCount] = useState(0);
   const [formData, setFormData] = useState({
     curriculumName: '',
-    classId: '',
+    courseId: '',
     startDate: '',
     endDate: '',
     description: ''
@@ -38,7 +38,7 @@ const Curriculum = () => {
 
   useEffect(() => {
     loadCurriculums();
-    loadClasses();
+    loadCourses();
     loadTeachers();
   }, [paginationModel]);
   
@@ -59,17 +59,17 @@ const Curriculum = () => {
     }
   };
 
-  const loadClasses = async () => {
+  const loadCourses = async () => {
     try {
-      const response = await classesAPI.getAll({
+      const response = await coursesAPI.getAll({
         page: 1,
         pageSize: 100,
       });
-      const classesData = Array.isArray(response.data?.data) ? response.data.data : Array.isArray(response.data) ? response.data : [];
-      setClasses(classesData);
+      const coursesData = Array.isArray(response.data?.data) ? response.data.data : Array.isArray(response.data) ? response.data : [];
+      setCourses(coursesData);
     } catch (error) {
-      console.error('Error loading classes:', error);
-      alert('Lỗi khi tải dữ liệu lớp học');
+      console.error('Error loading courses:', error);
+      alert('Lỗi khi tải dữ liệu khóa học');
     }
   };
 
@@ -95,7 +95,7 @@ const Curriculum = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.curriculumName || !formData.classId || !formData.startDate || !formData.endDate) {
+    if (!formData.curriculumName || !formData.courseId || !formData.startDate || !formData.endDate) {
       alert('Please fill in all required fields');
       return;
     }
@@ -118,7 +118,7 @@ const Curriculum = () => {
       } else {
         await curriculumAPI.create({
           CurriculumName: formData.curriculumName,
-          ClassId: parseInt(formData.classId),
+          CourseId: parseInt(formData.courseId),
           StartDate: formData.startDate,
           EndDate: formData.endDate,
           Description: formData.description,
@@ -141,7 +141,7 @@ const Curriculum = () => {
     setEditingCurriculum(curriculum);
     setFormData({
       curriculumName: curriculum.curriculumName,
-      classId: curriculum.classId,
+      courseId: curriculum.courseId,
       startDate: curriculum.startDate.split('T')[0],
       endDate: curriculum.endDate.split('T')[0],
       description: curriculum.description
@@ -227,7 +227,7 @@ const Curriculum = () => {
   const resetForm = () => {
     setFormData({
       curriculumName: '',
-      classId: '',
+      courseId: '',
       startDate: '',
       endDate: '',
       description: ''
@@ -238,7 +238,7 @@ const Curriculum = () => {
   const columns = [
     { field: 'curriculumId', headerName: 'ID', width: 70 },
     { field: 'curriculumName', headerName: 'Tên chương trình', width: 200 },
-    { field: 'className', headerName: 'Lớp học', width: 150 },
+    { field: 'courseName', headerName: 'Khóa học', width: 200 },
     {
       field: 'startDate',
       headerName: 'Ngày bắt đầu',
@@ -361,17 +361,17 @@ const Curriculum = () => {
 
               {!editingCurriculum && (
                 <div className="form-group">
-                  <label>Lớp học *</label>
+                  <label>Khóa học *</label>
                   <select
-                    name="classId"
-                    value={formData.classId}
+                    name="courseId"
+                    value={formData.courseId}
                     onChange={handleInputChange}
                     required
                   >
-                    <option value="">Chọn lớp học</option>
-                    {classes.map((c) => (
-                      <option key={c.classId} value={c.classId}>
-                        {c.className}
+                    <option value="">Chọn khóa học</option>
+                    {courses.map((c) => (
+                      <option key={c.courseId} value={c.courseId}>
+                        {c.courseName}
                       </option>
                     ))}
                   </select>

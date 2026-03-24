@@ -7,20 +7,26 @@ import StudentDashboard from '../components/student/StudentDashboard';
 import TeacherDashboard from '../components/teacher/Dashboard/Dashboard';
 import TeacherLayout from '../components/teacher/TeacherLayout';
 import TeacherClasses from '../components/teacher/Class/Class';
+import ClassDetail from '../components/teacher/Class/ClassDetail/ClassDetail';
+import TeacherSchedule from '../components/teacher/Schedule/Schedule';
+import Documents from '../components/teacher/Documents/Documents';
 import StudentLayout from '../components/student/StudentLayout';
+import StudentDocuments from '../components/student/Documents/Documents';
+import AdminDocuments from '../components/admin/documents/Documents';
 import Profile from '../components/profile/Profile';
 import Dashboard from '../components/admin/Dashboard';
-import Students from '../components/admin/Students';
-import Teachers from '../components/admin/Teachers';
-import Classes from '../components/admin/Classes';
-import Payments from '../components/admin/Payments';
-import Curriculum from '../components/admin/Curriculum';
-import CurriculumDetail from '../components/admin/CurriculumDetail';
-import Rooms from '../components/admin/Rooms';
-import TeacherSchedule from '../components/admin/TeacherSchedule';
-import Attendance from '../components/admin/Attendance';
-import Schedules from '../components/admin/Schedules';
-import TestScores from '../components/admin/TestScores';
+import Students from '../components/admin/students/Students';
+import Teachers from '../components/admin/teachers/Teachers';
+import Classes from '../components/admin/classes/Classes';
+import Courses from '../components/admin/courses/Courses';
+import Skills from '../components/admin/skills/Skills';
+import Payments from '../components/admin/payments/Payments';
+import Curriculum from '../components/admin/curriculum/Curriculum';
+import CurriculumDetail from '../components/admin/curriculum/CurriculumDetail';
+import Rooms from '../components/admin/rooms/Rooms';
+import Attendance from '../components/admin/attendance/Attendance';
+import Schedules from '../components/admin/schedules/Schedules';
+import TestScores from '../components/admin/testscores/TestScores';
 
 const AppRoutes = () => {
   return (
@@ -40,6 +46,13 @@ const AppRoutes = () => {
         <PrivateRoute allowedRoles={['student']}>
           <StudentLayout>
             <Profile />
+          </StudentLayout>
+        </PrivateRoute>
+      } />
+      <Route path="/student/documents" element={
+        <PrivateRoute allowedRoles={['student']}>
+          <StudentLayout>
+            <StudentDocuments />
           </StudentLayout>
         </PrivateRoute>
       } />
@@ -63,6 +76,27 @@ const AppRoutes = () => {
         <PrivateRoute allowedRoles={['teacher']}>
           <TeacherLayout>
             <TeacherClasses />
+          </TeacherLayout>
+        </PrivateRoute>
+      } />
+      <Route path="/teacher/classes/:classId" element={
+        <PrivateRoute allowedRoles={['teacher']}>
+          <TeacherLayout>
+            <ClassDetail />
+          </TeacherLayout>
+        </PrivateRoute>
+      } />
+      <Route path="/teacher/schedule" element={
+        <PrivateRoute allowedRoles={['teacher']}>
+          <TeacherLayout>
+            <TeacherSchedule />
+          </TeacherLayout>
+        </PrivateRoute>
+      } />
+      <Route path="/teacher/documents" element={
+        <PrivateRoute allowedRoles={['teacher']}>
+          <TeacherLayout>
+            <Documents />
           </TeacherLayout>
         </PrivateRoute>
       } />
@@ -96,10 +130,17 @@ const AppRoutes = () => {
           </Layout>
         </PrivateRoute>
       } />
-      <Route path="/teacher-schedule/:teacherId" element={
+      <Route path="/courses" element={
         <PrivateRoute>
           <Layout>
-            <TeacherSchedule />
+            <Courses />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/skills" element={
+        <PrivateRoute>
+          <Layout>
+            <Skills />
           </Layout>
         </PrivateRoute>
       } />
@@ -156,6 +197,13 @@ const AppRoutes = () => {
         <PrivateRoute>
           <Layout>
             <TestScores />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/documents" element={
+        <PrivateRoute>
+          <Layout>
+            <AdminDocuments />
           </Layout>
         </PrivateRoute>
       } />

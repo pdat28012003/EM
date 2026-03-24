@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add } from '@mui/icons-material';
-import { paymentsAPI, studentsAPI } from '../../services/api';
+import { paymentsAPI, studentsAPI } from '../../../services/api';
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);

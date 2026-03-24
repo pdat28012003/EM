@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, Visibility, VisibilityOff, CalendarMonth, AssignmentInd, CloudUpload } from '@mui/icons-material';
-import { studentsAPI, enrollmentsAPI, classesAPI, UPLOAD_URL } from '../../services/api';
+import { studentsAPI, enrollmentsAPI, classesAPI, UPLOAD_URL } from '../../../services/api';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -121,6 +121,7 @@ const Students = () => {
 
   const handleOpenEnrollDialog = (student) => {
     setEditingStudent(student);
+    setCurrentStudent(student);
     setEnrollData({ classId: '' });
     setOpenEnrollDialog(true);
   };
@@ -178,6 +179,12 @@ const Students = () => {
       alert('Vui lòng chọn lớp học');
       return;
     }
+    
+    if (!currentStudent || !currentStudent.studentId) {
+      alert('Không tìm thấy thông tin học viên');
+      return;
+    }
+    
     try {
       await enrollmentsAPI.create({
         studentId: currentStudent.studentId,

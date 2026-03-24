@@ -7,12 +7,14 @@ import {
   IconButton,
   Box,
   Button,
+  InputBase,
   Badge
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   School,
   Notifications,
+  Search as SearchIcon,
   AccountCircle,
   Assignment,
   Assessment
@@ -30,6 +32,17 @@ const TeacherHeader = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { navigateToHome } = useNavigation();
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter') {
+      // Handle search logic here
+      console.log('Searching for:', search);
+      // You can add navigation to search results page
+      // navigate(`/search?q=${encodeURIComponent(search)}`);
+    }
+  };
+
 
   useEffect(() => {
     const loadUserData = () => {
@@ -61,7 +74,7 @@ const TeacherHeader = () => {
       window.removeEventListener('userUpdated', handleUserUpdate);
     };
   }, []);
-
+  
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -150,86 +163,34 @@ const TeacherHeader = () => {
           </Box>
         </Box>
 
-        {/* Desktop Navigation */}
-        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
-          <Button 
-            onClick={() => navigateToHome(user, navigate)}
-            sx={{ 
-              color: 'white', 
-              fontSize: '0.75rem',
-              px: 2,
-              py: 0.5,
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
-            }}
-          >
-            Dashboard
-          </Button>
-          <Button 
-            component={Link}
-            to="/teacher/classes"
-            sx={{ 
-              color: 'white', 
-              fontSize: '0.75rem',
-              px: 2,
-              py: 0.5,
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
-            }}
-          >
-            Lớp học
-          </Button>
-          <Button 
-            component={Link}
-            to="/teacher/assignments"
-            sx={{ 
-              color: 'white', 
-              fontSize: '0.75rem',
-              px: 2,
-              py: 0.5,
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
-            }}
-          >
-            Bài tập
-          </Button>
-          <Button 
-            component={Link}
-            to="/teacher/grades"
-            sx={{ 
-              color: 'white', 
-              fontSize: '0.75rem',
-              px: 2,
-              py: 0.5,
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
-            }}
-          >
-            Điểm số
-          </Button>
-          <Button 
-            component={Link}
-            to="/teacher/schedule"
-            sx={{ 
-              color: 'white', 
-              fontSize: '0.75rem',
-              px: 2,
-              py: 0.5,
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
-            }}
-          >
-            Lịch dạy
-          </Button>
-          <Button 
-            component={Link}
-            to="/teacher/materials"
-            sx={{ 
-              color: 'white', 
-              fontSize: '0.75rem',
-              px: 2,
-              py: 0.5,
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
-            }}
-          >
-            Tài liệu
-          </Button>
-        </Box>
+   {/* Search Bar */}
+<Box
+  sx={{
+    display: { xs: 'none', md: 'flex' },
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: '20px',
+    px: 2,
+    py: 0.2,
+    width: '300px'
+  }}
+>
+  <SearchIcon sx={{ color: 'white', mr: 1, fontSize: 18 }} />
+  <InputBase
+    placeholder="Tìm kiếm..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    onKeyDown={handleSearch}
+    sx={{
+      color: 'white',
+      fontSize: '0.85rem',
+      width: '100%',
+      '& input::placeholder': {
+        color: 'rgba(255,255,255,0.7)'
+      }
+    }}
+  />
+</Box>
 
         {/* Action Buttons */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, ml: 2, alignItems: 'center' }}>
