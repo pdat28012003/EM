@@ -63,9 +63,9 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Configure Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
+    options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.EnableRetryOnFailure()));
+        npgsqlOptions => npgsqlOptions.EnableRetryOnFailure()));
         // Register custom services
 builder.Services.AddScoped<IMappingService, MappingService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
