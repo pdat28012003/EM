@@ -54,8 +54,8 @@ namespace EnglishCenter.API.DTOs
         public int GradeId { get; set; }
         public int StudentId { get; set; }
         public string StudentName { get; set; } = string.Empty;
-        public int AssignmentId { get; set; }
-        public string AssignmentTitle { get; set; } = string.Empty;
+        public int? AssignmentId { get; set; }
+        public string? AssignmentTitle { get; set; }
         public int SkillId { get; set; }
         public string SkillName { get; set; } = string.Empty;
         public decimal Score { get; set; }
@@ -71,8 +71,7 @@ namespace EnglishCenter.API.DTOs
         [Required]
         public int StudentId { get; set; }
 
-        [Required]
-        public int AssignmentId { get; set; }
+        public int? AssignmentId { get; set; }
 
         [Required]
         public int SkillId { get; set; }
@@ -114,5 +113,52 @@ namespace EnglishCenter.API.DTOs
         public string SkillName { get; set; } = string.Empty;
         public decimal AverageScore { get; set; }
         public int GradeCount { get; set; }
+    }
+
+    // Notification DTOs
+    public class NotificationDto
+    {
+        public int NotificationId { get; set; }
+        public int? UserId { get; set; }
+        public int? TeacherId { get; set; }
+        public int? StudentId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string Type { get; set; } = "Info";
+        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? ReadAt { get; set; }
+        public int? RelatedId { get; set; }
+        public string? RelatedType { get; set; }
+    }
+
+    public class CreateNotificationDto
+    {
+        public int? UserId { get; set; }
+
+        public int? TeacherId { get; set; }
+
+        public int? StudentId { get; set; }
+
+        [Required]
+        [StringLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(1000)]
+        public string Message { get; set; } = string.Empty;
+
+        [StringLength(50)]
+        public string Type { get; set; } = "Info";
+
+        public int? RelatedId { get; set; }
+
+        [StringLength(50)]
+        public string? RelatedType { get; set; }
+    }
+
+    public class MarkAsReadDto
+    {
+        public List<int> NotificationIds { get; set; } = new List<int>();
     }
 }

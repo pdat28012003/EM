@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -41,6 +41,7 @@ export default function AttendanceTab({ classId, classInfo }) {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const hasLoaded = useRef(false);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -50,6 +51,8 @@ export default function AttendanceTab({ classId, classInfo }) {
   });
 
   useEffect(() => {
+    if (hasLoaded.current && page === 1) return;
+    hasLoaded.current = true;
     loadData();
   }, [classId, selectedDate, page, rowsPerPage]);
 

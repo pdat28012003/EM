@@ -20,6 +20,7 @@ import { useNavigation } from '../../hooks/useNavigation';
 import UserAvatar from './UserAvatar';
 import UserMenu from './UserMenu';
 import StudentNavigationMenu from './StudentNavigationMenu';
+import NotificationDropdown from './NotificationDropdown';
 
 const StudentHeader = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -207,16 +208,7 @@ const StudentHeader = () => {
           {isAuthenticated && user ? (
             <>
               {/* Notifications */}
-              <IconButton
-                sx={{ 
-                  color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
-                }}
-              >
-                <Badge badgeContent={0} color="error">
-                  <Notifications />
-                </Badge>
-              </IconButton>
+              <NotificationDropdown />
 
               <UserAvatar 
                 user={user} 

@@ -151,6 +151,29 @@ namespace EnglishCenter.API.DTOs
         public decimal HourlyRate { get; set; }
     }
 
+    public class UpdateTeacherDto
+    {
+        [Required(ErrorMessage = "Full name is required")]
+        [MaxLength(50, ErrorMessage = "Full name cannot exceed 50 characters")]
+        [MinLength(2, ErrorMessage = "Full name must be at least 2 characters")]
+        public string FullName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        [MaxLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Phone number is required")]
+        [Phone(ErrorMessage = "Invalid phone number format")]
+        [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        public string Specialization { get; set; } = string.Empty;
+        public string Qualifications { get; set; } = string.Empty;
+        public decimal HourlyRate { get; set; }
+        public bool IsActive { get; set; }
+    }
+
     // Course DTOs
     public class CourseDto
     {
@@ -197,7 +220,7 @@ namespace EnglishCenter.API.DTOs
         public string CourseName { get; set; } = string.Empty;
         public int? CurriculumId { get; set; }
         public string CurriculumName { get; set; } = string.Empty;
-        public int TeacherId { get; set; }
+        public int? TeacherId { get; set; }
         public string TeacherName { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
@@ -213,7 +236,7 @@ namespace EnglishCenter.API.DTOs
         public string ClassName { get; set; } = string.Empty;
         public int CourseId { get; set; }
         public int? CurriculumId { get; set; }
-        public int TeacherId { get; set; }
+        public int? TeacherId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public int MaxStudents { get; set; }
@@ -607,5 +630,156 @@ namespace EnglishCenter.API.DTOs
         public decimal Score { get; set; }
 
         public string? Feedback { get; set; }
+    }
+
+    // Quiz DTOs
+    public class QuizQuestionDto
+    {
+        public int QuestionId { get; set; }
+        public int AssignmentId { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string QuestionType { get; set; } = string.Empty;
+        public int OrderIndex { get; set; }
+        public decimal Points { get; set; }
+        public string? Explanation { get; set; }
+        public List<QuizAnswerDto> Answers { get; set; } = new List<QuizAnswerDto>();
+    }
+
+    public class QuizAnswerDto
+    {
+        public int AnswerId { get; set; }
+        public int QuestionId { get; set; }
+        public string AnswerText { get; set; } = string.Empty;
+        public bool IsCorrect { get; set; }
+        public int OrderIndex { get; set; }
+    }
+
+    public class CreateQuizQuestionDto
+    {
+        [Required]
+        [StringLength(500)]
+        public string QuestionText { get; set; } = string.Empty;
+
+        [StringLength(50)]
+        public string QuestionType { get; set; } = "MultipleChoice";
+
+        public int OrderIndex { get; set; } = 0;
+
+        [Range(0.01, 100)]
+        public decimal Points { get; set; } = 1.00m;
+
+        public string? Explanation { get; set; }
+
+        [Required]
+        [MinLength(2)]
+        public List<CreateQuizAnswerDto> Answers { get; set; } = new List<CreateQuizAnswerDto>();
+    }
+
+    public class CreateQuizAnswerDto
+    {
+        [Required]
+        [StringLength(500)]
+        public string AnswerText { get; set; } = string.Empty;
+
+        public bool IsCorrect { get; set; } = false;
+
+        public int OrderIndex { get; set; } = 0;
+    }
+
+    public class UpdateQuizQuestionDto
+    {
+        [StringLength(500)]
+        public string? QuestionText { get; set; }
+
+        [StringLength(50)]
+        public string? QuestionType { get; set; }
+
+        public int? OrderIndex { get; set; }
+
+        [Range(0.01, 100)]
+        public decimal? Points { get; set; }
+
+        public string? Explanation { get; set; }
+
+        public List<UpdateQuizAnswerDto>? Answers { get; set; }
+    }
+
+    public class UpdateQuizAnswerDto
+    {
+        public int? AnswerId { get; set; }
+
+        [StringLength(500)]
+        public string? AnswerText { get; set; }
+
+        public bool? IsCorrect { get; set; }
+
+        public int? OrderIndex { get; set; }
+    }
+
+    public class QuizSubmissionDto
+    {
+        [Required]
+        public int AssignmentId { get; set; }
+
+        [Required]
+        public List<QuizAnswerSubmissionDto> Answers { get; set; } = new List<QuizAnswerSubmissionDto>();
+
+        public int? TimeSpentSeconds { get; set; }
+    }
+
+    public class QuizAnswerSubmissionDto
+    {
+        [Required]
+        public int QuestionId { get; set; }
+
+        public int? SelectedAnswerId { get; set; }
+
+        public string? TextAnswer { get; set; }
+    }
+
+    public class QuizResultDto
+    {
+        public int AttemptId { get; set; }
+        public int AssignmentId { get; set; }
+        public string AssignmentTitle { get; set; } = string.Empty;
+        public decimal Score { get; set; }
+        public decimal MaxScore { get; set; }
+        public decimal Percentage { get; set; }
+        public int TotalQuestions { get; set; }
+        public int CorrectAnswers { get; set; }
+        public int TimeSpentSeconds { get; set; }
+        public DateTime SubmittedAt { get; set; }
+        public List<QuizQuestionResultDto> QuestionResults { get; set; } = new List<QuizQuestionResultDto>();
+    }
+
+    public class QuizQuestionResultDto
+    {
+        public int QuestionId { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public decimal Points { get; set; }
+        public decimal PointsEarned { get; set; }
+        public bool IsCorrect { get; set; }
+        public string? Explanation { get; set; }
+        public List<QuizAnswerResultDto> AllAnswers { get; set; } = new List<QuizAnswerResultDto>();
+        public int? SelectedAnswerId { get; set; }
+        public int? CorrectAnswerId { get; set; }
+    }
+
+    public class QuizAnswerResultDto
+    {
+        public int AnswerId { get; set; }
+        public string AnswerText { get; set; } = string.Empty;
+        public bool IsCorrect { get; set; }
+    }
+
+    // Submission DTOs
+    public class CreateSubmissionDto
+    {
+        [Required]
+        public int StudentId { get; set; }
+
+        public string? Content { get; set; }
+
+        public string? AttachmentUrl { get; set; }
     }
 }

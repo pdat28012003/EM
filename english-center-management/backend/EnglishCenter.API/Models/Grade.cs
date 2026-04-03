@@ -11,8 +11,7 @@ namespace EnglishCenter.API.Models
         [Required]
         public int StudentId { get; set; }
 
-        [Required]
-        public int AssignmentId { get; set; }
+        public int? AssignmentId { get; set; }
 
         [Required]
         public int SkillId { get; set; }
@@ -39,7 +38,7 @@ namespace EnglishCenter.API.Models
         public Student Student { get; set; } = null!;
 
         [ForeignKey("AssignmentId")]
-        public Assignment Assignment { get; set; } = null!;
+        public Assignment? Assignment { get; set; }
 
         [ForeignKey("SkillId")]
         public Skill Skill { get; set; } = null!;

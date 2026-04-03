@@ -13,9 +13,10 @@ import {
   Box,
   IconButton,
   Chip,
+  MenuItem,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, Schedule, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Add, Edit, Delete, Schedule, Visibility, VisibilityOff, Search } from '@mui/icons-material';
 import { teachersAPI } from '../../../services/api';
 
 const Teachers = () => {
@@ -27,6 +28,10 @@ const Teachers = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
+  const [filters, setFilters] = useState({
+    status: 'all', // 'all', 'active', 'inactive'
+    search: ''
+  });
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -40,15 +45,29 @@ const Teachers = () => {
 
   useEffect(() => {
     loadTeachers();
-  }, [paginationModel]);
+  }, [paginationModel, filters]);
 
   const loadTeachers = async () => {
     try {
       setLoading(true);
-      const response = await teachersAPI.getAll({
+      const params = {
         page: paginationModel.page + 1,
         pageSize: paginationModel.pageSize,
-      });
+      };
+      
+      // Add status filter
+      if (filters.status === 'active') {
+        params.isActive = true;
+      } else if (filters.status === 'inactive') {
+        params.isActive = false;
+      }
+      
+      // Add search filter
+      if (filters.search) {
+        params.search = filters.search;
+      }
+      
+      const response = await teachersAPI.getAll(params);
       const teachersData = response.data?.data || [];
       setTeachers(Array.isArray(teachersData) ? teachersData : []);
       setRowCount(response.data?.totalCount || 0);
@@ -109,7 +128,7 @@ const Teachers = () => {
         hourlyRate: parseFloat(formData.hourlyRate),
       };
       
-      if (editingTeacher) {
+      if (editingTeacher && editingTeacher.teacherId) {
         await teachersAPI.update(editingTeacher.teacherId, submitData);
       } else {
         await teachersAPI.create(submitData);
@@ -119,6 +138,18 @@ const Teachers = () => {
     } catch (error) {
       console.error('Error saving teacher:', error);
       alert('Có lỗi xảy ra khi lưu thông tin giáo viên');
+    }
+  };
+
+  const handleDeleteTeacher = async (teacherId) => {
+    if (window.confirm('Bạn có chắc muốn xóa giảng viên này?')) {
+      try {
+        await teachersAPI.delete(teacherId);
+        loadTeachers();
+      } catch (error) {
+        console.error('Error deleting teacher:', error);
+        alert('Có lỗi xảy ra khi xóa giảng viên');
+      }
     }
   };
 
@@ -162,17 +193,35 @@ const Teachers = () => {
     {
       field: 'actions',
       headerName: 'Hành Động',
-      width: 150,
+      width: 200,
       sortable: false,
       renderCell: (params) => (
-        <IconButton
-          size="small"
-          color="primary"
-          onClick={() => navigate(`/teacher-schedule/${params.row.teacherId}`)}
-          title="Xem lịch giảng dạy"
-        >
-          <Schedule />
-        </IconButton>
+        <Box>
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={() => handleOpenDialog(params.row)}
+            title="Sửa"
+          >
+            <Edit />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => handleDeleteTeacher(params.row.teacherId)}
+            title="Xóa"
+          >
+            <Delete />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="info"
+            onClick={() => navigate(`/teacher-schedule/${params.row.teacherId}`)}
+            title="Xem lịch giảng dạy"
+          > 
+            <Schedule />
+          </IconButton>
+        </Box>
       ),
     },
   ];
@@ -181,16 +230,48 @@ const Teachers = () => {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" fontWeight="bold">
-          Quản Lý Giáo Viên
+          Quản Lý Giảng Viên
         </Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
-          onClick={handleOpenDialog}
+          onClick={() => handleOpenDialog()}
         >
-          Thêm Giáo Viên
+          Thêm Giảng Viên
         </Button>
       </Box>
+
+      {/* Filters */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Box display="flex" gap={2} flexWrap="wrap">
+          <TextField
+            select
+            label="Trạng Thái"
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            size="small"
+            sx={{ minWidth: 120 }}
+          >
+            <MenuItem value="all">Tất Cả</MenuItem>
+            <MenuItem value="active">Đang Dạy</MenuItem>
+            <MenuItem value="inactive">Đã Nghỉ</MenuItem>
+          </TextField>
+          
+          <TextField
+            label="Tìm Kiếm"
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            size="small"
+            placeholder="Tên, Email, SĐT..."
+            InputProps={{
+              startAdornment: <Search sx={{ mr: 1, color: 'action.active' }} />,
+            }}
+            sx={{ minWidth: 200, flex: 1 }}
+          />
+          
+          
+        </Box>
+      </Paper>
 
       <Paper sx={{ height: 600, width: '100%' }}>
         <DataGrid
@@ -208,7 +289,7 @@ const Teachers = () => {
       </Paper>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Thêm Giáo Viên Mới</DialogTitle>
+        <DialogTitle>{editingTeacher ? 'Sửa Giảng Viên' : 'Thêm Giảng Viên Mới'}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
             <TextField
@@ -236,6 +317,28 @@ const Teachers = () => {
               required
               fullWidth
             />
+            {!editingTeacher && (
+              <TextField
+                name="password"
+                label="Mật khẩu"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+                fullWidth
+                InputProps={{
+                  endAdornment: (
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      sx={{ mr: 1 }}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  ),
+                }}
+              />
+            )}
             <TextField
               name="specialization"
               label="Chuyên Môn"
@@ -243,25 +346,6 @@ const Teachers = () => {
               onChange={handleInputChange}
               placeholder="VD: General English, IELTS"
               fullWidth
-            />
-            <TextField
-              name="password"
-              label="Mật khẩu"
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={handleInputChange}
-              fullWidth
-              InputProps={{
-                endAdornment: (
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                    sx={{ mr: 1 }}
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                ),
-              }}
             />
             <TextField
               name="qualifications"
@@ -287,7 +371,7 @@ const Teachers = () => {
         <DialogActions>
           <Button onClick={handleCloseDialog}>Hủy</Button>
           <Button onClick={handleSubmit} variant="contained">
-            Thêm Mới
+            {editingTeacher ? 'Cập Nhật' : 'Thêm Mới'}
           </Button>
         </DialogActions>
       </Dialog>
