@@ -93,14 +93,15 @@ namespace EnglishCenter.API.Controllers
                 .Include(g => g.Student)
                 .Include(g => g.Assignment)
                 .Include(g => g.Skill)
-                .Where(g => g.Assignment.ClassId == classId)
+                .Where(g => g.Assignment != null && g.Assignment.ClassId == classId || 
+                            g.Student.Enrollments.Any(e => e.ClassId == classId && e.Status == "Active"))
                 .Select(g => new GradeDto
                 {
                     GradeId = g.GradeId,
                     StudentId = g.StudentId,
                     StudentName = g.Student.FullName,
                     AssignmentId = g.AssignmentId,
-                    AssignmentTitle = g.Assignment.Title,
+                    AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                     SkillId = g.SkillId,
                     SkillName = g.Skill.Name,
                     Score = g.Score,
@@ -140,6 +141,32 @@ namespace EnglishCenter.API.Controllers
                 _context.Grades.Add(grade);
                 await _context.SaveChangesAsync();
 
+                // Create notification for the student
+                var student = await _context.Students.FindAsync(dto.StudentId);
+                var skill = await _context.Skills.FindAsync(dto.SkillId);
+                var assignment = dto.AssignmentId.HasValue 
+                    ? await _context.Assignments.FindAsync(dto.AssignmentId.Value) 
+                    : null;
+
+                if (student != null)
+                {
+                    var assignmentName = assignment?.Title ?? "Bài tập";
+                    var skillName = skill?.Name ?? "";
+                    var notification = new Notification
+                    {
+                        StudentId = dto.StudentId,
+                        Title = "Điểm mới",
+                        Message = $"Bạn vừa có điểm {skillName} {assignmentName}: {dto.Score}/{dto.MaxScore}",
+                        Type = "NewGrade",
+                        RelatedId = grade.GradeId,
+                        RelatedType = "Grade",
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Notifications.Add(notification);
+                    await _context.SaveChangesAsync();
+                }
+
                 // Return created grade with full details
                 var createdGrade = await _context.Grades
                     .Include(g => g.Student)
@@ -152,7 +179,7 @@ namespace EnglishCenter.API.Controllers
                         StudentId = g.StudentId,
                         StudentName = g.Student.FullName,
                         AssignmentId = g.AssignmentId,
-                        AssignmentTitle = g.Assignment.Title,
+                        AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                         SkillId = g.SkillId,
                         SkillName = g.Skill.Name,
                         Score = g.Score,
@@ -164,7 +191,7 @@ namespace EnglishCenter.API.Controllers
                     })
                     .FirstOrDefaultAsync();
 
-                return CreatedAtAction(nameof(GetGradesByAssignment), new { assignmentId = createdGrade.AssignmentId }, createdGrade);
+                return CreatedAtAction(nameof(GetGradesByStudent), new { studentId = createdGrade.StudentId }, createdGrade);
             }
             catch (Exception ex)
             {
@@ -204,7 +231,7 @@ namespace EnglishCenter.API.Controllers
                         StudentId = g.StudentId,
                         StudentName = g.Student.FullName,
                         AssignmentId = g.AssignmentId,
-                        AssignmentTitle = g.Assignment.Title,
+                        AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                         SkillId = g.SkillId,
                         SkillName = g.Skill.Name,
                         Score = g.Score,

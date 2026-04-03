@@ -26,8 +26,11 @@ export default function StudentsTab({ classId, classInfo }) {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const hasLoaded = React.useRef(false);
 
   useEffect(() => {
+    if (hasLoaded.current && page === 1) return;
+    hasLoaded.current = true;
     loadStudents();
   }, [classId, page, rowsPerPage]);
 

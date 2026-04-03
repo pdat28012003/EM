@@ -27,6 +27,12 @@ namespace EnglishCenter.API.Data
     public DbSet<Skill> Skills { get; set; }
     public DbSet<Grade> Grades { get; set; }
     public DbSet<Attendance> Attendances { get; set; }
+    public DbSet<QuizQuestion> QuizQuestions { get; set; }
+    public DbSet<QuizAnswer> QuizAnswers { get; set; }
+    public DbSet<StudentQuizAttempt> StudentQuizAttempts { get; set; }
+    public DbSet<StudentQuizAnswer> StudentQuizAnswers { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<ActivityLog> ActivityLogs { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserOtp> UserOtps { get; set; }
@@ -119,6 +125,75 @@ namespace EnglishCenter.API.Data
                 .WithMany()
                 .HasForeignKey(asub => asub.GradedBy)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Quiz relationships
+            modelBuilder.Entity<QuizQuestion>()
+                .HasOne(q => q.Assignment)
+                .WithMany()
+                .HasForeignKey(q => q.AssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<QuizAnswer>()
+                .HasOne(a => a.Question)
+                .WithMany(q => q.Answers)
+                .HasForeignKey(a => a.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StudentQuizAttempt>()
+                .HasOne(a => a.Assignment)
+                .WithMany()
+                .HasForeignKey(a => a.AssignmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StudentQuizAttempt>()
+                .HasOne(a => a.Student)
+                .WithMany()
+                .HasForeignKey(a => a.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StudentQuizAnswer>()
+                .HasOne(sa => sa.Attempt)
+                .WithMany(a => a.StudentAnswers)
+                .HasForeignKey(sa => sa.AttemptId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StudentQuizAnswer>()
+                .HasOne(sa => sa.Question)
+                .WithMany()
+                .HasForeignKey(sa => sa.QuestionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StudentQuizAnswer>()
+                .HasOne(sa => sa.SelectedAnswer)
+                .WithMany()
+                .HasForeignKey(sa => sa.SelectedAnswerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Notification relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure ActivityLog relationships
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.Teacher)
+                .WithMany()
+                .HasForeignKey(a => a.TeacherId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.Student)
+                .WithMany()
+                .HasForeignKey(a => a.StudentId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Curriculum>()
                 .HasOne(c => c.Course)
@@ -269,6 +344,30 @@ namespace EnglishCenter.API.Data
                     Qualifications = "CELTA Certificate, BA in English Literature",
                     HireDate = new DateTime(2021, 3, 20),
                     HourlyRate = 180000,
+                    IsActive = true
+                }
+            );
+
+            // Seed Rooms (must be before Classes)
+            modelBuilder.Entity<Room>().HasData(
+                new Room
+                {
+                    RoomId = 1,
+                    RoomName = "Phòng 101",
+                    Description = "Phòng học tiêu chuẩn 20 chỗ",
+                    Capacity = 20,
+                    AvailableStartTime = new TimeSpan(7, 0, 0),
+                    AvailableEndTime = new TimeSpan(21, 0, 0),
+                    IsActive = true
+                },
+                new Room
+                {
+                    RoomId = 2,
+                    RoomName = "Phòng 102",
+                    Description = "Phòng học nhỏ 15 chỗ",
+                    Capacity = 15,
+                    AvailableStartTime = new TimeSpan(7, 0, 0),
+                    AvailableEndTime = new TimeSpan(21, 0, 0),
                     IsActive = true
                 }
             );

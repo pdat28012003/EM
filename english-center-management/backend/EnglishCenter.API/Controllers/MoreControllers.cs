@@ -146,6 +146,58 @@ namespace EnglishCenter.API.Controllers
             _context.Enrollments.Add(enrollment);
             await _context.SaveChangesAsync();
 
+            // Create notification for the teacher of the class
+            var classEntityWithTeacher = await _context.Classes
+                .FirstOrDefaultAsync(c => c.ClassId == dto.ClassId);
+            
+            if (classEntityWithTeacher?.TeacherId != null)
+            {
+                var notification = new Notification
+                {
+                    TeacherId = classEntityWithTeacher.TeacherId,
+                    Title = "Học viên mới được thêm vào lớp",
+                    Message = $"Học viên {student.FullName} vừa được thêm vào lớp {classEntityWithTeacher.ClassName}",
+                    Type = "NewEnrollment",
+                    RelatedId = enrollment.EnrollmentId,
+                    RelatedType = "Enrollment",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Notifications.Add(notification);
+
+                // CREATE ACTIVITY LOG for teacher
+                var teacherActivity = new ActivityLog
+                {
+                    TeacherId = classEntityWithTeacher.TeacherId,
+                    Action = "ENROLL_STUDENT",
+                    Title = "Học viên mới được thêm vào lớp",
+                    Description = $"Học viên {student.FullName} vừa được thêm vào lớp {classEntityWithTeacher.ClassName}",
+                    IconType = "group_add",
+                    Color = "success",
+                    TargetId = enrollment.EnrollmentId,
+                    TargetType = "Enrollment",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.ActivityLogs.Add(teacherActivity);
+
+                // CREATE ACTIVITY LOG for student
+                var studentActivity = new ActivityLog
+                {
+                    StudentId = dto.StudentId,
+                    Action = "ENROLL_CLASS",
+                    Title = "Đã tham gia lớp học",
+                    Description = $"Bạn đã được thêm vào lớp {classEntityWithTeacher.ClassName}",
+                    IconType = "group_add",
+                    Color = "success",
+                    TargetId = enrollment.EnrollmentId,
+                    TargetType = "Enrollment",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.ActivityLogs.Add(studentActivity);
+
+                await _context.SaveChangesAsync();
+            }
+
             var enrollmentDto = await _context.Enrollments
                 .Include(e => e.Student)
                 .Include(e => e.Class)
@@ -571,6 +623,24 @@ namespace EnglishCenter.API.Controllers
 
             _context.TestScores.Add(testScore);
             await _context.SaveChangesAsync();
+
+            // Create notification for the student
+            if (dto.StudentId > 0)
+            {
+                var notification = new Notification
+                {
+                    StudentId = dto.StudentId,
+                    Title = "Điểm thi mới",
+                    Message = $"Bạn vừa có điểm {dto.TestName}: {totalScore:F1}/10",
+                    Type = "TestScore",
+                    RelatedId = testScore.TestScoreId,
+                    RelatedType = "TestScore",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync();
+            }
 
             return CreatedAtAction(nameof(GetTestScores), new { id = testScore.TestScoreId }, testScore);
         }

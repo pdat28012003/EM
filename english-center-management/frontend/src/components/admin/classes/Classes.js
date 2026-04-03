@@ -184,7 +184,6 @@ const Classes = () => {
             color="error"
             onClick={() => handleDeleteClass(params.row)}
             title="Xóa lớp học"
-            disabled={params.row.currentStudents > 0}
           >
             <Delete />
           </IconButton>
@@ -463,7 +462,7 @@ const Classes = () => {
           </Typography>
           {classToDelete?.currentStudents > 0 && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              Lớp học này có {classToDelete.currentStudents} học viên. Không thể xóa lớp học có học viên đang hoạt động.
+              Lớp học này có {classToDelete.currentStudents} học viên. Cẩn thận khi xóa!
             </Alert>
           )}
         </DialogContent>
@@ -473,7 +472,6 @@ const Classes = () => {
             onClick={confirmDeleteClass} 
             variant="contained" 
             color="error"
-            disabled={classToDelete?.currentStudents > 0}
           >
             Xóa
           </Button>

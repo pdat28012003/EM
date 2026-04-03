@@ -40,7 +40,8 @@ import {
   Edit,
   Delete,
   ExpandMore,
-  Settings
+  Settings,
+  Visibility
 } from '@mui/icons-material';
 import { classesAPI, assignmentsAPI, skillsAPI, gradesAPI } from '../../../../services/api';
 
@@ -52,6 +53,9 @@ export default function DynamicGradesTab({ classId, classInfo }) {
   const [loading, setLoading] = useState(false);
   const [addGradeDialogOpen, setAddGradeDialogOpen] = useState(false);
   const [editGradeDialogOpen, setEditGradeDialogOpen] = useState(false);
+  const [viewStudentDetailDialogOpen, setViewStudentDetailDialogOpen] = useState(false);
+  const [viewingStudent, setViewingStudent] = useState(null);
+  const [editStudentDialogOpen, setEditStudentDialogOpen] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(null);
   const [newGrade, setNewGrade] = useState({
     studentId: '',
@@ -80,7 +84,7 @@ export default function DynamicGradesTab({ classId, classInfo }) {
 
       const studentsData = studentsRes.data?.data || [];
       const assignmentsData = assignmentsRes.data?.data || [];
-      const skillsData = skillsRes.data || [];
+      const skillsData = Array.isArray(skillsRes.data) ? skillsRes.data : (skillsRes.data?.data || []);
       const gradesData = gradesRes.data || [];
 
       setStudents(studentsData);
@@ -242,7 +246,6 @@ export default function DynamicGradesTab({ classId, classInfo }) {
             <TableHead>
               <TableRow>
                 <TableCell><strong>Họ tên</strong></TableCell>
-                <TableCell align="center"><strong>Số điểm</strong></TableCell>
                 <TableCell align="center"><strong>Điểm TB</strong></TableCell>
                 {skills.map((skill) => (
                   <TableCell align="center" key={skill.skillId}>
@@ -258,11 +261,6 @@ export default function DynamicGradesTab({ classId, classInfo }) {
                     <Typography variant="body2" fontWeight="medium">
                       {stat.studentName}
                     </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Badge badgeContent={stat.totalGrades} color="primary">
-                      <Typography variant="body2">{stat.totalGrades}</Typography>
-                    </Badge>
                   </TableCell>
                   <TableCell align="center">
                     <Chip 
@@ -284,7 +282,7 @@ export default function DynamicGradesTab({ classId, classInfo }) {
                             mb: 0.25
                           }}
                         >
-                          {skill.name}: {skill.averageScore.toFixed(1)}
+                          {skill.name} {skill.averageScore.toFixed(1)}
                         </Typography>
                       ) : (
                         <Typography variant="body2" color="text.secondary">-</Typography>
@@ -425,11 +423,17 @@ export default function DynamicGradesTab({ classId, classInfo }) {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Bài tập</InputLabel>
+                <InputLabel shrink id="assignment-label">Bài tập</InputLabel>
                 <Select
-                  value={newGrade.assignmentId}
-                  onChange={(e) => setNewGrade({ ...newGrade, assignmentId: e.target.value })}
+                  labelId="assignment-label"
+                  value={newGrade.assignmentId || ''}
+                  onChange={(e) => setNewGrade({ ...newGrade, assignmentId: e.target.value || null })}
+                  displayEmpty
+                  label="Bài tập"
                 >
+                  <MenuItem value="">
+                    <em>Không chọn</em>
+                  </MenuItem>
                   {assignments.map((assignment) => (
                     <MenuItem key={assignment.assignmentId} value={assignment.assignmentId}>
                       {assignment.title}
@@ -534,6 +538,85 @@ export default function DynamicGradesTab({ classId, classInfo }) {
         <DialogActions>
           <Button onClick={() => setEditGradeDialogOpen(false)}>Hủy</Button>
           <Button onClick={handleEditGrade} variant="contained">
+            Lưu
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Student Detail Dialog */}
+      <Dialog open={viewStudentDetailDialogOpen} onClose={() => setViewStudentDetailDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Chi tiết điểm - {viewingStudent?.studentName}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Điểm trung bình: {viewingStudent?.averageScore}
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Tổng số điểm: {viewingStudent?.totalGrades}
+            </Typography>
+            
+            <Box mt={3}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Chi tiết theo kỹ năng
+              </Typography>
+              {viewingStudent?.skillBreakdown?.map((skill) => (
+                <Box key={skill.skillName} sx={{ mb: 2 }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant="body1">{skill.skillName}</Typography>
+                    <Chip
+                      label={skill.count > 0 ? skill.averageScore.toFixed(1) : '-'}
+                      color={skill.count > 0 ? getGradeColor(skill.averageScore) : 'default'}
+                      size="small"
+                    />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    {skill.count > 0 ? `${skill.count} điểm` : 'Chưa có điểm'}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewStudentDetailDialogOpen(false)}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Student Grades Dialog */}
+      <Dialog open={editStudentDialogOpen} onClose={() => setEditStudentDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Chỉnh sửa điểm - {viewingStudent?.studentName}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              Chi tiết điểm theo kỹ năng
+            </Typography>
+            {viewingStudent?.skillBreakdown?.map((skill) => (
+              <Box key={skill.skillName} sx={{ mb: 3 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="body1" fontWeight="medium">{skill.skillName}</Typography>
+                  <Chip
+                    label={skill.count > 0 ? skill.averageScore.toFixed(1) : '-'}
+                    color={skill.count > 0 ? getGradeColor(skill.averageScore) : 'default'}
+                    size="small"
+                  />
+                </Box>
+                {skill.count > 0 && (
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label={`Nhập điểm ${skill.skillName}`}
+                    defaultValue={skill.averageScore.toFixed(1)}
+                    inputProps={{ min: 0, max: 10, step: 0.1 }}
+                    size="small"
+                  />
+                )}
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditStudentDialogOpen(false)}>Hủy</Button>
+          <Button variant="contained" onClick={() => setEditStudentDialogOpen(false)}>
             Lưu
           </Button>
         </DialogActions>

@@ -23,15 +23,17 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets all teachers. (Lấy danh sách tất cả giáo viên.)
+        /// Gets all teachers. (Lấy danh sách tất cả giảng viên.)
         /// </summary>
         /// <param name="isActive">Status (Trạng thái hoạt động)</param>
+        /// <param name="search">Search text (Tìm kiếm theo tên, email, SĐT,Chuyên môn, )</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Số lượng mỗi trang)</param>
-        /// <returns>Paged list of teachers (Danh sách giáo viên có phân trang)</returns>
+        /// <returns>Paged list of teachers (Danh sách giảng viên có phân trang)</returns>
         [HttpGet]
         public async Task<ActionResult<PagedResult<TeacherDto>>> GetTeachers(
             [FromQuery] bool? isActive = null,
+            [FromQuery] string? search = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
@@ -40,6 +42,17 @@ namespace EnglishCenter.API.Controllers
             if (isActive.HasValue)
             {
                 query = query.Where(t => t.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(t => 
+                    t.FullName.Contains(search) || 
+                    t.Email.Contains(search) || 
+                    t.PhoneNumber.Contains(search) ||
+                    t.Specialization.Contains(search) ||
+                    t.Qualifications.Contains(search) ||
+                    t.HireDate.ToString().Contains(search));
             }
 
             var totalCount = await query.CountAsync();
@@ -191,6 +204,81 @@ namespace EnglishCenter.API.Controllers
             };
 
             return CreatedAtAction(nameof(GetTeacher), new { id = teacher.TeacherId }, teacherDto);
+        }
+
+        /// <summary>
+        /// Updates a teacher. (Cập nhật thông tin giảng viên.)
+        /// </summary>
+        /// <param name="id">Teacher ID (ID giảng viên)</param>
+        /// <param name="dto">Teacher update data (Dữ liệu cập nhật)</param>
+        /// <returns>Updated teacher (Thông tin giảng viên đã cập nhật)</returns>
+        [HttpPut("{id}")]
+        public async Task<ActionResult<TeacherDto>> UpdateTeacher(int id, UpdateTeacherDto dto)
+        {
+            var teacher = await _context.Teachers.FindAsync(id);
+            if (teacher == null)
+            {
+                return NotFound(new { message = "Teacher not found" });
+            }
+
+            // Check email uniqueness if changed
+            if (teacher.Email != dto.Email)
+            {
+                var existingTeacher = await _context.Teachers
+                    .FirstOrDefaultAsync(t => t.Email == dto.Email && t.TeacherId != id && t.IsActive);
+                if (existingTeacher != null)
+                {
+                    return Conflict(new { message = "A teacher with this email already exists" });
+                }
+            }
+
+            teacher.FullName = dto.FullName;
+            teacher.Email = dto.Email;
+            teacher.PhoneNumber = dto.PhoneNumber;
+            teacher.Specialization = dto.Specialization;
+            teacher.Qualifications = dto.Qualifications;
+            teacher.HourlyRate = dto.HourlyRate;
+            teacher.IsActive = dto.IsActive;
+
+            await _context.SaveChangesAsync();
+
+            var teacherDto = new TeacherDto
+            {
+                TeacherId = teacher.TeacherId,
+                FullName = teacher.FullName,
+                Email = teacher.Email,
+                PhoneNumber = teacher.PhoneNumber,
+                Specialization = teacher.Specialization,
+                Qualifications = teacher.Qualifications,
+                HireDate = teacher.HireDate,
+                HourlyRate = teacher.HourlyRate,
+                IsActive = teacher.IsActive
+            };
+
+            return Ok(teacherDto);
+        }
+
+        /// <summary>
+        /// Deletes a teacher. (Xóa giảng viên.)
+        /// </summary>
+        /// <param name="id">Teacher ID (ID giảng viên)</param>
+        /// <returns>No content (Không có nội dung)</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTeacher(int id)
+        {
+            var teacher = await _context.Teachers
+                .FirstOrDefaultAsync(t => t.TeacherId == id);
+
+            if (teacher == null)
+            {
+                return NotFound(new { message = "Teacher not found" });
+            }
+
+            // Soft delete - mark as inactive
+            teacher.IsActive = false;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
 
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)

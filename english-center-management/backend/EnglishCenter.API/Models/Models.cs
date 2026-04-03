@@ -136,8 +136,7 @@ namespace EnglishCenter.API.Models
         [Required]
         public int CourseId { get; set; }
 
-        [Required]
-        public int TeacherId { get; set; }
+        public int? TeacherId { get; set; }
 
         public DateTime StartDate { get; set; }
 
@@ -157,7 +156,7 @@ namespace EnglishCenter.API.Models
         public Course Course { get; set; } = null!;
 
         [ForeignKey("TeacherId")]
-        public Teacher Teacher { get; set; } = null!;
+        public Teacher? Teacher { get; set; }
 
         [ForeignKey("RoomId")]
         public Room? Room { get; set; }

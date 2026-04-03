@@ -97,6 +97,7 @@ export const teachersAPI = {
   getById: (id) => api.get(`/teacher/${id}`),
   create: (data) => api.post('/teacher', data),
   update: (id, data) => api.put(`/teacher/${id}`, data),
+  delete: (id) => api.delete(`/teacher/${id}`),
   getSchedule: (id, params) => api.get(`/teacher/${id}/schedule`, { params }),
 };
 
@@ -154,7 +155,13 @@ export const assignmentsAPI = {
   update: (id, data) => api.put(`/assignment/${id}`, data),
   delete: (id) => api.delete(`/assignment/${id}`),
   getSubmissions: (assignmentId, params = {}) => api.get(`/assignment/${assignmentId}/submissions`, { params }),
-  gradeSubmission: (submissionId, data) => api.put(`/assignment/submissions/${submissionId}/grade`, data)
+  gradeSubmission: (submissionId, data) => api.put(`/assignment/submissions/${submissionId}/grade`, data),
+  // Quiz endpoints
+  getQuizQuestions: (assignmentId) => api.get(`/assignment/${assignmentId}/questions`),
+  createQuizQuestion: (assignmentId, data) => api.post(`/assignment/${assignmentId}/questions`, data),
+  updateQuizQuestion: (questionId, data) => api.put(`/assignment/questions/${questionId}`, data),
+  deleteQuizQuestion: (questionId) => api.delete(`/assignment/questions/${questionId}`),
+  deleteQuizAnswer: (answerId) => api.delete(`/assignment/answers/${answerId}`),
 };
 
 // Enrollments API
@@ -247,6 +254,27 @@ export const testScoresAPI = {
   create: (data) => api.post('/testscores', data),
   update: (id, data) => api.put(`/testscores/${id}`, data),
   delete: (id) => api.delete(`/testscores/${id}`),
+};
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: (params = {}) => api.get('/notification', { params }),
+  getUnreadCount: () => api.get('/notification/unread-count'),
+  create: (data) => api.post('/notification', data),
+  markAsRead: (id) => api.put(`/notification/${id}/read`),
+  markAsUnread: (id) => api.put(`/notification/${id}/unread`),
+  markMultipleAsRead: (ids) => api.put('/notification/mark-read', { notificationIds: ids }),
+  markAllAsRead: () => api.put('/notification/mark-all-read'),
+  delete: (id) => api.delete(`/notification/${id}`),
+};
+
+// Activity Logs API - Hoạt động gần đây (Timeline)
+export const activityLogsAPI = {
+  getMyActivities: (params = {}) => api.get('/activitylogs/my-activities', { params }),
+  getTeacherActivities: (teacherId, params = {}) => api.get(`/activitylogs/teacher/${teacherId}`, { params }),
+  getStudentActivities: (studentId, params = {}) => api.get(`/activitylogs/student/${studentId}`, { params }),
+  create: (data) => api.post('/activitylogs', data),
+  delete: (id) => api.delete(`/activitylogs/${id}`),
 };
 
 export default api;
