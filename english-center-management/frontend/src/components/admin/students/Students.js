@@ -72,8 +72,35 @@ const Students = () => {
         page: paginationModel.page + 1,
         pageSize: paginationModel.pageSize
       });
-      setStudents(response.data?.data || response.data?.Data || []); 
-      setTotalCount(response.data?.totalCount || response.data?.TotalCount || 0);
+      console.log('Students API Response:', response.data);
+      
+      // API returns { data: { data: { Data: [], TotalCount: number } } }
+      // axios interceptor converts PascalCase Data to camelCase data
+      const responseData = response.data?.data || {};
+      const innerData = responseData.data || responseData;
+      console.log('Students innerData:', innerData);
+      
+      // innerData is already the array after axios conversion
+      const items = Array.isArray(innerData) ? innerData : [];
+      console.log('Students items:', items);
+      
+      // Convert PascalCase to camelCase
+      const normalizedStudents = Array.isArray(items) ? items.map(s => ({
+        studentId: s.studentId,
+        fullName: s.fullName,
+        email: s.email,
+        phoneNumber: s.phoneNumber,
+        dateOfBirth: s.dateOfBirth,
+        address: s.address,
+        level: s.level,
+        isActive: s.isActive,
+        enrollmentDate: s.enrollmentDate,
+        avatar: s.avatar
+      })) : [];
+      console.log('Students normalized:', normalizedStudents);
+      
+      setStudents(normalizedStudents); 
+      setTotalCount(responseData.TotalCount || 0);
     } catch (error) {
       console.error('Error loading students:', error);
     } finally {

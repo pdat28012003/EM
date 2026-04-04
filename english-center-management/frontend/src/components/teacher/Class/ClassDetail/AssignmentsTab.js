@@ -398,7 +398,6 @@ export default function AssignmentsTab({ classId, classInfo }) {
                 <TableCell align="center"><strong>Hạn nộp</strong></TableCell>
                 <TableCell align="center"><strong>Điểm tối đa</strong></TableCell>
                 <TableCell align="center"><strong>Trạng thái</strong></TableCell>
-                <TableCell align="center"><strong>Số câu</strong></TableCell>
                 <TableCell align="center"><strong>Thao tác</strong></TableCell>
               </TableRow>
             </TableHead>
@@ -441,11 +440,6 @@ export default function AssignmentsTab({ classId, classInfo }) {
                       color={getStatusColor(assignment.status)}
                       size="small"
                     />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Typography variant="body2">
-                      {assignment.type === 'Quiz' ? (assignment.questionsCount || 0) + ' câu' : '-'}
-                    </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Box display="flex" gap={1} justifyContent="center">

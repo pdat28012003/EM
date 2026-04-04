@@ -8,6 +8,7 @@ namespace EnglishCenter.API.Services
         Task<bool> RegisterAsync(RegisterRequest request);
         Task<LoginResponse?> LoginAsync(LoginRequest request);
         Task<LoginResponse?> RefreshTokenAsync(RefreshTokenRequest request);
+        Task<bool> LogoutAsync(int userId);
         Task<bool> ForgotPasswordAsync(ForgotPasswordRequest request);
         Task<bool> ResetPasswordAsync(ResetPasswordRequest request);
         Task<UserDto?> GetCurrentUserAsync(int userId);

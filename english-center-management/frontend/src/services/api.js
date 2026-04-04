@@ -228,6 +228,8 @@ export const authAPI = {
   refreshToken: () => api.post('/auth/refresh-token'),
   getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/update-profile', data),
+  forgotPassword: (data) => api.post('/auth/forgot-password', data),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
 };
 
 // Documents API

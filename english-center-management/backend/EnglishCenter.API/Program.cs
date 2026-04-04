@@ -61,6 +61,9 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// Register CAPTCHA service
+builder.Services.AddHttpClient<ICaptchaService, CaptchaService>();
+
 // Configure Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
