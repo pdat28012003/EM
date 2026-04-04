@@ -147,6 +147,12 @@ namespace EnglishCenter.API.Controllers
                 return NotFound();
             }
 
+            // Check if attendance date is today - only allow updates on same day
+            if (attendance.AttendanceDate.Date != DateTime.Today)
+            {
+                return BadRequest("Chỉ được sửa điểm danh trong ngày. Qua ngày khác không thể sửa.");
+            }
+
             attendance.Status = dto.Status;
             attendance.Notes = dto.Notes;
             attendance.ModifiedDate = DateTime.Now;

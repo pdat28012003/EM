@@ -10,14 +10,11 @@ import {
   TableRow,
   Paper,
   Alert,
-  Avatar,
   Chip,
-  Pagination
+  Pagination,
+  TextField,
+  Skeleton
 } from '@mui/material';
-import {
-  Email,
-  Phone
-} from '@mui/icons-material';
 import { classesAPI } from '../../../../services/api';
 
 export default function StudentsTab({ classId, classInfo }) {
@@ -26,6 +23,7 @@ export default function StudentsTab({ classId, classInfo }) {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const hasLoaded = React.useRef(false);
 
   useEffect(() => {
@@ -94,69 +92,96 @@ export default function StudentsTab({ classId, classInfo }) {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" p={4}>
-        <Typography>Đang tải danh sách học viên...</Typography>
+      <Box sx={{ py: 4 }}>
+        <Skeleton variant="text" width={300} height={40} sx={{ mb: 2 }} />
+        <Skeleton variant="text" width={200} height={24} sx={{ mb: 3 }} />
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} height={50} sx={{ mb: 1 }} />
+        ))}
       </Box>
     );
   }
 
+  // Filter students by search keyword
+  const filteredStudents = students.filter(s => 
+    s.fullName?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+    s.email?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+    s.phoneNumber?.includes(searchKeyword)
+  );
+
   return (
     <Box>
-      <Box mb={3}>
-        <Typography variant="h6" fontWeight="bold">
-          Danh sách học viên - {classInfo?.className}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Tổng số: {students.length} học viên
-        </Typography>
+      {/* IMPROVED HEADER */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box>
+          <Typography variant="h5" fontWeight="bold">
+            Học viên
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {classInfo?.className}
+          </Typography>
+        </Box>
+        <Chip 
+          label={`${totalCount} học viên`} 
+          color="primary" 
+          size="small"
+          sx={{ fontWeight: 500 }}
+        />
       </Box>
 
-      {students.length === 0 ? (
+      {/* SEARCH */}
+      <TextField
+        fullWidth
+        size="small"
+        placeholder="Tìm học viên..."
+        value={searchKeyword}
+        onChange={(e) => setSearchKeyword(e.target.value)}
+        sx={{ mb: 2 }}
+      />
+
+      {filteredStudents.length === 0 ? (
         <Alert severity="info">
-          Không có học viên trong lớp
+          {searchKeyword ? 'Không tìm thấy học viên' : 'Không có học viên trong lớp'}
         </Alert>
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
-          <Table>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell><strong>STT</strong></TableCell>
+                <TableCell width={60}><strong>STT</strong></TableCell>
                 <TableCell><strong>Họ tên</strong></TableCell>
-                <TableCell><strong>Email</strong></TableCell>
-                <TableCell><strong>SĐT</strong></TableCell>
+                <TableCell><strong>Liên hệ</strong></TableCell>
                 <TableCell align="center"><strong>Ngày sinh</strong></TableCell>
-                <TableCell align="center"><strong>Địa chỉ</strong></TableCell>
-                <TableCell align="center"><strong>Ngày nhập học</strong></TableCell>
+                <TableCell><strong>Địa chỉ</strong></TableCell>
+                <TableCell align="center"><strong>Nhập học</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {students.map((student, index) => (
-                <TableRow key={student.StudentId || student.studentId} hover>
+              {filteredStudents.map((student, index) => (
+                <TableRow 
+                  key={student.StudentId || student.studentId} 
+                  hover
+                  sx={{
+                    transition: '0.2s',
+                    '&:hover': {
+                      backgroundColor: '#f5f5f5'
+                    }
+                  }}
+                >
                   <TableCell>
                     <Typography variant="body2" fontWeight="medium">
                       {(page - 1) * rowsPerPage + index + 1}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Box display="flex" alignItems="center" gap={2}>
-                     
-                      <Box>
-                        <Typography variant="body2" fontWeight="medium">
-                          {student.fullName}
-                        </Typography>
-                      </Box>
-                    </Box>
+                    <Typography fontWeight="medium">
+                      {student.fullName}
+                    </Typography>
                   </TableCell>
                   <TableCell>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      
-                      {student.email}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box display="flex" alignItems="center" gap={1}>
-                    
-                      {student.phoneNumber}
+                    <Box>
+                      <Typography variant="body2">{student.email}</Typography>
+                      <Typography variant="body2" color="text.secondary">{student.phoneNumber}</Typography>
                     </Box>
                   </TableCell>
                   <TableCell align="center">
@@ -165,7 +190,7 @@ export default function StudentsTab({ classId, classInfo }) {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" noWrap maxWidth={150}>
+                    <Typography variant="body2" noWrap maxWidth={120} title={student.address}>
                       {student.address}
                     </Typography>
                   </TableCell>

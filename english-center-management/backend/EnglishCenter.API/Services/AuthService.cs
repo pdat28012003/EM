@@ -134,6 +134,22 @@ namespace EnglishCenter.API.Services
             };
         }
 
+        public async Task<bool> LogoutAsync(int userId)
+        {
+            // Revoke all valid refresh tokens for this user
+            var refreshTokens = await _context.RefreshTokens
+                .Where(t => t.UserId == userId && t.ExpiryTime > DateTime.Now && t.RevokedAt == null)
+                .ToListAsync();
+            
+            foreach (var token in refreshTokens)
+            {
+                token.RevokedAt = DateTime.Now;
+            }
+            
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<bool> ForgotPasswordAsync(ForgotPasswordRequest request)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);

@@ -12,11 +12,13 @@ namespace EnglishCenter.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly ICaptchaService _captchaService;
         private readonly IWebHostEnvironment _environment;
 
-        public AuthController(IAuthService authService, IWebHostEnvironment environment)
+        public AuthController(IAuthService authService, ICaptchaService captchaService, IWebHostEnvironment environment)
         {
             _authService = authService;
+            _captchaService = captchaService;
             _environment = environment;
         }
 
@@ -52,6 +54,16 @@ namespace EnglishCenter.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequest request)
         {
+            // Verify CAPTCHA
+            if (!string.IsNullOrEmpty(request.CaptchaToken))
+            {
+                var captchaValid = await _captchaService.VerifyAsync(request.CaptchaToken);
+                if (!captchaValid)
+                {
+                    return ResponseHelper.BadRequest("Xác nhận CAPTCHA không hợp lệ.", "CAPTCHA verification failed.");
+                }
+            }
+
             var response = await _authService.LoginAsync(request);
             if (response == null) return ResponseHelper.Unauthorized("Email hoặc mật khẩu không chính xác, hoặc tài khoản chưa được kích hoạt.", "Incorrect email or password, or account strongly not activated.");
             return ResponseHelper.Success("Đăng nhập thành công.", response, "Login successful.");
@@ -67,6 +79,19 @@ namespace EnglishCenter.API.Controllers
             var response = await _authService.RefreshTokenAsync(request);
             if (response == null) return ResponseHelper.Unauthorized("Refresh Token không hợp lệ hoặc đã hết hạn.", "Invalid or expired Refresh Token.");
             return ResponseHelper.Success("Làm mới token thành công.", response, "Token refreshed successfully.");
+        }
+
+        /// <summary>
+        /// User logout.
+        /// (Đăng xuất)
+        /// </summary>
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _authService.LogoutAsync(userId);
+            return ResponseHelper.Success<object>("Đăng xuất thành công.", null, "Logout successful.");
         }
 
         /// <summary>

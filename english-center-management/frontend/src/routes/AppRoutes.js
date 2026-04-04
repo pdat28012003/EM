@@ -2,6 +2,8 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from '../components/admin/Layout';
 import Login from '../components/login/Login';
+import ForgotPassword from '../components/login/ForgotPassword';
+import ResetPassword from '../components/login/ResetPassword';
 import PrivateRoute from '../components/admin/PrivateRoute';
 import StudentDashboard from '../components/student/StudentDashboard';
 import TeacherDashboard from '../components/teacher/Dashboard/Dashboard';
@@ -33,6 +35,8 @@ const AppRoutes = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Student Routes */}
       <Route path="/student/dashboard" element={

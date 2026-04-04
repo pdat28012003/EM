@@ -4,8 +4,9 @@ import { Box, CircularProgress } from '@mui/material';
 
 const PrivateRoute = ({ children, allowedRoles = [] }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const userRole = (user.role || '').toLowerCase();
+  const userStr = localStorage.getItem('user');
+  const user = userStr && userStr !== 'undefined' ? JSON.parse(userStr) : null;
+  const userRole = (user?.role || '').toLowerCase();
   const normalizedAllowedRoles = allowedRoles.map((r) => r.toLowerCase());
   
   if (!isAuthenticated) {

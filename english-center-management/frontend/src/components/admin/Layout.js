@@ -75,7 +75,6 @@ const Layout = ({ children }) => {
     try {
       await authAPI.logout();
     } catch (err) {
-      // Continue with logout even if API call fails
       console.error('Logout API failed:', err);
     } finally {
       localStorage.removeItem('authToken');
