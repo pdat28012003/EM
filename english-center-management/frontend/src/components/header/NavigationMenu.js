@@ -5,6 +5,7 @@ import {
   MenuItem,
   Box
 } from '@mui/material';
+import { Assignment } from '@mui/icons-material';
 import { useNavigation } from '../../hooks/useNavigation';
 
 const NavigationMenu = ({ 
@@ -37,6 +38,12 @@ const NavigationMenu = ({
 
       <MenuItem component={Link} to="/teacher/schedule" onClick={onClose}>
         Lịch dạy
+      </MenuItem>
+      <MenuItem component={Link} to="/teacher/assignments" onClick={onClose}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Assignment fontSize="small" />
+          Bài tập
+        </Box>
       </MenuItem>
       <MenuItem component={Link} to="/teacher/documents" onClick={onClose}>
         Tài liệu

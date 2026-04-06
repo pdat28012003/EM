@@ -4,6 +4,7 @@ using EnglishCenter.API.Data;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using System.Text.Json;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -30,6 +31,7 @@ namespace EnglishCenter.API.Controllers
         [HttpGet]
         public async Task<ActionResult<PagedResult<AssignmentDto>>> GetAssignments(
             [FromQuery] int? classId = null,
+            [FromQuery] int? studentId = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] string? status = null)
@@ -73,12 +75,39 @@ namespace EnglishCenter.API.Controllers
                         MaxScore = a.MaxScore,
                         AttachmentUrl = a.AttachmentUrl,
                         UpdatedAt = a.UpdatedAt,
-                        ClassName = a.Class.ClassName,
-                        TeacherName = a.Teacher.FullName,
+                        ClassName = a.Class != null ? a.Class.ClassName : null,
+                        TeacherName = a.Teacher != null ? a.Teacher.FullName : null,
                         SubmissionsCount = a.Submissions.Count,
-                        GradedCount = a.Submissions.Count(s => s.Status == "Graded")
+                        GradedCount = a.Submissions.Count(s => s.Status == "Graded"),
+                        StudentScore = studentId.HasValue 
+                            ? a.Submissions.Where(s => s.StudentId == studentId.Value).OrderByDescending(s => s.SubmittedAt).Select(s => s.Score).FirstOrDefault()
+                            : null,
+                        StudentStatus = studentId.HasValue
+                            ? a.Submissions.Where(s => s.StudentId == studentId.Value).OrderByDescending(s => s.SubmittedAt).Select(s => s.Status).FirstOrDefault()
+                            : null
                     })
                     .ToListAsync();
+
+                // If studentId provided, also fetch TimeSpentSeconds from StudentQuizAttempts for Quizzes
+                if (studentId.HasValue)
+                {
+                    var quizIds = assignments.Where(a => a.Type == "Quiz").Select(a => a.AssignmentId).ToList();
+                    if (quizIds.Any())
+                    {
+                        var attempts = await _context.StudentQuizAttempts
+                            .Where(qa => qa.StudentId == studentId.Value && quizIds.Contains(qa.AssignmentId))
+                            .GroupBy(qa => qa.AssignmentId)
+                            .ToDictionaryAsync(g => g.Key, g => g.OrderByDescending(x => x.SubmittedAt).Select(x => x.TimeSpentSeconds).FirstOrDefault());
+
+                        foreach (var a in assignments.Where(a => a.Type == "Quiz"))
+                        {
+                            if (attempts.ContainsKey(a.AssignmentId))
+                            {
+                                a.TimeSpentSeconds = attempts[a.AssignmentId];
+                            }
+                        }
+                    }
+                }
 
                 var pagedResult = new PagedResult<AssignmentDto>
                 {
@@ -125,8 +154,8 @@ namespace EnglishCenter.API.Controllers
                         MaxScore = a.MaxScore,
                         AttachmentUrl = a.AttachmentUrl,
                         UpdatedAt = a.UpdatedAt,
-                        ClassName = a.Class.ClassName,
-                        TeacherName = a.Teacher.FullName,
+                        ClassName = a.Class != null ? a.Class.ClassName : null,
+                        TeacherName = a.Teacher != null ? a.Teacher.FullName : null,
                         SubmissionsCount = a.Submissions.Count,
                         GradedCount = a.Submissions.Count(s => s.Status == "Graded")
                     })
@@ -504,8 +533,8 @@ namespace EnglishCenter.API.Controllers
                         Feedback = s.Feedback,
                         GradedAt = s.GradedAt,
                         GradedBy = s.GradedBy,
-                        StudentName = s.Student.FullName,
-                        AssignmentTitle = s.Assignment.Title
+                        StudentName = s.Student != null ? s.Student.FullName : null,
+                        AssignmentTitle = s.Assignment != null ? s.Assignment.Title : null
                     })
                     .ToListAsync();
 
@@ -519,6 +548,131 @@ namespace EnglishCenter.API.Controllers
                 };
 
                 return Ok(pagedResult);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Gets all student results for a specific assignment, including those who haven't submitted yet.
+        /// (Lấy tất cả kết quả của sinh viên cho một bài tập cụ thể, bao gồm cả những người chưa nộp.)
+        /// </summary>
+        /// <param name="assignmentId">Assignment ID (ID bài tập)</param>
+        /// <returns>List of results for all students in the class (Danh sách kết quả của tất cả sinh viên trong lớp)</returns>
+        [HttpGet("{assignmentId}/all-results")]
+        public async Task<ActionResult<IEnumerable<StudentAssignmentResultDto>>> GetAllStudentResults(int assignmentId)
+        {
+            try
+            {
+                var assignment = await _context.Assignments
+                    .Include(a => a.Class)
+                        .ThenInclude(c => c.Enrollments)
+                            .ThenInclude(e => e.Student)
+                    .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId);
+
+                if (assignment == null)
+                {
+                    return NotFound(new { message = "Assignment not found" });
+                }
+
+                var submissions = await _context.AssignmentSubmissions
+                    .Where(s => s.AssignmentId == assignmentId)
+                    .ToDictionaryAsync(s => s.StudentId);
+
+                var activeStudents = assignment.Class?.Enrollments
+                    .Where(e => e.Status == "Active")
+                    .Select(e => e.Student)
+                    .Where(s => s != null)
+                    .ToList() ?? new List<Student>();
+
+                var isOverdue = DateTime.UtcNow > assignment.DueDate;
+
+                var results = activeStudents.Select(s =>
+                {
+                    var submission = submissions.ContainsKey(s.StudentId) ? submissions[s.StudentId] : null;
+                    
+                    string status;
+                    decimal? score = null;
+                    string note = null;
+
+                    if (submission != null)
+                    {
+                        status = submission.Status;
+                        score = submission.Score;
+                        note = submission.Feedback; // We use Feedback to store the system/teacher note
+                    }
+                    else if (isOverdue)
+                    {
+                        status = "Overdue";
+                        score = 0;
+                        note = "Không nộp bài do quá hạn";
+                    }
+                    else
+                    {
+                        status = "Pending";
+                    }
+
+                    return new StudentAssignmentResultDto
+                    {
+                        StudentId = s.StudentId,
+                        StudentName = s.FullName,
+                        Email = s.Email,
+                        SubmissionId = submission?.SubmissionId,
+                        Status = status,
+                        Score = score,
+                        SubmittedAt = submission?.SubmittedAt,
+                        Note = note
+                    };
+                }).OrderBy(r => r.StudentName).ToList();
+
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Resets a student's submission and quiz attempts for an assignment. 
+        /// (Reset lại bài làm và các lần thử quiz của sinh viên đối với mộ bài tập.)
+        /// </summary>
+        [HttpDelete("{assignmentId}/students/{studentId}/reset-submission")]
+        public async Task<IActionResult> ResetStudentSubmission(int assignmentId, int studentId)
+        {
+            try
+            {
+                var submission = await _context.AssignmentSubmissions
+                    .FirstOrDefaultAsync(s => s.AssignmentId == assignmentId && s.StudentId == studentId);
+
+                if (submission != null)
+                {
+                    _context.AssignmentSubmissions.Remove(submission);
+                }
+
+                var attempts = await _context.StudentQuizAttempts
+                    .Where(a => a.AssignmentId == assignmentId && a.StudentId == studentId)
+                    .ToListAsync();
+
+                if (attempts.Any())
+                {
+                    var attemptIds = attempts.Select(a => a.AttemptId).ToList();
+                    var quizAnswers = await _context.StudentQuizAnswers
+                        .Where(qa => attemptIds.Contains(qa.AttemptId))
+                        .ToListAsync();
+                    
+                    if (quizAnswers.Any())
+                    {
+                        _context.StudentQuizAnswers.RemoveRange(quizAnswers);
+                    }
+                    
+                    _context.StudentQuizAttempts.RemoveRange(attempts);
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Reset successful" });
             }
             catch (Exception ex)
             {
@@ -583,7 +737,7 @@ namespace EnglishCenter.API.Controllers
                     TeacherId = submission.GradedBy,
                     Action = "GRADE_SUBMISSION",
                     Title = "Đã chấm điểm bài nộp",
-                    Description = $"Bạn đã chấm điểm bài '{submission.Assignment.Title}' của {submission.Student.FullName}: {gradeDto.Score}/{submission.Assignment.MaxScore}",
+                    Description = $"Bạn đã chấm điểm bài '{submission.Assignment?.Title}' của {submission.Student?.FullName}: {gradeDto.Score}/{submission.Assignment?.MaxScore}",
                     IconType = "grading",
                     Color = "warning",
                     TargetId = submission.SubmissionId,
@@ -897,6 +1051,301 @@ namespace EnglishCenter.API.Controllers
                 assignment.MaxScore = (int)Math.Ceiling(totalPoints);
                 await _context.SaveChangesAsync();
             }
+        }
+
+        /// <summary>
+        /// Submits a quiz and auto-grades it. (Nộp Quiz và tự động chấm điểm.)
+        /// </summary>
+        /// <param name="assignmentId">Assignment ID</param>
+        /// <param name="dto">Student answers</param>
+        /// <returns>Quiz result</returns>
+        [HttpPost("{assignmentId}/submit-quiz")]
+        public async Task<ActionResult<QuizResultDto>> SubmitQuiz(int assignmentId, SubmitQuizDto dto)
+        {
+            try
+            {
+                var assignment = await _context.Assignments
+                    .Include(a => a.Class)
+                    .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId);
+
+                if (assignment == null)
+                    return NotFound(new { message = "Assignment not found" });
+
+                if (!string.Equals(assignment.Type, "Quiz", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest(new { message = "This assignment is not a Quiz" });
+
+                var studentExists = await _context.Students.AnyAsync(s => s.StudentId == dto.StudentId);
+                if (!studentExists)
+                    return BadRequest(new { message = "Student not found" });
+
+                // Ensure student is enrolled in the class (basic guard)
+                var enrolled = await _context.Enrollments.AnyAsync(e =>
+                    e.StudentId == dto.StudentId && e.ClassId == assignment.ClassId && e.Status == "Active");
+                if (!enrolled)
+                    return Forbid();
+
+                // Prevent duplicate submissions
+                var existingSubmission = await _context.AssignmentSubmissions
+                    .FirstOrDefaultAsync(s => s.AssignmentId == assignmentId && s.StudentId == dto.StudentId);
+                if (existingSubmission != null)
+                {
+                    var existingAttempt = await _context.StudentQuizAttempts
+                        .Where(a => a.AssignmentId == assignmentId && a.StudentId == dto.StudentId && a.Status == "Completed")
+                        .OrderByDescending(a => a.AttemptId)
+                        .FirstOrDefaultAsync();
+
+                    if (existingAttempt != null)
+                    {
+                        var existingResult = await BuildQuizResult(existingAttempt.AttemptId);
+                        return Ok(existingResult);
+                    }
+
+                    return Conflict(new { message = "You have already submitted this quiz" });
+                }
+
+                // Load questions + answers
+                var quizQuestions = await _context.QuizQuestions
+                    .Include(q => q.Answers)
+                    .Where(q => q.AssignmentId == assignmentId)
+                    .OrderBy(q => q.OrderIndex)
+                    .ToListAsync();
+
+                if (quizQuestions.Count == 0)
+                    return BadRequest(new { message = "Quiz has no questions" });
+
+                // Create attempt
+                var now = DateTime.UtcNow;
+                var attempt = new StudentQuizAttempt
+                {
+                    AssignmentId = assignmentId,
+                    StudentId = dto.StudentId,
+                    StartedAt = dto.TimeSpentSeconds.HasValue ? now.AddSeconds(-dto.TimeSpentSeconds.Value) : now,
+                    SubmittedAt = now,
+                    TimeSpentSeconds = dto.TimeSpentSeconds,
+                    Status = "Completed"
+                };
+                _context.StudentQuizAttempts.Add(attempt);
+                await _context.SaveChangesAsync();
+
+                // Grade
+                var answerByQuestionId = dto.Answers
+                    .GroupBy(a => a.QuestionId)
+                    .ToDictionary(g => g.Key, g => g.First());
+
+                decimal totalScore = 0;
+                decimal maxScore = quizQuestions.Sum(q => q.Points);
+                int correctCount = 0;
+
+                var questionResults = new List<QuizQuestionResultDto>();
+
+                foreach (var q in quizQuestions)
+                {
+                    answerByQuestionId.TryGetValue(q.QuestionId, out var submitted);
+                    var selectedAnswerId = submitted?.SelectedAnswerId;
+
+                    var correctAnswer = q.Answers.FirstOrDefault(a => a.IsCorrect);
+                    var isCorrect = selectedAnswerId.HasValue && correctAnswer != null && correctAnswer.AnswerId == selectedAnswerId.Value;
+                    var pointsEarned = isCorrect ? q.Points : 0;
+
+                    if (isCorrect) correctCount++;
+                    totalScore += pointsEarned;
+
+                    _context.StudentQuizAnswers.Add(new StudentQuizAnswer
+                    {
+                        AttemptId = attempt.AttemptId,
+                        QuestionId = q.QuestionId,
+                        SelectedAnswerId = selectedAnswerId,
+                        TextAnswer = submitted?.TextAnswer,
+                        IsCorrect = isCorrect,
+                        PointsEarned = pointsEarned,
+                        AnsweredAt = DateTime.UtcNow
+                    });
+
+                    questionResults.Add(new QuizQuestionResultDto
+                    {
+                        QuestionId = q.QuestionId,
+                        QuestionText = q.QuestionText,
+                        Points = q.Points,
+                        PointsEarned = pointsEarned,
+                        IsCorrect = isCorrect,
+                        Explanation = q.Explanation,
+                        SelectedAnswerId = selectedAnswerId,
+                        CorrectAnswerId = correctAnswer?.AnswerId,
+                        AllAnswers = q.Answers
+                            .OrderBy(a => a.OrderIndex)
+                            .Select(a => new QuizAnswerResultDto
+                            {
+                                AnswerId = a.AnswerId,
+                                AnswerText = a.AnswerText,
+                                IsCorrect = a.IsCorrect
+                            })
+                            .ToList()
+                    });
+                }
+
+                attempt.Score = totalScore;
+                await _context.SaveChangesAsync();
+
+                // Also create a submission record (so teacher dashboard/counts work)
+                var submissionPayload = new
+                {
+                    attemptId = attempt.AttemptId,
+                    assignmentId,
+                    studentId = dto.StudentId,
+                    answers = dto.Answers,
+                    timeSpentSeconds = dto.TimeSpentSeconds
+                };
+
+                var submission = new AssignmentSubmission
+                {
+                    AssignmentId = assignmentId,
+                    StudentId = dto.StudentId,
+                    Content = JsonSerializer.Serialize(submissionPayload),
+                    SubmittedAt = DateTime.UtcNow,
+                    Status = "Graded",
+                    Score = totalScore,
+                    Feedback = dto.Note, // Store the reason/note here
+                    GradedAt = DateTime.UtcNow,
+                    GradedBy = assignment.Class?.TeacherId
+                };
+                _context.AssignmentSubmissions.Add(submission);
+
+                // Activity log for student
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    StudentId = dto.StudentId,
+                    Action = "SUBMIT_QUIZ",
+                    Title = "Đã nộp Quiz",
+                    Description = $"Bạn đã nộp Quiz '{assignment.Title}'",
+                    IconType = "quiz",
+                    Color = "info",
+                    TargetId = submission.SubmissionId,
+                    TargetType = "Submission",
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                await _context.SaveChangesAsync();
+
+                var result = new QuizResultDto
+                {
+                    AttemptId = attempt.AttemptId,
+                    AssignmentId = assignmentId,
+                    AssignmentTitle = assignment.Title,
+                    Score = totalScore,
+                    MaxScore = maxScore,
+                    Percentage = maxScore <= 0 ? 0 : Math.Round((totalScore / maxScore) * 100, 2),
+                    TotalQuestions = quizQuestions.Count,
+                    CorrectAnswers = correctCount,
+                    TimeSpentSeconds = attempt.TimeSpentSeconds ?? 0,
+                    SubmittedAt = attempt.SubmittedAt ?? DateTime.UtcNow,
+                    QuestionResults = questionResults
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Gets the latest quiz result for a student. (Lấy kết quả Quiz gần nhất của học viên.)
+        /// </summary>
+        [HttpGet("{assignmentId}/quiz-result")]
+        public async Task<ActionResult<QuizResultDto>> GetQuizResult(int assignmentId, [FromQuery] int studentId)
+        {
+            try
+            {
+                var assignment = await _context.Assignments.FindAsync(assignmentId);
+                if (assignment == null)
+                    return NotFound(new { message = "Assignment not found" });
+
+                if (!string.Equals(assignment.Type, "Quiz", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest(new { message = "This assignment is not a Quiz" });
+
+                var attempt = await _context.StudentQuizAttempts
+                    .Where(a => a.AssignmentId == assignmentId && a.StudentId == studentId && a.Status == "Completed")
+                    .OrderByDescending(a => a.AttemptId)
+                    .FirstOrDefaultAsync();
+
+                if (attempt == null)
+                    return NotFound(new { message = "Quiz result not found" });
+
+                var result = await BuildQuizResult(attempt.AttemptId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
+
+        private async Task<QuizResultDto> BuildQuizResult(int attemptId)
+        {
+            var attempt = await _context.StudentQuizAttempts
+                .Include(a => a.Assignment)
+                .FirstAsync(a => a.AttemptId == attemptId);
+
+            var questions = await _context.QuizQuestions
+                .Include(q => q.Answers)
+                .Where(q => q.AssignmentId == attempt.AssignmentId)
+                .OrderBy(q => q.OrderIndex)
+                .ToListAsync();
+
+            var studentAnswers = await _context.StudentQuizAnswers
+                .Where(sa => sa.AttemptId == attemptId)
+                .ToListAsync();
+
+            var answerMap = studentAnswers.ToDictionary(a => a.QuestionId, a => a);
+
+            decimal maxScore = questions.Sum(q => q.Points);
+            int correctCount = studentAnswers.Count(a => a.IsCorrect);
+
+            var questionResults = new List<QuizQuestionResultDto>();
+            foreach (var q in questions)
+            {
+                answerMap.TryGetValue(q.QuestionId, out var sa);
+                var correctAnswer = q.Answers.FirstOrDefault(a => a.IsCorrect);
+
+                questionResults.Add(new QuizQuestionResultDto
+                {
+                    QuestionId = q.QuestionId,
+                    QuestionText = q.QuestionText,
+                    Points = q.Points,
+                    PointsEarned = sa?.PointsEarned ?? 0,
+                    IsCorrect = sa?.IsCorrect ?? false,
+                    Explanation = q.Explanation,
+                    SelectedAnswerId = sa?.SelectedAnswerId,
+                    CorrectAnswerId = correctAnswer?.AnswerId,
+                    AllAnswers = q.Answers
+                        .OrderBy(a => a.OrderIndex)
+                        .Select(a => new QuizAnswerResultDto
+                        {
+                            AnswerId = a.AnswerId,
+                            AnswerText = a.AnswerText,
+                            IsCorrect = a.IsCorrect
+                        })
+                        .ToList()
+                });
+            }
+
+            var score = attempt.Score ?? studentAnswers.Sum(a => a.PointsEarned);
+
+            return new QuizResultDto
+            {
+                AttemptId = attempt.AttemptId,
+                AssignmentId = attempt.AssignmentId,
+                AssignmentTitle = attempt.Assignment?.Title ?? string.Empty,
+                Score = score,
+                MaxScore = maxScore,
+                Percentage = maxScore <= 0 ? 0 : Math.Round((score / maxScore) * 100, 2),
+                TotalQuestions = questions.Count,
+                CorrectAnswers = correctCount,
+                TimeSpentSeconds = attempt.TimeSpentSeconds ?? 0,
+                SubmittedAt = attempt.SubmittedAt ?? DateTime.UtcNow,
+                QuestionResults = questionResults
+            };
         }
 
         /// <summary>

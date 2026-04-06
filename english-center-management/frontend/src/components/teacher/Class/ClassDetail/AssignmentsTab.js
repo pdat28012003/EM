@@ -48,7 +48,8 @@ import {
   Quiz as QuizIcon,
   AddCircle,
   RemoveCircle,
-  HelpOutline
+  HelpOutline,
+  Replay
 } from '@mui/icons-material';
 import { assignmentsAPI } from '../../../../services/api';
 
@@ -82,6 +83,9 @@ export default function AssignmentsTab({ classId, classInfo }) {
       { answerText: '', isCorrect: false, orderIndex: 1 }
     ]
   });
+  const [resultsDialogOpen, setResultsDialogOpen] = useState(false);
+  const [assignmentResults, setAssignmentResults] = useState([]);
+  const [resultsLoading, setResultsLoading] = useState(false);
 
   useEffect(() => {
     loadAssignments();
@@ -359,6 +363,38 @@ export default function AssignmentsTab({ classId, classInfo }) {
     }
   };
 
+  const handleOpenResults = async (assignment) => {
+    setSelectedAssignment(assignment);
+    setResultsDialogOpen(true);
+    setResultsLoading(true);
+    try {
+      const response = await assignmentsAPI.getAllResults(assignment.assignmentId);
+      setAssignmentResults(response.data || []);
+    } catch (error) {
+      console.error('Error loading assignment results:', error);
+      alert('Lỗi khi tải kết quả bài tập');
+    } finally {
+      setResultsLoading(false);
+    }
+  };
+
+  const handleResetSubmission = async (studentId) => {
+    if (window.confirm('Bạn có chắc chắn muốn reset bài làm của học viên này? Học viên sẽ được phép làm lại từ đầu.')) {
+      try {
+        setResultsLoading(true);
+        await assignmentsAPI.resetSubmission(selectedAssignment.assignmentId, studentId);
+        // Reload results
+        const response = await assignmentsAPI.getAllResults(selectedAssignment.assignmentId);
+        setAssignmentResults(response.data || []);
+      } catch (error) {
+        console.error('Error resetting submission:', error);
+        alert('Lỗi khi reset bài làm');
+      } finally {
+        setResultsLoading(false);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
@@ -455,7 +491,10 @@ export default function AssignmentsTab({ classId, classInfo }) {
                         </Tooltip>
                       )}
                       <Tooltip title="Xem chi tiết">
-                        <IconButton size="small">
+                        <IconButton 
+                          size="small"
+                          onClick={() => handleOpenResults(assignment)}
+                        >
                           <Visibility fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -794,6 +833,98 @@ export default function AssignmentsTab({ classId, classInfo }) {
               </Button>
             </>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Results Dialog */}
+      <Dialog 
+        open={resultsDialogOpen} 
+        onClose={() => setResultsDialogOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>
+          Kết quả bài tập: {selectedAssignment?.title}
+        </DialogTitle>
+        <DialogContent dividers>
+          {resultsLoading ? (
+            <Box display="flex" justifyContent="center" p={4}>
+              <CircularProgress />
+            </Box>
+          ) : assignmentResults.length === 0 ? (
+            <Alert severity="info">Không có dữ liệu học viên</Alert>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Học viên</strong></TableCell>
+                    <TableCell><strong>Email</strong></TableCell>
+                    <TableCell align="center"><strong>Trạng thái</strong></TableCell>
+                    <TableCell align="center"><strong>Điểm số</strong></TableCell>
+                    <TableCell align="center"><strong>Ngày nộp</strong></TableCell>
+                    <TableCell><strong>Ghi chú</strong></TableCell>
+                    <TableCell align="center"><strong>Thao tác</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {assignmentResults.map((result) => (
+                    <TableRow key={result.studentId} hover>
+                      <TableCell>{result.studentName}</TableCell>
+                      <TableCell>{result.email}</TableCell>
+                      <TableCell align="center">
+                        <Chip 
+                          label={
+                            result.status === 'Overdue' ? 'Quá hạn' : 
+                            result.status === 'Pending' ? 'Chưa nộp' : 
+                            result.status === 'Submitted' ? 'Đã nộp' :
+                            result.status === 'Graded' ? 'Đã chấm' : result.status
+                          }
+                          size="small"
+                          color={
+                            result.status === 'Overdue' ? 'error' : 
+                            result.status === 'Pending' ? 'warning' : 
+                            'success'
+                          }
+                          variant={result.status === 'Pending' || result.status === 'Overdue' ? 'outlined' : 'filled'}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2" fontWeight="bold">
+                          {result.score !== null ? result.score : '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="caption">
+                          {result.submittedAt ? new Date(result.submittedAt).toLocaleString('vi-VN') : '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption" color="text.secondary">
+                          {result.note || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Cho làm lại">
+                          <IconButton 
+                            size="small" 
+                            color="warning"
+                            onClick={() => handleResetSubmission(result.studentId)}
+                            disabled={result.status === 'Pending'}
+                          >
+                            <Replay fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResultsDialogOpen(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>
     </Box>
