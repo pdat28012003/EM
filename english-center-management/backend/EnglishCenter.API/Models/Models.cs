@@ -605,4 +605,42 @@ namespace EnglishCenter.API.Models
         [ForeignKey("ClassId")]
         public Class? Class { get; set; }
     }
+
+    /// <summary>
+    /// Teacher Availability - Lịch rảnh của giảng viên
+    /// </summary>
+    public class TeacherAvailability
+    {
+        [Key]
+        public int AvailabilityId { get; set; }
+
+        [Required]
+        public int TeacherId { get; set; }
+
+        [Required]
+        public DayOfWeek DayOfWeek { get; set; } // Monday = 1, Tuesday = 2, ... Sunday = 0
+
+        [Required]
+        public TimeSpan StartTime { get; set; }
+
+        [Required]
+        public TimeSpan EndTime { get; set; }
+
+        public bool IsRecurring { get; set; } = true; // Lặp lại hàng tuần
+
+        public DateTime? SpecificDate { get; set; } // Ngày cụ thể nếu không lặp lại
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public DateTime? UpdatedAt { get; set; }
+
+        [MaxLength(500)]
+        public string Notes { get; set; } = string.Empty;
+
+        // Navigation properties
+        [ForeignKey("TeacherId")]
+        public Teacher Teacher { get; set; } = null!;
+    }
 }
