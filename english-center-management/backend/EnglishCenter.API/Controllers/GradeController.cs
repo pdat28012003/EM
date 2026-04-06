@@ -32,11 +32,11 @@ namespace EnglishCenter.API.Controllers
                 {
                     GradeId = g.GradeId,
                     StudentId = g.StudentId,
-                    StudentName = g.Student.FullName,
+                    StudentName = g.Student != null ? g.Student.FullName : null,
                     AssignmentId = g.AssignmentId,
-                    AssignmentTitle = g.Assignment.Title,
+                    AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                     SkillId = g.SkillId,
-                    SkillName = g.Skill.Name,
+                    SkillName = g.Skill != null ? g.Skill.Name : null,
                     Score = g.Score,
                     MaxScore = g.MaxScore,
                     Comments = g.Comments,
@@ -65,11 +65,11 @@ namespace EnglishCenter.API.Controllers
                 {
                     GradeId = g.GradeId,
                     StudentId = g.StudentId,
-                    StudentName = g.Student.FullName,
+                    StudentName = g.Student != null ? g.Student.FullName : null,
                     AssignmentId = g.AssignmentId,
-                    AssignmentTitle = g.Assignment.Title,
+                    AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                     SkillId = g.SkillId,
-                    SkillName = g.Skill.Name,
+                    SkillName = g.Skill != null ? g.Skill.Name : null,
                     Score = g.Score,
                     MaxScore = g.MaxScore,
                     Comments = g.Comments,
@@ -191,7 +191,7 @@ namespace EnglishCenter.API.Controllers
                     })
                     .FirstOrDefaultAsync();
 
-                return CreatedAtAction(nameof(GetGradesByStudent), new { studentId = createdGrade.StudentId }, createdGrade);
+                return CreatedAtAction(nameof(GetGradesByStudent), new { studentId = createdGrade?.StudentId }, createdGrade);
             }
             catch (Exception ex)
             {

@@ -557,6 +557,9 @@ namespace EnglishCenter.API.DTOs
         public string? TeacherName { get; set; }
         public int SubmissionsCount { get; set; }
         public int GradedCount { get; set; }
+        public decimal? StudentScore { get; set; }
+        public string? StudentStatus { get; set; }
+        public int? TimeSpentSeconds { get; set; }
     }
 
     public class AssignmentSubmissionDto
@@ -575,6 +578,18 @@ namespace EnglishCenter.API.DTOs
         public int? GradedBy { get; set; }
         public string? StudentName { get; set; }
         public string? AssignmentTitle { get; set; }
+    }
+
+    public class StudentAssignmentResultDto
+    {
+        public int StudentId { get; set; }
+        public string? StudentName { get; set; }
+        public string? Email { get; set; }
+        public int? SubmissionId { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public decimal? Score { get; set; }
+        public DateTime? SubmittedAt { get; set; }
+        public string? Note { get; set; }
     }
 
     public class CreateAssignmentDto
@@ -735,6 +750,19 @@ namespace EnglishCenter.API.DTOs
         public int? SelectedAnswerId { get; set; }
 
         public string? TextAnswer { get; set; }
+    }
+
+    public class SubmitQuizDto
+    {
+        [Required]
+        public int StudentId { get; set; }
+
+        [Required]
+        [MinLength(1)]
+        public List<QuizAnswerSubmissionDto> Answers { get; set; } = new List<QuizAnswerSubmissionDto>();
+
+        public int? TimeSpentSeconds { get; set; }
+        public string? Note { get; set; }
     }
 
     public class QuizResultDto

@@ -12,11 +12,13 @@ import TeacherClasses from '../components/teacher/Class/Class';
 import ClassDetail from '../components/teacher/Class/ClassDetail/ClassDetail';
 import TeacherSchedule from '../components/teacher/Schedule/Schedule';
 import Documents from '../components/teacher/Documents/Documents';
+import TeacherAssignments from '../components/teacher/Assignments/Assignments';
 import StudentLayout from '../components/student/StudentLayout';
 import StudentDocuments from '../components/student/Documents/Documents';
 import StudentSchedule from '../components/student/Schedule/Schedule';
 import StudentCourses from '../components/student/Courses/Courses';
 import StudentAssignments from '../components/student/Assignments/Assignments';
+import StudentAssignmentDetail from '../components/student/Assignments/AssignmentDetail';
 import AdminDocuments from '../components/admin/documents/Documents';
 import Profile from '../components/profile/Profile';
 import Dashboard from '../components/admin/Dashboard';
@@ -77,6 +79,13 @@ const AppRoutes = () => {
           </StudentLayout>
         </PrivateRoute>
       } />
+      <Route path="/student/assignments/:assignmentId" element={
+        <PrivateRoute allowedRoles={['student']}>
+          <StudentLayout>
+            <StudentAssignmentDetail />
+          </StudentLayout>
+        </PrivateRoute>
+      } />
 
       <Route path="/student/schedule" element={
         <PrivateRoute allowedRoles={['student']}>
@@ -125,6 +134,13 @@ const AppRoutes = () => {
         <PrivateRoute allowedRoles={['teacher']}>
           <TeacherLayout>
             <Documents />
+          </TeacherLayout>
+        </PrivateRoute>
+      } />
+      <Route path="/teacher/assignments" element={
+        <PrivateRoute allowedRoles={['teacher']}>
+          <TeacherLayout>
+            <TeacherAssignments />
           </TeacherLayout>
         </PrivateRoute>
       } />
