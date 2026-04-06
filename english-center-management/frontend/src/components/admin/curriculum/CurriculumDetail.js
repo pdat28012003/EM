@@ -21,6 +21,8 @@ const CurriculumDetail = () => {
   const [curriculum, setCurriculum] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [availableTeachers, setAvailableTeachers] = useState([]);
+  const [loadingAvailableTeachers, setLoadingAvailableTeachers] = useState(false);
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [showTeacherModal, setShowTeacherModal] = useState(false);
@@ -39,7 +41,8 @@ const CurriculumDetail = () => {
     sessionName: '',
     sessionDescription: '',
     roomId: '',
-    teacherId: ''
+    teacherId: '',
+    searchDate: '' // Date picker for finding available teachers
   });
 
   const [lessonForm, setLessonForm] = useState({
@@ -134,6 +137,53 @@ const CurriculumDetail = () => {
     return new Date(year, month - 1, day);
   };
 
+  useEffect(() => {
+    if (showSessionModal && sessionForm.startTime && sessionForm.endTime) {
+      loadAvailableTeachers();
+    }
+  }, [sessionForm.startTime, sessionForm.endTime, sessionForm.searchDate, showSessionModal]);
+
+  const loadAvailableTeachers = async () => {
+    if (!sessionForm.startTime || !sessionForm.endTime) return;
+    
+    try {
+      setLoadingAvailableTeachers(true);
+      
+      // Determine date to search: use searchDate if selected, otherwise use selectedDay
+      let searchDate = sessionForm.searchDate;
+      let dayOfWeek;
+      
+      if (searchDate) {
+        // Use selected date from date picker
+        dayOfWeek = new Date(searchDate).getDay();
+      } else if (selectedDay) {
+        // Use selectedDay from curriculum
+        const scheduleDate = new Date(selectedDay.scheduleDate);
+        searchDate = formatDate(scheduleDate);
+        dayOfWeek = scheduleDate.getDay();
+      } else {
+        return; // No date available
+      }
+      
+      // Call API to get available teachers
+      const params = {
+        dayOfWeek: dayOfWeek,
+        startTime: sessionForm.startTime,
+        endTime: sessionForm.endTime,
+        specificDate: searchDate // Pass specific date to API
+      };
+      
+      const response = await teachersAPI.getAvailableTeachers(params);
+      const availableData = response.data || [];
+      setAvailableTeachers(availableData);
+    } catch (error) {
+      console.error('Error loading available teachers:', error);
+      setAvailableTeachers([]);
+    } finally {
+      setLoadingAvailableTeachers(false);
+    }
+  };
+
   const generateDateRange = () => {
     if (!curriculum) return;
     
@@ -206,7 +256,8 @@ const CurriculumDetail = () => {
       sessionName: `Buổi ${day.sessionCount + 1}`,
       sessionDescription: '',
       roomId: '',
-      teacherId: ''
+      teacherId: '',
+      searchDate: '' // Reset search date
     });
     setShowSessionModal(true);
   };
@@ -223,7 +274,8 @@ const CurriculumDetail = () => {
       sessionName: session.sessionName,
       sessionDescription: session.sessionDescription,
       roomId: session.roomId || '',
-      teacherId: session.teacherId || ''
+      teacherId: session.teacherId || '',
+      searchDate: '' // Reset search date
     });
     setShowSessionModal(true);
   };
@@ -602,26 +654,45 @@ const CurriculumDetail = () => {
                 </select>
               </div>
               <div className="form-group">
+                <label>Ngày tìm kiếm giáo viên rảnh</label>
+                <input
+                  type="date"
+                  value={sessionForm.searchDate}
+                  onChange={(e) => setSessionForm({...sessionForm, searchDate: e.target.value})}
+                  placeholder={selectedDay ? selectedDay.scheduleDate.split('T')[0] : ''}
+                />
+                <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
+                  {selectedDay ? `Mặc định: ${selectedDay.scheduleDate.split('T')[0]} (có thể chọn ngày khác để kiểm tra lịch rảnh)` : 'Chọn ngày để kiểm tra giáo viên rảnh'}
+                </small>
+              </div>
+              <div className="form-group">
                 <label>Giảng viên</label>
-                <select
-                  value={sessionForm.teacherId}
-                  onChange={(e) => setSessionForm({...sessionForm, teacherId: e.target.value})}
-                >
-                  <option value="">-- Chọn giảng viên --</option>
-                  {curriculum.participantTeachers && curriculum.participantTeachers.length > 0 ? (
-                    curriculum.participantTeachers.map(teacher => (
-                      <option key={teacher.teacherId} value={teacher.teacherId}>
-                        {teacher.fullName} ({teacher.specialization})
+                {loadingAvailableTeachers ? (
+                  <p style={{ color: '#666', fontStyle: 'italic' }}>Đang tải danh sách giảng viên có lịch rảnh...</p>
+                ) : (
+                  <select
+                    value={sessionForm.teacherId}
+                    onChange={(e) => setSessionForm({...sessionForm, teacherId: e.target.value})}
+                  >
+                    <option value="">-- Chọn giảng viên --</option>
+                    {availableTeachers.length > 0 ? (
+                      availableTeachers.map(teacher => (
+                        <option key={teacher.teacherId} value={teacher.teacherId}>
+                          {teacher.fullName} ({teacher.specialization}) - Có lịch rảnh
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>
+                        Không có giảng viên nào có lịch rảnh trong khung giờ này
                       </option>
-                    ))
-                  ) : (
-                    teachers.map(teacher => (
-                      <option key={teacher.teacherId} value={teacher.teacherId}>
-                        {teacher.fullName} ({teacher.specialization})
-                      </option>
-                    ))
-                  )}
-                </select>
+                    )}
+                  </select>
+                )}
+                {availableTeachers.length === 0 && !loadingAvailableTeachers && (
+                  <p style={{ color: '#dc3545', fontSize: '13px', marginTop: '5px' }}>
+                    ⚠️ Không có giảng viên nào đăng ký lịch rảnh trong khung giờ {sessionForm.startTime} - {sessionForm.endTime}
+                  </p>
+                )}
               </div>
               <div className="form-group">
                 <label>Mô tả</label>

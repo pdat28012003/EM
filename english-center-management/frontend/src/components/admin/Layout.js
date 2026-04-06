@@ -49,7 +49,7 @@ const menuItems = [
   { text: 'Thanh Toán', icon: <AttachMoney />, path: '/payments' },
   { text: 'Lịch Học', icon: <Schedule />, path: '/schedules' },
   { text: 'Điểm Số', icon: <Assessment />, path: '/test-scores' },
-  { text: 'Điểm Danh', icon: <CheckCircle />, path: '/attendance' },
+  // { text: 'Điểm Danh', icon: <CheckCircle />, path: '/attendance' },
   { text: 'Tài Liệu', icon: <Description />, path: '/documents' },
 ];
 

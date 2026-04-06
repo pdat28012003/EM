@@ -343,6 +343,13 @@ const TeacherDashboard = () => {
       color: '#4F46E5'
     },
     { 
+      icon: <CalendarToday />, 
+      title: 'Đăng ký lịch rảnh', 
+      subtitle: 'Đăng ký thời gian có thể dạy',
+      path: '/teacher/availability',
+      color: '#2563eb'
+    },
+    { 
       icon: <Folder />, 
       title: 'Tài liệu', 
       subtitle: 'Tài liệu giảng dạy',
@@ -535,7 +542,7 @@ const TeacherDashboard = () => {
         </Typography>
         <Grid container spacing={2}>
           {menuItems.map((item, index) => (
-            <Grid item xs={12} sm={4} key={index}>
+            <Grid item xs={12} sm={6} md={3} key={index}>
               <QuickActionCard item={item} badge={item.badgeKey ? (menuBadges[item.badgeKey] > 0 ? `${menuBadges[item.badgeKey]} ${item.badgeKey === 'classes' ? 'lớp mới' : 'chưa duyệt'}` : null) : null} />
             </Grid>
           ))}

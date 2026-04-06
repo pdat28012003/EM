@@ -38,6 +38,7 @@ namespace EnglishCenter.API.Data
         public DbSet<UserOtp> UserOtps { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Document> Documents { get; set; }
+        public DbSet<TeacherAvailability> TeacherAvailabilities { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

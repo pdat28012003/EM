@@ -77,7 +77,7 @@ const Schedules = () => {
         isActive: true,
         search: studentsSearch
       });
-      const studentsData = Array.isArray(response.data?.data) ? response.data.data : [];
+      const studentsData = Array.isArray(response.data?.data?.data) ? response.data.data.data : [];
       setStudents(studentsData);
     } catch (err) {
       console.error('Error loading students:', err);

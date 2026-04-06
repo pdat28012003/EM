@@ -99,6 +99,13 @@ export const teachersAPI = {
   update: (id, data) => api.put(`/teacher/${id}`, data),
   delete: (id) => api.delete(`/teacher/${id}`),
   getSchedule: (id, params) => api.get(`/teacher/${id}/schedule`, { params }),
+  // Teacher Availability
+  getAvailabilities: (teacherId) => api.get(`/teacheravailability/teacher/${teacherId}`),
+  createAvailability: (data) => api.post('/teacheravailability', data),
+  updateAvailability: (id, data) => api.put(`/teacheravailability/${id}`, data),
+  deleteAvailability: (id) => api.delete(`/teacheravailability/${id}`),
+  batchCreateAvailabilities: (data) => api.post('/teacheravailability/batch', data),
+  getAvailableTeachers: (params) => api.get('/teacheravailability/available', { params }),
 };
 
 // Courses API

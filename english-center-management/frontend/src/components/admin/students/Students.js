@@ -14,9 +14,26 @@ import {
   Chip,
   MenuItem,
   Avatar,
+  Tooltip,
+  Menu,
+  InputAdornment,
+  Fade,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, Delete, Visibility, VisibilityOff, CalendarMonth, AssignmentInd, CloudUpload } from '@mui/icons-material';
+import { 
+  Add, 
+  Edit, 
+  Delete, 
+  Visibility, 
+  VisibilityOff, 
+  CalendarMonth, 
+  AssignmentInd, 
+  CloudUpload,
+  MoreVert,
+  Search,
+  Clear,
+  PersonAdd
+} from '@mui/icons-material';
 import { studentsAPI, enrollmentsAPI, classesAPI, UPLOAD_URL } from '../../../services/api';
 
 const Students = () => {
@@ -49,6 +66,8 @@ const Students = () => {
     classId: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedStudentForMenu, setSelectedStudentForMenu] = useState(null);
 
   const levels = ['Beginner', 'Elementary', 'Intermediate', 'Advanced'];
 
@@ -172,6 +191,17 @@ const Students = () => {
     setCurrentStudent(null);
   };
 
+  const handleOpenMenu = (event, student) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setSelectedStudentForMenu(student);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+    setSelectedStudentForMenu(null);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -240,87 +270,136 @@ const Students = () => {
     }
   };
 
+  const levelStyles = {
+    Beginner: { bgcolor: '#f5f5f5', color: '#616161', border: '1px solid #e0e0e0', fontWeight: 600 },
+    Elementary: { bgcolor: '#fff3e0', color: '#e65100', border: '1px solid #ffcc80', fontWeight: 600 },
+    'Pre-Intermediate': { bgcolor: '#e1f5fe', color: '#0277bd', border: '1px solid #81d4fa', fontWeight: 600 },
+    Intermediate: { bgcolor: '#e3f2fd', color: '#1565c0', border: '1px solid #90caf9', fontWeight: 600 },
+    'Upper-Intermediate': { bgcolor: '#f3e5f5', color: '#7b1fa2', border: '1px solid #ce93d8', fontWeight: 600 },
+    Advanced: { bgcolor: '#e8f5e9', color: '#2e7d32', border: '1px solid #a5d6a7', fontWeight: 600 },
+  };
+
+  const getLevelStyle = (level) => levelStyles[level] || levelStyles.Beginner;
+
   const columns = [
-    // { field: 'studentId', headerName: 'ID', width: 70 },
-    { field: 'fullName', headerName: 'Họ và Tên', width: 200 },
-    { field: 'email', headerName: 'Email', width: 200 },
-    { field: 'phoneNumber', headerName: 'Số Điện Thoại', width: 130 },
+    {
+      field: 'fullName',
+      headerName: 'Họ và Tên',
+      width: 160,
+      renderCell: (params) => (
+        <Tooltip title={params.value} placement="top" arrow>
+          <Typography variant="body2" fontWeight={500} noWrap>
+            {params.value}
+          </Typography>
+        </Tooltip>
+      ),
+    },
+    {
+      field: 'email',
+      headerName: 'Email',
+      width: 230,
+      renderCell: (params) => (
+        <Tooltip title={params.value} placement="top" arrow>
+          <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: '100%' }}>
+            {params.value}
+          </Typography>
+        </Tooltip>
+      ),
+    },
+    {
+      field: 'phoneNumber',
+      headerName: 'Số ĐT',
+      width: 150,
+      align: 'center',
+      headerAlign: 'center',
+    },
     {
       field: 'dateOfBirth',
       headerName: 'Ngày Sinh',
-      width: 120,
-      valueFormatter: (params) => new Date(params.value).toLocaleDateString('vi-VN'),
+      width: 150,
+      align: 'center',
+      headerAlign: 'center',
+      valueFormatter: (params) => {
+        if (!params.value) return '-';
+        return new Date(params.value).toLocaleDateString('vi-VN');
+      },
     },
-    { field: 'address', headerName: 'Địa Chỉ', width: 180 },
+    {
+      field: 'address',
+      headerName: 'Địa Chỉ',
+      width: 250,
+      renderCell: (params) => (
+        <Tooltip title={params.value || '-'} placement="top" arrow>
+          <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: '100%' }}>
+            {params.value || '-'}
+          </Typography>
+        </Tooltip>
+      ),
+    },
     {
       field: 'level',
       headerName: 'Trình Độ',
-      width: 120,
+      width: 150,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
         <Chip
           label={params.value}
-          color={
-            params.value === 'Advanced'
-              ? 'success'
-              : params.value === 'Intermediate'
-              ? 'primary'
-              : params.value === 'Elementary'
-              ? 'warning'
-              : 'default'
-          }
           size="small"
+          sx={{
+            ...getLevelStyle(params.value),
+            borderRadius: 1.5,
+            fontSize: '0.75rem',
+            height: 24,
+            minWidth: 90,
+          }}
         />
       ),
     },
     {
       field: 'isActive',
       headerName: 'Trạng Thái',
-      width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Đang học' : 'Ngưng học'}
-          color={params.value ? 'success' : 'default'}
-          size="small"
-        />
-      ),
+      width: 130,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => {
+        const isActive = params.value;
+        return (
+          <Chip
+            label={isActive ? 'Đang học' : 'Ngưng học'}
+            size="small"
+            sx={{
+              bgcolor: isActive ? '#e8f5e9' : '#fafafa',
+              color: isActive ? '#2e7d32' : '#9e9e9e',
+              border: isActive ? '1px solid #a5d6a7' : '1px solid #e0e0e0',
+              borderRadius: 1.5,
+              fontWeight: 500,
+              fontSize: '0.75rem',
+              height: 24,
+              minWidth: 80,
+            }}
+          />
+        );
+      },
     },
     {
       field: 'actions',
       headerName: 'Thao Tác',
-      width: 200,
+      width: 100,
+      align: 'center',
+      headerAlign: 'center',
+      sortable: false,
+      filterable: false,
       renderCell: (params) => (
-        <Box>
+        <Tooltip title="Hành động" arrow>
           <IconButton
             size="small"
-            color="primary"
-            title="Đăng ký chương trình học"
-            onClick={() => handleOpenEnrollDialog(params.row)}
+            onClick={(e) => handleOpenMenu(e, params.row)}
+            sx={{ color: 'text.secondary' }}
           >
-            <AssignmentInd />
+            <MoreVert fontSize="small" />
           </IconButton>
-          <IconButton
-            size="small"
-            color="secondary"
-            title="Xem thời khóa biểu"
-            onClick={() => handleOpenScheduleDialog(params.row)}
-          >
-            <CalendarMonth />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={() => handleOpenDialog(params.row)}
-          >
-            <Edit />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="error"
-            onClick={() => handleDelete(params.row.studentId)}
-          >
-            <Delete />
-          </IconButton>
-        </Box>
+        </Tooltip>
       ),
     },
   ];
@@ -328,30 +407,79 @@ const Students = () => {
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight="bold">
+        <Typography variant="h4" fontWeight="bold" color="primary">
           Quản Lý Học Viên
         </Typography>
         <Button
           variant="contained"
-          startIcon={<Add />}
+          startIcon={<PersonAdd />}
           onClick={() => handleOpenDialog()}
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'white',
+            px: 3,
+            py: 1,
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            boxShadow: '0 4px 14px 0 rgba(25, 118, 210, 0.39)',
+            '&:hover': {
+              bgcolor: 'primary.dark',
+              transform: 'translateY(-1px)',
+              boxShadow: '0 6px 20px 0 rgba(25, 118, 210, 0.46)',
+            },
+            transition: 'all 0.2s ease-in-out',
+          }}
         >
           Thêm Học Viên
         </Button>
       </Box>
 
-      <Paper sx={{ mb: 2, p: 2 }}>
+      <Paper sx={{ mb: 2, p: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
         <TextField
           fullWidth
-          label="Tìm kiếm học viên"
+          placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
           variant="outlined"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Nhập tên, email hoặc số điện thoại..."
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ color: 'text.secondary' }} />
+              </InputAdornment>
+            ),
+            endAdornment: searchTerm && (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setSearchTerm('')}>
+                  <Clear fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ),
+            sx: {
+              borderRadius: 2,
+              bgcolor: 'background.paper',
+              '& fieldset': {
+                borderColor: 'divider',
+              },
+              '&:hover fieldset': {
+                borderColor: 'primary.main',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: 'primary.main',
+                borderWidth: 2,
+              },
+            },
+          }}
         />
       </Paper>
 
-      <Paper sx={{ height: 600, width: '100%' }}>
+      <Paper sx={{
+        height: 600,
+        width: '100%',
+        borderRadius: 2,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        overflow: 'hidden',
+      }}>
         <DataGrid
           rows={students}
           columns={columns}
@@ -360,9 +488,42 @@ const Students = () => {
           rowCount={totalCount}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[1, 10, 25, 50]}
+          pageSizeOptions={[10, 25, 50]}
           paginationMode="server"
           disableSelectionOnClick
+          sx={{
+            border: 'none',
+            '& .MuiDataGrid-main': {
+              borderRadius: 2,
+            },
+            '& .MuiDataGrid-columnHeaders': {
+              bgcolor: '#f8fafc',
+              borderBottom: '2px solid #e2e8f0',
+              '& .MuiDataGrid-columnHeaderTitle': {
+                fontWeight: 600,
+                color: '#475569',
+                fontSize: '0.875rem',
+              },
+            },
+            '& .MuiDataGrid-row': {
+              '&:nth-of-type(even)': {
+                bgcolor: '#fafbfc',
+              },
+              '&:hover': {
+                bgcolor: '#f1f5f9',
+                transition: 'background-color 0.15s ease',
+              },
+            },
+            '& .MuiDataGrid-cell': {
+              borderBottom: '1px solid #f1f5f9',
+              fontSize: '0.875rem',
+              py: 1.5,
+            },
+            '& .MuiDataGrid-footerContainer': {
+              borderTop: '2px solid #e2e8f0',
+              bgcolor: '#f8fafc',
+            },
+          }}
         />
       </Paper>
 
@@ -539,6 +700,64 @@ const Students = () => {
           <Button onClick={handleCloseDialog}>Đóng</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMenu}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            minWidth: 180,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            borderRadius: 2,
+            mt: 1,
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            handleOpenEnrollDialog(selectedStudentForMenu);
+            handleCloseMenu();
+          }}
+          sx={{ gap: 1.5, py: 1 }}
+        >
+          <AssignmentInd fontSize="small" color="primary" />
+          <Typography variant="body2">Đăng ký chương trình</Typography>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleOpenScheduleDialog(selectedStudentForMenu);
+            handleCloseMenu();
+          }}
+          sx={{ gap: 1.5, py: 1 }}
+        >
+          <CalendarMonth fontSize="small" color="secondary" />
+          <Typography variant="body2">Xem thời khóa biểu</Typography>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleOpenDialog(selectedStudentForMenu);
+            handleCloseMenu();
+          }}
+          sx={{ gap: 1.5, py: 1 }}
+        >
+          <Edit fontSize="small" color="primary" />
+          <Typography variant="body2">Chỉnh sửa</Typography>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleDelete(selectedStudentForMenu?.studentId);
+            handleCloseMenu();
+          }}
+          sx={{ gap: 1.5, py: 1, color: 'error.main' }}
+        >
+          <Delete fontSize="small" color="error" />
+          <Typography variant="body2">Xóa học viên</Typography>
+        </MenuItem>
+      </Menu>
     </Container>
   );
 };
