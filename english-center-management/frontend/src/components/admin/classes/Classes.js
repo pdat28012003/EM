@@ -56,19 +56,23 @@ const Classes = () => {
       const [classesRes, coursesRes, teachersRes, studentsRes, roomsRes, curriculumsRes] = await Promise.all([
         classesAPI.getAll({ page: paginationModel.page + 1, pageSize: paginationModel.pageSize }),
         coursesAPI.getAll(),
-        teachersAPI.getAll(),
-        studentsAPI.getAll(),
-        roomsAPI.getAll(),
-        curriculumAPI.getAll({ page: 1, pageSize: 100 })
+        teachersAPI.getAll({ pageSize: 1000 }),
+        studentsAPI.getAll({ pageSize: 1000 }),
+        roomsAPI.getAll({ pageSize: 1000 }),
+        curriculumAPI.getAll({ page: 1, pageSize: 1000 })
       ]);
-      const classesData = Array.isArray(classesRes.data?.data) ? classesRes.data.data : [];
+
+      // Extract classes
+      const classesData = classesRes.data?.data?.data || classesRes.data?.data || [];
       setClasses(classesData);
-      setCourses(Array.isArray(coursesRes.data?.data) ? coursesRes.data.data : Array.isArray(coursesRes.data) ? coursesRes.data : []);
-      setTeachers(Array.isArray(teachersRes.data?.data) ? teachersRes.data.data : []);
-      setStudents(Array.isArray(studentsRes.data?.data) ? studentsRes.data.data : []);
-      setRooms(Array.isArray(roomsRes.data?.data) ? roomsRes.data.data : Array.isArray(roomsRes.data) ? roomsRes.data : []);
-      setCurriculums(Array.isArray(curriculumsRes.data?.data) ? curriculumsRes.data.data : Array.isArray(curriculumsRes.data) ? curriculumsRes.data : []);
-      setRowCount(classesRes.data?.totalCount || classesData.length);
+      setRowCount(classesRes.data?.data?.totalCount || classesRes.data?.totalCount || classesData.length);
+
+      // Extract lookups
+      setCourses(coursesRes.data?.data?.data || coursesRes.data?.data || []);
+      setTeachers(teachersRes.data?.data?.data || teachersRes.data?.data || []);
+      setStudents(studentsRes.data?.data?.data || studentsRes.data?.data || []);
+      setRooms(roomsRes.data?.data?.data || roomsRes.data?.data || []);
+      setCurriculums(curriculumsRes.data?.data?.data || curriculumsRes.data?.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {

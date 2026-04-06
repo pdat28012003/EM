@@ -190,7 +190,7 @@ const StudentHeader = () => {
           </Button>
           <Button 
             component={Link}
-            to="/student/materials"
+            to="/student/documents"
             sx={{ 
               color: 'white', 
               fontSize: '0.75rem',
