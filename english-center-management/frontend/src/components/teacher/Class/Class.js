@@ -107,10 +107,8 @@ const TeacherClasses = () => {
   const loadTeacherClasses = async (teacherId) => {
     try {
       setLoading(true);
-      const response = await classesAPI.getAll({ teacherId });
-      const classesData = Array.isArray(response.data?.data)
-        ? response.data.data
-        : [];
+      const response = await classesAPI.getAll({ teacherId, pageSize: 1000 });
+      const classesData = response.data?.data?.data || response.data?.data || [];
       setClasses(classesData);
     } catch (error) {
       console.error("Error loading classes:", error);
@@ -123,9 +121,7 @@ const TeacherClasses = () => {
   const loadClassStudents = async (classId) => {
     try {
       const response = await classesAPI.getStudents(classId);
-      let studentsData = Array.isArray(response.data)
-        ? response.data
-        : [];
+      let studentsData = response.data?.data?.data || response.data?.data || [];
       studentsData = studentsData.map(student => ({
         studentId: student.StudentId || student.studentId,
         fullName: student.FullName || student.fullName,
@@ -171,11 +167,13 @@ const TeacherClasses = () => {
       // Load existing attendance 1 lần
       const existingResponse = await attendanceAPI.getAll({
         lessonId: selectedClass.classId,
-        date: today
+        date: today,
+        pageSize: 1000
       });
       
       const existingMap = new Map();
-      existingResponse.data?.forEach(a => {
+      const existingData = existingResponse.data?.data?.data || existingResponse.data?.data || [];
+      existingData.forEach(a => {
         existingMap.set(a.studentId, a);
       });
       
@@ -228,9 +226,10 @@ const TeacherClasses = () => {
       console.log('Loading attendance for date:', selectedDate);
       const response = await attendanceAPI.getAll({
         lessonId: selectedClass.classId,
-        date: selectedDate
+        date: selectedDate,
+        pageSize: 1000
       });
-      const history = response.data || [];
+      const history = response.data?.data?.data || response.data?.data || [];
       console.log('Attendance history loaded:', history);
       setAttendanceHistory(history);
     } catch (error) {

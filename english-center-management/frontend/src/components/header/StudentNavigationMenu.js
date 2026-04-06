@@ -41,7 +41,7 @@ const StudentNavigationMenu = ({
       <MenuItem component={Link} to="/student/assignments" onClick={onClose}>
         Bài tập
       </MenuItem>
-      <MenuItem component={Link} to="/student/materials" onClick={onClose}>
+      <MenuItem component={Link} to="/student/documents" onClick={onClose}>
         Tài liệu
       </MenuItem>
       

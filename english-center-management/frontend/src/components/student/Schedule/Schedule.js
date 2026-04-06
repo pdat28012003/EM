@@ -20,7 +20,7 @@ import {
   Person,
   Refresh,
 } from '@mui/icons-material';
-import { studentsAPI } from '../../../services/api';
+import { studentsAPI, authAPI } from '../../../services/api';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 
@@ -28,7 +28,7 @@ const StudentSchedule = () => {
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(dayjs());
 
   useEffect(() => {
     loadSchedule();
@@ -46,23 +46,35 @@ const StudentSchedule = () => {
       }
 
       const user = JSON.parse(userData);
-      if (!user.studentId) {
-        setError('Không tìm thấy thông tin học viên');
+      let studentId = user.studentId;
+
+      // Fallback: If studentId is missing, fetch profile from server
+      if (!studentId) {
+        try {
+          const profileRes = await authAPI.getProfile();
+          // The API response might be in PascalCase in backend but camelCase here due to interceptors
+          const profileData = profileRes.data?.data || profileRes.data;
+          if (profileData && profileData.studentId) {
+            studentId = profileData.studentId;
+            // Update localStorage for other pages
+            localStorage.setItem('user', JSON.stringify({ ...user, studentId }));
+          }
+        } catch (profileErr) {
+          console.error('Error fetching profile fallback:', profileErr);
+        }
+      }
+
+      if (!studentId) {
+        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
         return;
       }
 
       // Add date parameter if selected
       const params = selectedDate ? { date: selectedDate.format('YYYY-MM-DD') } : {};
-      const response = await studentsAPI.getSchedule(user.studentId, params);
+      const response = await studentsAPI.getSchedule(studentId, params);
       
-      let scheduleData = [];
-      if (response.data && response.data.data) {
-        scheduleData = response.data.data;
-      } else if (response.data) {
-        scheduleData = Array.isArray(response.data) ? response.data : [];
-      }
-
-      setSchedule(scheduleData);
+      const scheduleData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
+      setSchedule(Array.isArray(scheduleData) ? scheduleData : []);
     } catch (err) {
       console.error('Error loading schedule:', err);
       setError('Không thể tải lịch học. Vui lòng thử lại sau.');
@@ -72,9 +84,6 @@ const StudentSchedule = () => {
     }
   };
 
-  const handleDateChange = (date) => {
-    setSelectedDate(date);
-  };
 
   const clearDateFilter = () => {
     setSelectedDate(null);
