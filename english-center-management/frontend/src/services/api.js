@@ -254,6 +254,7 @@ export const documentsAPI = {
   download: (id) => api.get(`/documents/${id}/download`, { responseType: 'blob' }),
   getTeacherDocuments: (teacherId, params) => api.get(`/documents/teacher/${teacherId}`, { params }),
   getStudentDocuments: (studentId, params) => api.get(`/documents/student/${studentId}`, { params }),
+  getPendingDocuments: (params) => api.get('/documents/pending', { params }),
 };
 
 // Test Scores API
@@ -267,14 +268,14 @@ export const testScoresAPI = {
 
 // Notifications API
 export const notificationsAPI = {
-  getAll: (params = {}) => api.get('/notification', { params }),
-  getUnreadCount: () => api.get('/notification/unread-count'),
-  create: (data) => api.post('/notification', data),
-  markAsRead: (id) => api.put(`/notification/${id}/read`),
-  markAsUnread: (id) => api.put(`/notification/${id}/unread`),
-  markMultipleAsRead: (ids) => api.put('/notification/mark-read', { notificationIds: ids }),
-  markAllAsRead: () => api.put('/notification/mark-all-read'),
-  delete: (id) => api.delete(`/notification/${id}`),
+  getAll: (params = {}) => api.get('/notifications', { params }),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  create: (data) => api.post('/notifications', data),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAsUnread: (id) => api.put(`/notifications/${id}/unread`),
+  markMultipleAsRead: (ids) => api.put('/notifications/mark-read', { notificationIds: ids }),
+  markAllAsRead: () => api.put('/notifications/mark-all-read'),
+  delete: (id) => api.delete(`/notifications/${id}`),
 };
 
 // Activity Logs API - Hoạt động gần đây (Timeline)

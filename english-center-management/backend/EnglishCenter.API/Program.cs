@@ -72,6 +72,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         // Register custom services
 builder.Services.AddScoped<IMappingService, MappingService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddSingleton<INotificationService, NotificationService>();
 
 // Configure JWT Authentication
 var tokenKey = builder.Configuration.GetSection("AppSettings:Token").Value;

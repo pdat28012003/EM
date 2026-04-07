@@ -6,18 +6,20 @@ import {
   Typography,
   IconButton,
   Box,
-  Button,
-  InputBase,
-  Badge
+  Button
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   School,
   Notifications,
-  Search as SearchIcon,
   AccountCircle,
   Assignment,
-  Assessment
+  Assessment,
+  Dashboard,
+  Class,
+  Schedule,
+  EventAvailable,
+  Folder
 } from '@mui/icons-material';
 import { authAPI } from '../../services/api';
 import { useNavigation } from '../../hooks/useNavigation';
@@ -33,17 +35,10 @@ const TeacherHeader = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { navigateToHome } = useNavigation();
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
 
-  const handleSearch = (e) => {
-    if (e.key === 'Enter') {
-      // Handle search logic here
-      console.log('Searching for:', search);
-      // You can add navigation to search results page
-      // navigate(`/search?q=${encodeURIComponent(search)}`);
-    }
+  const handleUserMenuClose = () => {
+    setUserMenuAnchor(null);  
   };
-
 
   useEffect(() => {
     const loadUserData = () => {
@@ -86,10 +81,6 @@ const TeacherHeader = () => {
 
   const handleUserMenuOpen = (event) => {
     setUserMenuAnchor(event.currentTarget);
-  };
-
-  const handleUserMenuClose = () => {
-    setUserMenuAnchor(null);
   };
 
   const handleLogout = async () => {
@@ -164,34 +155,74 @@ const TeacherHeader = () => {
           </Box>
         </Box>
 
-   {/* Search Bar */}
-<Box
-  sx={{
-    display: { xs: 'none', md: 'flex' },
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: '20px',
-    px: 2,
-    py: 0.2,
-    width: '300px'
-  }}
->
-  <SearchIcon sx={{ color: 'white', mr: 1, fontSize: 18 }} />
-  <InputBase
-    placeholder="Tìm kiếm..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    onKeyDown={handleSearch}
-    sx={{
-      color: 'white',
-      fontSize: '0.85rem',
-      width: '100%',
-      '& input::placeholder': {
-        color: 'rgba(255,255,255,0.7)'
-      }
-    }}
-  />
-</Box>
+        {/* Desktop Navigation */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.5, ml: 2 }}>
+          <Button 
+            component={Link}
+            to="/teacher/dashboard"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+            startIcon={<Dashboard sx={{ fontSize: 18 }} />}
+          >
+            Dashboard
+          </Button>
+          <Button 
+            component={Link}
+            to="/teacher/classes"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+            startIcon={<Class sx={{ fontSize: 18 }} />}
+          >
+            Lớp học
+          </Button>
+          <Button 
+            component={Link}
+            to="/teacher/schedule"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+            startIcon={<Schedule sx={{ fontSize: 18 }} />}
+          >
+            Lịch dạy
+          </Button>
+          <Button 
+            component={Link}
+            to="/teacher/availability"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+            startIcon={<EventAvailable sx={{ fontSize: 18 }} />}
+          >
+            Lịch rảnh
+          </Button>
+          <Button 
+            component={Link}
+            to="/teacher/documents"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+            startIcon={<Folder sx={{ fontSize: 18 }} />}
+          >
+            Tài liệu
+          </Button>
+        </Box>
 
         {/* Action Buttons */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, ml: 2, alignItems: 'center' }}>
@@ -237,7 +268,6 @@ const TeacherHeader = () => {
             </Button>
           )}
         </Box>
-
         {/* Mobile Menu Button */}
         <IconButton
           edge="start"

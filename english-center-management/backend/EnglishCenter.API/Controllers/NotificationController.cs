@@ -1,22 +1,98 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Data;
+using EnglishCenter.API.Services;
 
 namespace EnglishCenter.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/notifications")]
     [Authorize]
     public class NotificationController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly INotificationService _notificationService;
 
-        public NotificationController(ApplicationDbContext context)
+        public NotificationController(ApplicationDbContext context, INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
+        }
+
+        /// <summary>
+        /// SSE stream for real-time notifications
+        /// </summary>
+        [HttpGet("stream")]
+        [AllowAnonymous] // Token checked manually
+        public async Task StreamNotifications(
+            [EnumeratorCancellation] CancellationToken cancellationToken,
+            [FromQuery] string? token = null)
+        {
+            // Validate token
+            var userId = ValidateToken(token);
+            if (userId == null)
+            {
+                Response.StatusCode = 401;
+                await Response.Body.WriteAsync(System.Text.Encoding.UTF8.GetBytes("event: error\ndata: Unauthorized\n\n"), cancellationToken);
+                return;
+            }
+
+            // Set SSE headers
+            Response.StatusCode = 200;
+            Response.ContentType = "text/event-stream";
+            Response.Headers.CacheControl = "no-cache";
+            Response.Headers.Connection = "keep-alive";
+
+            // Get teacher/student ids
+            var (teacherId, studentId) = await GetTeacherAndStudentIdAsync(userId.Value);
+
+            // Send initial unread count
+            var unreadCount = await _context.Notifications
+                .CountAsync(n => (n.UserId == userId || n.TeacherId == teacherId || n.StudentId == studentId) && !n.IsRead, cancellationToken);
+            
+            var initialMessage = $"event: unread-count\ndata: {{\"count\": {unreadCount}}}\n\n";
+            await Response.Body.WriteAsync(System.Text.Encoding.UTF8.GetBytes(initialMessage), cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+
+            // Subscribe to new notifications
+            var channel = _notificationService.Subscribe(userId.Value, teacherId, studentId);
+            
+            try
+            {
+                await foreach (var message in channel.Reader.ReadAllAsync(cancellationToken))
+                {
+                    await Response.Body.WriteAsync(System.Text.Encoding.UTF8.GetBytes(message), cancellationToken);
+                    await Response.Body.FlushAsync(cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Client disconnected
+            }
+        }
+
+        private int? ValidateToken(string? token)
+        {
+            if (string.IsNullOrEmpty(token)) return null;
+            
+            try
+            {
+                // Parse JWT token to get userId
+                var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                var jwtToken = handler.ReadJwtToken(token);
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => 
+                    c.Type == "userId" || c.Type == "id" || c.Type == "sub" || c.Type == "nameid")?.Value;
+                
+                if (int.TryParse(userIdClaim, out int userId))
+                    return userId;
+            }
+            catch { }
+            
+            return null;
         }
 
         /// <summary>

@@ -3,8 +3,21 @@ import { Link } from 'react-router-dom';
 import {
   Menu,
   MenuItem,
-  Box
+  Box,
+  ListItemIcon,
+  Typography,
+  Divider
 } from '@mui/material';
+import {
+  Dashboard,
+  Class,
+  Schedule,
+  EventAvailable,
+  Folder,
+  AccountCircle,
+  Logout,
+  Home
+} from '@mui/icons-material';
 import { useNavigation } from '../../hooks/useNavigation';
 
 const NavigationMenu = ({ 
@@ -27,41 +40,83 @@ const NavigationMenu = ({
       open={open}
       onClose={onClose}
       sx={{ display: { xs: 'block', md: 'none' } }}
+      PaperProps={{
+        sx: {
+          mt: 1.5,
+          minWidth: 220,
+          '& .MuiMenuItem-root': {
+            px: 2,
+            py: 1,
+            borderRadius: 1,
+            mx: 1,
+            my: 0.5
+          }
+        }
+      }}
     >
       <MenuItem onClick={handleHomeClick}>
-        Trang chủ
+        <ListItemIcon>
+          <Dashboard fontSize="small" sx={{ color: '#7c3aed' }} />
+        </ListItemIcon>
+        <Typography variant="body2">Dashboard</Typography>
       </MenuItem>
+      
       <MenuItem component={Link} to="/teacher/classes" onClick={onClose}>
-        Lớp học
+        <ListItemIcon>
+          <Class fontSize="small" sx={{ color: '#7c3aed' }} />
+        </ListItemIcon>
+        <Typography variant="body2">Lớp học</Typography>
       </MenuItem>
 
       <MenuItem component={Link} to="/teacher/schedule" onClick={onClose}>
-        Lịch dạy
+        <ListItemIcon>
+          <Schedule fontSize="small" sx={{ color: '#7c3aed' }} />
+        </ListItemIcon>
+        <Typography variant="body2">Lịch dạy</Typography>
       </MenuItem>
+      
       <MenuItem component={Link} to="/teacher/availability" onClick={onClose}>
-        Đăng ký lịch rảnh
+        <ListItemIcon>
+          <EventAvailable fontSize="small" sx={{ color: '#7c3aed' }} />
+        </ListItemIcon>
+        <Typography variant="body2">Lịch rảnh</Typography>
       </MenuItem>
-      <MenuItem component={Link} to="/teacher/documents" onClick={onClose}>
-        Tài liệu
-      </MenuItem> 
+      
+      <MenuItem component={Link} to="/teacher/materials" onClick={onClose}>
+        <ListItemIcon>
+          <Folder fontSize="small" sx={{ color: '#7c3aed' }} />
+        </ListItemIcon>
+        <Typography variant="body2">Tài liệu</Typography>
+      </MenuItem>
+
+      <Divider sx={{ my: 1 }} />
 
       {isAuthenticated && user ? (
         <>
           <MenuItem disabled>
-            <Box component="span" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', pl: 4 }}>
               Xin chào, {user.name || user.fullName || 'User'}
-            </Box>
+            </Typography>
           </MenuItem>
           <MenuItem component={Link} to="/profile" onClick={onClose}>
-            Thông tin cá nhân
+            <ListItemIcon>
+              <AccountCircle fontSize="small" />
+            </ListItemIcon>
+            <Typography variant="body2">Thông tin cá nhân</Typography>
           </MenuItem>
           <MenuItem component={Link} to="/login" onClick={onClose}>
-            Đăng xuất
+            <ListItemIcon>
+              <Logout fontSize="small" sx={{ color: 'error.main' }} />
+            </ListItemIcon>
+            <Typography variant="body2" sx={{ color: 'error.main' }}>Đăng xuất</Typography>
           </MenuItem>
         </>
       ) : (
         <MenuItem component={Link} to="/login" onClick={onClose}>
-          Đăng nhập
+          <ListItemIcon>
+            <AccountCircle fontSize="small" />
+          </ListItemIcon>
+          <Typography variant="body2">Đăng nhập</Typography>
         </MenuItem>
       )}
     </Menu>
