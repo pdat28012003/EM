@@ -19,6 +19,7 @@ import StudentDocuments from '../components/student/Documents/Documents';
 import StudentSchedule from '../components/student/Schedule/Schedule';
 import StudentCourses from '../components/student/Courses/Courses';
 import StudentAssignments from '../components/student/Assignments/Assignments';
+import StudentAssignmentDetail from '../components/student/Assignments/AssignmentDetail';
 import AdminDocuments from '../components/admin/documents/Documents';
 import Profile from '../components/profile/Profile';
 import Dashboard from '../components/admin/Dashboard';
@@ -76,6 +77,13 @@ const AppRoutes = () => {
         <PrivateRoute allowedRoles={['student']}>
           <StudentLayout>
             <StudentAssignments />
+          </StudentLayout>
+        </PrivateRoute>
+      } />
+      <Route path="/student/assignments/:assignmentId" element={
+        <PrivateRoute allowedRoles={['student']}>
+          <StudentLayout>
+            <StudentAssignmentDetail />
           </StudentLayout>
         </PrivateRoute>
       } />

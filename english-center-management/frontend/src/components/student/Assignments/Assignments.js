@@ -25,12 +25,14 @@ import {
 } from '@mui/icons-material';
 import { studentsAPI, assignmentsAPI, authAPI } from '../../../services/api';
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 
 const StudentAssignments = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, completed
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadAssignments();
@@ -39,6 +41,7 @@ const StudentAssignments = () => {
   const loadAssignments = async () => {
     try {
       setLoading(true);
+      setError(null);
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('Vui lòng đăng nhập để xem bài tập');
@@ -47,6 +50,7 @@ const StudentAssignments = () => {
 
       const user = JSON.parse(userData);
       let studentId = user.studentId;
+      const email = user.email;
 
       // Fallback: If studentId is missing, fetch profile from server
       if (!studentId) {
@@ -62,6 +66,23 @@ const StudentAssignments = () => {
         }
       }
 
+      // Fallback #2: resolve studentId by email (common when login payload lacks studentId)
+      if (!studentId && email) {
+        try {
+          const studentsRes = await studentsAPI.getAll({ search: email, page: 1, pageSize: 10, isActive: true });
+          const paged = studentsRes.data?.data || studentsRes.data;
+          const list = paged?.data || paged || [];
+          const normalized = Array.isArray(list) ? list : [];
+          const matched = normalized.find((s) => String(s.email || '').toLowerCase() === String(email).toLowerCase()) || normalized[0];
+          if (matched?.studentId) {
+            studentId = matched.studentId;
+            localStorage.setItem('user', JSON.stringify({ ...user, studentId }));
+          }
+        } catch (e) {
+          console.error('Error resolving studentId by email fallback:', e);
+        }
+      }
+
       if (!studentId) {
         setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin.');
         return;
@@ -69,7 +90,7 @@ const StudentAssignments = () => {
 
       // Step 1: Get student's classes
       const enrollmentsRes = await studentsAPI.getEnrollments(studentId);
-      const classes = enrollmentsRes.data?.Data || enrollmentsRes.data?.data?.Data || enrollmentsRes.data?.data?.data || enrollmentsRes.data?.data || enrollmentsRes.data || [];
+      const classes = enrollmentsRes.data?.data || enrollmentsRes.data || [];
       
       if (classes.length === 0) {
         setAssignments([]);
@@ -81,8 +102,10 @@ const StudentAssignments = () => {
       const allAssignments = [];
       for (const cls of classes) {
         try {
-          const res = await assignmentsAPI.getAll({ classId: cls.classId, pageSize: 1000 });
-          const assignmentsData = res.data?.Data || res.data?.data?.Data || res.data?.data?.data || res.data?.data || res.data || [];
+          const classId = cls.classId;
+          if (!classId) continue;
+          const res = await assignmentsAPI.getAll({ classId, studentId, pageSize: 1000 });
+          const assignmentsData = res.data?.data || res.data || [];
           allAssignments.push(...(Array.isArray(assignmentsData) ? assignmentsData : []));
         } catch (e) {
           console.error(`Error loading assignments for class ${cls.classId}:`, e);
@@ -101,11 +124,14 @@ const StudentAssignments = () => {
   };
 
   const getStatusInfo = (assignment) => {
+    if (assignment.studentStatus === 'Graded' || assignment.studentStatus === 'Submitted') {
+      return { label: 'Đã hoàn thành', color: 'success', icon: <AssignmentTurnedIn fontSize="small" /> };
+    }
+    
     const now = dayjs();
     const dueDate = dayjs(assignment.dueDate);
     const isOverdue = now.isAfter(dueDate);
 
-    // This is a simplification as we don't have submission status per student in the main list yet
     if (isOverdue) return { label: 'Quá hạn', color: 'error', icon: <ErrorOutline fontSize="small" /> };
     return { label: 'Đang mở', color: 'primary', icon: <AccessTime fontSize="small" /> };
   };
@@ -168,51 +194,31 @@ const StudentAssignments = () => {
       )}
 
       {/* Stats and Filters */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={8}>
-          <Box display="flex" gap={1}>
-            <Button 
-              variant={filter === 'all' ? 'contained' : 'outlined'} 
-              onClick={() => setFilter('all')}
-              sx={{ borderRadius: 10 }}
-            >
-              Tất cả ({assignments.length})
-            </Button>
-            <Button 
-              variant={filter === 'pending' ? 'contained' : 'outlined'} 
-              color="primary"
-              onClick={() => setFilter('pending')}
-              sx={{ borderRadius: 10 }}
-            >
-              Chờ nộp
-            </Button>
-            <Button 
-              variant={filter === 'overdue' ? 'contained' : 'outlined'} 
-              color="error"
-              onClick={() => setFilter('overdue')}
-              sx={{ borderRadius: 10 }}
-            >
-              Quá hạn
-            </Button>
-          </Box>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, display: 'flex', justifyContent: 'space-around', boxShadow: 1 }}>
-            <Box textAlign="center">
-              <Typography variant="h6" fontWeight="bold" color="primary">{assignments.length}</Typography>
-              <Typography variant="caption" color="textSecondary">Tổng bài</Typography>
-            </Box>
-            <Box textAlign="center">
-              <Typography variant="h6" fontWeight="bold" color="error">{assignments.filter(a => dayjs().isAfter(dayjs(a.dueDate))).length}</Typography>
-              <Typography variant="caption" color="textSecondary">Quá hạn</Typography>
-            </Box>
-            <Box textAlign="center">
-              <Typography variant="h6" fontWeight="bold" color="success">12</Typography>
-              <Typography variant="caption" color="textSecondary">Hoàn thành</Typography>
-            </Box>
-          </Box>
-        </Grid>
-      </Grid>
+      <Box display="flex" gap={1} sx={{ mb: 4 }}>
+        <Button 
+          variant={filter === 'all' ? 'contained' : 'outlined'} 
+          onClick={() => setFilter('all')}
+          sx={{ borderRadius: 10 }}
+        >
+          Tất cả ({assignments.length})
+        </Button>
+        <Button 
+          variant={filter === 'pending' ? 'contained' : 'outlined'} 
+          color="primary"
+          onClick={() => setFilter('pending')}
+          sx={{ borderRadius: 10 }}
+        >
+          Chờ nộp
+        </Button>
+        <Button 
+          variant={filter === 'overdue' ? 'contained' : 'outlined'} 
+          color="error"
+          onClick={() => setFilter('overdue')}
+          sx={{ borderRadius: 10 }}
+        >
+          Quá hạn
+        </Button>
+      </Box>
 
       {filteredAssignments.length === 0 ? (
         <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 4, border: '2px dashed #e0e0e0' }}>
@@ -246,6 +252,7 @@ const StudentAssignments = () => {
                   </Avatar>
                 </ListItemIcon>
                 <ListItemText
+                  disableTypography
                   primary={
                     <Box display="flex" alignItems="center" gap={2} mb={0.5}>
                       <Typography variant="h6" fontWeight="bold">{assignment.title}</Typography>
@@ -254,34 +261,111 @@ const StudentAssignments = () => {
                   }
                   secondary={
                     <Box mt={1}>
-                      <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                        Lớp: <Typography component="span" variant="body2" fontWeight="bold" color="textPrimary">{assignment.className}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Lớp:{' '}
+                        <Typography component="span" variant="body2" fontWeight="bold" color="text.primary">
+                          {assignment.className}
+                        </Typography>
                       </Typography>
-                      <Box display="flex" alignItems="center" gap={3}>
-                        <Box display="flex" alignItems="center" gap={0.5} color="text.secondary">
+                      <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
+                        <Box display="flex" alignItems="center" gap={0.5} sx={{ color: 'text.secondary' }}>
                           <AccessTime fontSize="small" />
-                          <Typography variant="caption">Hạn nộp: {dayjs(assignment.dueDate).format('DD/MM/YYYY HH:mm')}</Typography>
+                          <Typography variant="caption">
+                            Hạn nộp: {dayjs(assignment.dueDate).format('DD/MM/YYYY HH:mm')}
+                          </Typography>
                         </Box>
-                        <Chip 
+                        {assignment.skillName && (
+                          <Chip
+                            label={assignment.skillName}
+                            size="small"
+                            color="info"
+                            variant="outlined"
+                          />
+                        )}
+                        <Chip
                           icon={statusInfo.icon}
-                          label={statusInfo.label} 
-                          color={statusInfo.color} 
-                          size="small" 
+                          label={statusInfo.label}
+                          color={statusInfo.color}
+                          size="small"
                         />
+                        {assignment.studentScore !== null && (
+                          <Chip 
+                            label={`Điểm: ${assignment.studentScore}/${assignment.maxScore}`} 
+                            color="success" 
+                            variant="outlined"
+                            size="small"
+                          />
+                        )}
+                        {assignment.timeSpentSeconds && (
+                          <Chip 
+                            icon={<AccessTime fontSize="small" />}
+                            label={`Thời gian: ${Math.floor(assignment.timeSpentSeconds / 60)}:${String(assignment.timeSpentSeconds % 60).padStart(2, '0')}`} 
+                            variant="outlined"
+                            size="small"
+                          />
+                        )}
                       </Box>
                     </Box>
                   }
                 />
                 <Box>
-                  <Tooltip title="Vào làm bài">
-                    <Button 
-                      variant="contained" 
-                      endIcon={<Launch />} 
-                      sx={{ borderRadius: 2 }}
-                    >
-                      Làm bài
-                    </Button>
-                  </Tooltip>
+                  {(() => {
+                    const isOverdue = dayjs().isAfter(dayjs(assignment.dueDate));
+                    const isSubmitted = assignment.studentStatus === 'Graded' || assignment.studentStatus === 'Submitted';
+                    
+                    if (!isSubmitted && !isOverdue) {
+                      return (
+                        <Tooltip title="Vào làm bài">
+                          <Button 
+                            variant="contained" 
+                            endIcon={<Launch />} 
+                            sx={{ borderRadius: 2 }}
+                            onClick={async () => {
+                              try {
+                                if (
+                                  String(assignment.type || '').toLowerCase() === 'quiz' &&
+                                  !document.fullscreenElement &&
+                                  document.documentElement.requestFullscreen
+                                ) {
+                                  await document.documentElement.requestFullscreen();
+                                }
+                              } catch (e) {
+                                // Ignore fullscreen errors; still navigate
+                              } finally {
+                                navigate(`/student/assignments/${assignment.assignmentId}`);
+                              }
+                            }}
+                          >
+                            Làm bài
+                          </Button>
+                        </Tooltip>
+                      );
+                    }
+                    
+                    if (!isSubmitted && isOverdue) {
+                      return (
+                        <Button 
+                          variant="outlined" 
+                          color="error"
+                          disabled
+                          sx={{ borderRadius: 2 }}
+                        >
+                          Đã quá hạn
+                        </Button>
+                      );
+                    }
+                    
+                    return (
+                      <Button 
+                        variant="outlined" 
+                        color="success"
+                        sx={{ borderRadius: 2 }}
+                        onClick={() => navigate(`/student/assignments/${assignment.assignmentId}`)}
+                      >
+                        Xem kết quả
+                      </Button>
+                    );
+                  })()}
                 </Box>
               </ListItem>
             );

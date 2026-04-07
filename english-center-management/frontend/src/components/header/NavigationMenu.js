@@ -8,16 +8,7 @@ import {
   Typography,
   Divider
 } from '@mui/material';
-import {
-  Dashboard,
-  Class,
-  Schedule,
-  EventAvailable,
-  Folder,
-  AccountCircle,
-  Logout,
-  Home
-} from '@mui/icons-material';
+import { Assignment, Dashboard, Class, Schedule, AccountCircle, Logout, Description } from '@mui/icons-material';
 import { useNavigation } from '../../hooks/useNavigation';
 
 const NavigationMenu = ({ 
@@ -74,22 +65,18 @@ const NavigationMenu = ({
         </ListItemIcon>
         <Typography variant="body2">Lịch dạy</Typography>
       </MenuItem>
-      
-      <MenuItem component={Link} to="/teacher/availability" onClick={onClose}>
+      <MenuItem component={Link} to="/teacher/assignments" onClick={onClose}>
         <ListItemIcon>
-          <EventAvailable fontSize="small" sx={{ color: '#7c3aed' }} />
+          <Assignment fontSize="small" sx={{ color: '#7c3aed' }} />
         </ListItemIcon>
-        <Typography variant="body2">Lịch rảnh</Typography>
+        <Typography variant="body2">Bài tập</Typography>
       </MenuItem>
-      
-      <MenuItem component={Link} to="/teacher/materials" onClick={onClose}>
+      <MenuItem component={Link} to="/teacher/documents" onClick={onClose}>
         <ListItemIcon>
-          <Folder fontSize="small" sx={{ color: '#7c3aed' }} />
+          <Description fontSize="small" sx={{ color: '#7c3aed' }} />
         </ListItemIcon>
         <Typography variant="body2">Tài liệu</Typography>
-      </MenuItem>
-
-      <Divider sx={{ my: 1 }} />
+      </MenuItem> 
 
       {isAuthenticated && user ? (
         <>

@@ -356,6 +356,60 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
+        /// Gets student's enrolled classes. (Lấy danh sách lớp học của học viên.)
+        /// </summary>
+        /// <param name="id">Student ID (ID học viên)</param>
+        /// <returns>List of classes (Danh sách lớp học)</returns>
+        [HttpGet("{id}/classes")]
+        public async Task<ActionResult<IEnumerable<ClassDto>>> GetStudentClasses(int id)
+        {
+            try
+            {
+                var student = await FindStudent(id);
+                if (student == null)
+                {
+                    return NotFound(new { message = "Student not found" });
+                }
+
+                var classes = await _context.Enrollments
+                    .Include(e => e.Class)
+                    .ThenInclude(c => c.Course)
+                    .Include(e => e.Class)
+                    .ThenInclude(c => c.Teacher)
+                    .Include(e => e.Class)
+                    .ThenInclude(c => c.Room)
+                    .Include(e => e.Class)
+                    .ThenInclude(c => c.Curriculum)
+                    .Where(e => e.StudentId == id)
+                    .Select(e => new ClassDto
+                    {
+                        ClassId = e.Class.ClassId,
+                        ClassName = e.Class.ClassName,
+                        CourseId = e.Class.CourseId,
+                        CourseName = e.Class.Course.CourseName,
+                        CurriculumId = e.Class.CurriculumId,
+                        CurriculumName = e.Class.Curriculum != null ? e.Class.Curriculum.CurriculumName : string.Empty,
+                        TeacherId = e.Class.TeacherId,
+                        TeacherName = e.Class.Teacher.FullName,
+                        StartDate = e.Class.StartDate,
+                        EndDate = e.Class.EndDate,
+                        MaxStudents = e.Class.MaxStudents,
+                        CurrentStudents = e.Class.Enrollments.Count(en => en.Status == "Active"),
+                        RoomId = e.Class.RoomId,
+                        RoomName = e.Class.Room != null ? e.Class.Room.RoomName : string.Empty,
+                        Status = e.Class.Status
+                    })
+                    .ToListAsync();
+
+                return Ok(classes);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Error retrieving student classes" });
+            }
+        }
+
+        /// <summary>
         /// Gets student's payments. (Lấy lịch sử thanh toán của học viên.)
         /// </summary>
         /// <param name="id">Student ID (ID học viên)</param>

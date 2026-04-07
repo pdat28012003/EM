@@ -44,6 +44,11 @@ namespace EnglishCenter.API.Models
 
         public string? AttachmentUrl { get; set; }
 
+        public int? SkillId { get; set; }
+
+        [ForeignKey("SkillId")]
+        public virtual Skill? Skill { get; set; }
+
         public DateTime? UpdatedAt { get; set; }
 
         // Navigation properties

@@ -177,7 +177,7 @@ namespace EnglishCenter.API.Controllers
                 var query = _context.Documents
                     .Include(d => d.Class)
                     .Include(d => d.Teacher)
-                    .Where(d => activeEnrollments.Contains(d.ClassId.Value));
+                    .Where(d => d.ClassId.HasValue && activeEnrollments.Contains(d.ClassId.Value));
 
                 // Apply filters
                 if (!string.IsNullOrEmpty(search))
@@ -563,7 +563,7 @@ namespace EnglishCenter.API.Controllers
                 var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
                 var contentType = GetContentType(document.FileName);
 
-                Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{document.OriginalFileName}\"");
+                Response.Headers["Content-Disposition"] = $"attachment; filename=\"{document.OriginalFileName}\"";
                 
                 return File(fileBytes, contentType);
             }

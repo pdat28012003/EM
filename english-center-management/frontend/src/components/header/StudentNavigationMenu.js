@@ -53,7 +53,7 @@ const StudentNavigationMenu = ({
               Xin chào, {user.fullName || user.name || 'User'}
             </Box>
           </MenuItem>
-          <MenuItem component={Link} to="/profile" onClick={onClose}>
+          <MenuItem component={Link} to="/student/profile" onClick={onClose}>
             Thông tin cá nhân
           </MenuItem>
           <MenuItem component={Link} to="/login" onClick={onClose}>

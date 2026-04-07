@@ -138,7 +138,7 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         [Authorize]
         [HttpPut("update-profile")]
-        public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileRequest request)
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             string? avatarUrl = null;
@@ -174,6 +174,11 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 avatarUrl = $"/uploads/avatars/{uniqueFileName}";
+            }
+            // If no file but Avatar URL provided (from UploadController)
+            else if (!string.IsNullOrEmpty(request.Avatar))
+            {
+                avatarUrl = request.Avatar;
             }
 
             var result = await _authService.UpdateProfileAsync(userId, request, avatarUrl);
