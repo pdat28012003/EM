@@ -31,7 +31,7 @@ bld/
 [Oo]bj/
 
 # Entity Framework
-# Migrations/
+Migrations/
 
 # Frontend - React
 frontend/node_modules/
