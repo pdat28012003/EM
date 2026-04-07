@@ -4,6 +4,7 @@ using EnglishCenter.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnglishCenter.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401163043_CreateActivityLogsTable")]
+    partial class CreateActivityLogsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -139,9 +142,6 @@ namespace EnglishCenter.API.Migrations
                     b.Property<int>("MaxScore")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SkillId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -165,8 +165,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("AssignmentId");
 
                     b.HasIndex("ClassId");
-
-                    b.HasIndex("SkillId");
 
                     b.HasIndex("TeacherId");
 
@@ -1106,26 +1104,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("RoleId");
 
                     b.ToTable("Roles");
-
-                    b.HasData(
-                        new
-                        {
-                            RoleId = 1,
-                            Description = "System Administrator",
-                            RoleName = "Admin"
-                        },
-                        new
-                        {
-                            RoleId = 2,
-                            Description = "Center Teacher",
-                            RoleName = "Teacher"
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            Description = "Center Student",
-                            RoleName = "Student"
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Room", b =>
@@ -1532,53 +1510,6 @@ namespace EnglishCenter.API.Migrations
                         });
                 });
 
-            modelBuilder.Entity("EnglishCenter.API.Models.TeacherAvailability", b =>
-                {
-                    b.Property<int>("AvailabilityId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AvailabilityId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DayOfWeek")
-                        .HasColumnType("int");
-
-                    b.Property<TimeSpan>("EndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRecurring")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("SpecificDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<TimeSpan>("StartTime")
-                        .HasColumnType("time");
-
-                    b.Property<int>("TeacherId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("AvailabilityId");
-
-                    b.HasIndex("TeacherId");
-
-                    b.ToTable("TeacherAvailabilities");
-                });
-
             modelBuilder.Entity("EnglishCenter.API.Models.TestScore", b =>
                 {
                     b.Property<int>("TestScoreId")
@@ -1881,10 +1812,6 @@ namespace EnglishCenter.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("EnglishCenter.API.Models.Skill", "Skill")
-                        .WithMany()
-                        .HasForeignKey("SkillId");
-
                     b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
                         .WithMany("Assignments")
                         .HasForeignKey("TeacherId")
@@ -1892,8 +1819,6 @@ namespace EnglishCenter.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Class");
-
-                    b.Navigation("Skill");
 
                     b.Navigation("Teacher");
                 });
@@ -2243,17 +2168,6 @@ namespace EnglishCenter.API.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("EnglishCenter.API.Models.TeacherAvailability", b =>
-                {
-                    b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
-                        .WithMany()
-                        .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.TestScore", b =>

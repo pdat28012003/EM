@@ -84,6 +84,7 @@ namespace EnglishCenter.API.DTOs
         public string? FullName { get; set; }
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
+        public string? Avatar { get; set; }
         public IFormFile? AvatarFile { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import StudentHeader from '../header/StudentHeader';
+import Footer from '../footer/Footer';
 
 const StudentLayout = ({ children }) => {
   return (
@@ -13,13 +14,16 @@ const StudentLayout = ({ children }) => {
         component="main" 
         sx={{ 
           flexGrow: 1,
-          p: 3,
-          backgroundColor: '#f5f5f5',
-          minHeight: 'calc(100vh - 48px)' // Subtract header height
+          mt: 8, // Margin top for fixed header (64px)
+          pt: 2,
+          pb: 4
         }}
       >
         {children}
       </Box>
+      
+      {/* Footer */}
+      <Footer />
     </Box>
   );
 };

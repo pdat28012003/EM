@@ -56,6 +56,7 @@ const NotificationDropdown = () => {
       eventSource.addEventListener('notification', (event) => {
         try {
           const newNotification = JSON.parse(event.data);
+          console.log('[Notifications] SSE new notification:', newNotification);
           setNotifications((prev) => [newNotification, ...prev]);
           setUnreadCount((prev) => prev + 1);
         } catch (err) {
@@ -66,6 +67,7 @@ const NotificationDropdown = () => {
       eventSource.addEventListener('unread-count', (event) => {
         try {
           const { count } = JSON.parse(event.data);
+          console.log('[Notifications] SSE unread-count:', count);
           setUnreadCount(count);
         } catch (err) {
           console.error('Error parsing unread count:', err);
@@ -94,6 +96,9 @@ const NotificationDropdown = () => {
     try {
       const res = await notificationsAPI.getAll({ limit: 50 });
       const data = res.data || [];
+      console.log('[Notifications] Loaded:', data.length, 'items');
+      console.log('[Notifications] Unread in list:', data.filter(n => !n.isRead).length);
+      console.log('[Notifications] Data:', data);
 
       const sorted = data.sort((a, b) => {
         if (a.isRead === b.isRead) {
@@ -104,16 +109,18 @@ const NotificationDropdown = () => {
 
       setNotifications(sorted);
     } catch (err) {
-      console.error(err);
+      console.error('[Notifications] Error loading:', err);
     }
   };
 
   const loadUnreadCount = async () => {
     try {
       const res = await notificationsAPI.getUnreadCount();
-      setUnreadCount(res.data || 0);
+      const count = res.data || 0;
+      console.log('[Notifications] Unread count from API:', count);
+      setUnreadCount(count);
     } catch (err) {
-      console.error(err);
+      console.error('[Notifications] Error loading unread count:', err);
     }
   };
 

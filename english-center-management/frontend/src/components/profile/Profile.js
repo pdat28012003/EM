@@ -71,7 +71,7 @@ const Profile = () => {
   }
 
   return (
-    <Box sx={{ backgroundColor: '#f8fafc', minHeight: '100vh', py: 4 }}>
+    <Box sx={{ backgroundColor: '#f8fafc', py: 4 }}>
       <Container maxWidth="md">
         <Paper 
           elevation={0} 

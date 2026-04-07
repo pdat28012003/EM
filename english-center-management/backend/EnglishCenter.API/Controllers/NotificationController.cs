@@ -49,10 +49,14 @@ namespace EnglishCenter.API.Controllers
 
             // Get teacher/student ids
             var (teacherId, studentId) = await GetTeacherAndStudentIdAsync(userId.Value);
+            
+            Console.WriteLine($"[SSE] UserId: {userId}, TeacherId: {teacherId}, StudentId: {studentId}");
 
             // Send initial unread count
             var unreadCount = await _context.Notifications
                 .CountAsync(n => (n.UserId == userId || n.TeacherId == teacherId || n.StudentId == studentId) && !n.IsRead, cancellationToken);
+            
+            Console.WriteLine($"[SSE] Unread count: {unreadCount}");
             
             var initialMessage = $"event: unread-count\ndata: {{\"count\": {unreadCount}}}\n\n";
             await Response.Body.WriteAsync(System.Text.Encoding.UTF8.GetBytes(initialMessage), cancellationToken);
@@ -117,9 +121,13 @@ namespace EnglishCenter.API.Controllers
                 .Where(s => s.UserId == userId)
                 .Select(s => s.StudentId)
                 .FirstOrDefaultAsync();
+            
+            // Convert 0 to null for consistent query behavior
+            var teacherIdNull = teacherId == 0 ? (int?)null : teacherId;
+            var studentIdNull = studentId == 0 ? (int?)null : studentId;
 
             var query = _context.Notifications
-                .Where(n => n.UserId == userId || n.TeacherId == teacherId || n.StudentId == studentId)
+                .Where(n => n.UserId == userId || n.TeacherId == teacherIdNull || n.StudentId == studentIdNull)
                 .OrderByDescending(n => n.CreatedAt);
 
             if (unreadOnly)
@@ -165,9 +173,16 @@ namespace EnglishCenter.API.Controllers
                 .Where(s => s.UserId == userId)
                 .Select(s => s.StudentId)
                 .FirstOrDefaultAsync();
+            
+            // Convert 0 to null for consistent query behavior
+            var teacherIdNull = teacherId == 0 ? (int?)null : teacherId;
+            var studentIdNull = studentId == 0 ? (int?)null : studentId;
 
             var count = await _context.Notifications
-                .CountAsync(n => (n.UserId == userId || n.TeacherId == teacherId || n.StudentId == studentId) && !n.IsRead);
+                .CountAsync(n => (n.UserId == userId || n.TeacherId == teacherIdNull || n.StudentId == studentIdNull) && !n.IsRead);
+            
+            Console.WriteLine($"[API] UserId: {userId}, TeacherId: {teacherId}, StudentId: {studentId}");
+            Console.WriteLine($"[API] Unread count: {count}");
 
             return Ok(count);
         }

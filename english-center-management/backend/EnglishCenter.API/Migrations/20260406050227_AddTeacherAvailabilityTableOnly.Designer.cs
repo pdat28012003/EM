@@ -4,6 +4,7 @@ using EnglishCenter.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnglishCenter.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260406050227_AddTeacherAvailabilityTableOnly")]
+    partial class AddTeacherAvailabilityTableOnly
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -139,9 +142,6 @@ namespace EnglishCenter.API.Migrations
                     b.Property<int>("MaxScore")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SkillId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -165,8 +165,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("AssignmentId");
 
                     b.HasIndex("ClassId");
-
-                    b.HasIndex("SkillId");
 
                     b.HasIndex("TeacherId");
 
@@ -348,32 +346,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasIndex("TeacherId");
 
                     b.ToTable("Classes");
-
-                    b.HasData(
-                        new
-                        {
-                            ClassId = 1,
-                            ClassName = "test",
-                            CourseId = 1,
-                            EndDate = new DateTime(2024, 5, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            MaxStudents = 20,
-                            RoomId = 1,
-                            StartDate = new DateTime(2024, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = "Active",
-                            TeacherId = 1
-                        },
-                        new
-                        {
-                            ClassId = 2,
-                            ClassName = "ENG101-A2",
-                            CourseId = 1,
-                            EndDate = new DateTime(2024, 6, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            MaxStudents = 15,
-                            RoomId = 2,
-                            StartDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = "Active",
-                            TeacherId = 2
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Course", b =>
@@ -419,68 +391,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("CourseId");
 
                     b.ToTable("Courses");
-
-                    b.HasData(
-                        new
-                        {
-                            CourseId = 1,
-                            CourseCode = "ENG101",
-                            CourseName = "English for Beginners",
-                            Description = "Basic English course for absolute beginners",
-                            DurationInWeeks = 12,
-                            Fee = 2000000m,
-                            IsActive = true,
-                            Level = "Beginner",
-                            TotalHours = 48
-                        },
-                        new
-                        {
-                            CourseId = 2,
-                            CourseCode = "ENG102",
-                            CourseName = "Elementary English",
-                            Description = "English course for elementary level students",
-                            DurationInWeeks = 12,
-                            Fee = 2500000m,
-                            IsActive = true,
-                            Level = "Elementary",
-                            TotalHours = 48
-                        },
-                        new
-                        {
-                            CourseId = 3,
-                            CourseCode = "ENG201",
-                            CourseName = "Intermediate English",
-                            Description = "English course for intermediate level students",
-                            DurationInWeeks = 16,
-                            Fee = 3000000m,
-                            IsActive = true,
-                            Level = "Intermediate",
-                            TotalHours = 64
-                        },
-                        new
-                        {
-                            CourseId = 4,
-                            CourseCode = "ENG301",
-                            CourseName = "Advanced English",
-                            Description = "Advanced English course for fluent speakers",
-                            DurationInWeeks = 16,
-                            Fee = 3500000m,
-                            IsActive = true,
-                            Level = "Advanced",
-                            TotalHours = 64
-                        },
-                        new
-                        {
-                            CourseId = 5,
-                            CourseCode = "IELTS01",
-                            CourseName = "IELTS Preparation",
-                            Description = "Intensive IELTS exam preparation course",
-                            DurationInWeeks = 20,
-                            Fee = 5000000m,
-                            IsActive = true,
-                            Level = "Intermediate",
-                            TotalHours = 80
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Curriculum", b =>
@@ -700,32 +610,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("Enrollments");
-
-                    b.HasData(
-                        new
-                        {
-                            EnrollmentId = 1,
-                            ClassId = 1,
-                            EnrollmentDate = new DateTime(2024, 2, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = "Active",
-                            StudentId = 1
-                        },
-                        new
-                        {
-                            EnrollmentId = 2,
-                            ClassId = 1,
-                            EnrollmentDate = new DateTime(2024, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = "Active",
-                            StudentId = 2
-                        },
-                        new
-                        {
-                            EnrollmentId = 3,
-                            ClassId = 1,
-                            EnrollmentDate = new DateTime(2024, 3, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = "Active",
-                            StudentId = 3
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Grade", b =>
@@ -926,58 +810,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("Payments");
-
-                    b.HasData(
-                        new
-                        {
-                            PaymentId = 1,
-                            Amount = 2000000m,
-                            Notes = "Full payment for English for Beginners course",
-                            PaymentDate = new DateTime(2024, 2, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PaymentMethod = "Bank Transfer",
-                            Status = "Completed",
-                            StudentId = 1
-                        },
-                        new
-                        {
-                            PaymentId = 2,
-                            Amount = 2000000m,
-                            Notes = "Full payment for English for Beginners course",
-                            PaymentDate = new DateTime(2024, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PaymentMethod = "Cash",
-                            Status = "Completed",
-                            StudentId = 2
-                        },
-                        new
-                        {
-                            PaymentId = 3,
-                            Amount = 2000000m,
-                            Notes = "Full payment for English for Beginners course",
-                            PaymentDate = new DateTime(2024, 3, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PaymentMethod = "Credit Card",
-                            Status = "Completed",
-                            StudentId = 3
-                        },
-                        new
-                        {
-                            PaymentId = 4,
-                            Amount = 500000m,
-                            Notes = "Partial payment for additional materials",
-                            PaymentDate = new DateTime(2024, 4, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PaymentMethod = "Bank Transfer",
-                            Status = "Completed",
-                            StudentId = 1
-                        },
-                        new
-                        {
-                            PaymentId = 5,
-                            Amount = 300000m,
-                            Notes = "Late fee payment",
-                            PaymentDate = new DateTime(2024, 4, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PaymentMethod = "Cash",
-                            Status = "Completed",
-                            StudentId = 2
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.QuizAnswer", b =>
@@ -1106,26 +938,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("RoleId");
 
                     b.ToTable("Roles");
-
-                    b.HasData(
-                        new
-                        {
-                            RoleId = 1,
-                            Description = "System Administrator",
-                            RoleName = "Admin"
-                        },
-                        new
-                        {
-                            RoleId = 2,
-                            Description = "Center Teacher",
-                            RoleName = "Teacher"
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            Description = "Center Student",
-                            RoleName = "Student"
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Room", b =>
@@ -1161,28 +973,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("RoomId");
 
                     b.ToTable("Rooms");
-
-                    b.HasData(
-                        new
-                        {
-                            RoomId = 1,
-                            AvailableEndTime = new TimeSpan(0, 21, 0, 0, 0),
-                            AvailableStartTime = new TimeSpan(0, 7, 0, 0, 0),
-                            Capacity = 20,
-                            Description = "Phòng học tiêu chuẩn 20 chỗ",
-                            IsActive = true,
-                            RoomName = "Phòng 101"
-                        },
-                        new
-                        {
-                            RoomId = 2,
-                            AvailableEndTime = new TimeSpan(0, 21, 0, 0, 0),
-                            AvailableStartTime = new TimeSpan(0, 7, 0, 0, 0),
-                            Capacity = 15,
-                            Description = "Phòng học nhỏ 15 chỗ",
-                            IsActive = true,
-                            RoomName = "Phòng 102"
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Skill", b =>
@@ -1215,62 +1005,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("SkillId");
 
                     b.ToTable("Skills");
-
-                    b.HasData(
-                        new
-                        {
-                            SkillId = 1,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Kỹ năng nghe hiểu tiếng Anh",
-                            IsActive = true,
-                            Name = "Listening",
-                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            SkillId = 2,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Kỹ năng nói tiếng Anh",
-                            IsActive = true,
-                            Name = "Speaking",
-                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            SkillId = 3,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Kỹ năng đọc hiểu tiếng Anh",
-                            IsActive = true,
-                            Name = "Reading",
-                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            SkillId = 4,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Kỹ năng viết tiếng Anh",
-                            IsActive = true,
-                            Name = "Writing",
-                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            SkillId = 5,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Ngữ pháp tiếng Anh",
-                            IsActive = true,
-                            Name = "Grammar",
-                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            SkillId = 6,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Từ vựng tiếng Anh",
-                            IsActive = true,
-                            Name = "Vocabulary",
-                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Student", b =>
@@ -1326,47 +1060,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Students");
-
-                    b.HasData(
-                        new
-                        {
-                            StudentId = 1,
-                            Address = "123 Nguyễn Huệ, Q1, TP.HCM",
-                            DateOfBirth = new DateTime(1995, 5, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "a.nguyen@email.com",
-                            EnrollmentDate = new DateTime(2024, 2, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Văn A",
-                            IsActive = true,
-                            Level = "Beginner",
-                            Password = "",
-                            PhoneNumber = "0901234567"
-                        },
-                        new
-                        {
-                            StudentId = 2,
-                            Address = "456 Lê Lợi, Q3, TP.HCM",
-                            DateOfBirth = new DateTime(1998, 8, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "b.tran@email.com",
-                            EnrollmentDate = new DateTime(2024, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Trần Thị B",
-                            IsActive = true,
-                            Level = "Elementary",
-                            Password = "",
-                            PhoneNumber = "0902345678"
-                        },
-                        new
-                        {
-                            StudentId = 3,
-                            Address = "789 Đồng Khởi, Q5, TP.HCM",
-                            DateOfBirth = new DateTime(2000, 12, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "c.le@email.com",
-                            EnrollmentDate = new DateTime(2024, 3, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Lê Văn C",
-                            IsActive = true,
-                            Level = "Pre-Intermediate",
-                            Password = "",
-                            PhoneNumber = "0903456789"
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.StudentQuizAnswer", b =>
@@ -1502,34 +1195,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Teachers");
-
-                    b.HasData(
-                        new
-                        {
-                            TeacherId = 1,
-                            Email = "an.nguyen@englishcenter.com",
-                            FullName = "Nguyễn Văn An",
-                            HireDate = new DateTime(2020, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            HourlyRate = 200000m,
-                            IsActive = true,
-                            Password = "",
-                            PhoneNumber = "0901234567",
-                            Qualifications = "TESOL Certificate, MA in English Education",
-                            Specialization = "General English, IELTS"
-                        },
-                        new
-                        {
-                            TeacherId = 2,
-                            Email = "binh.tran@englishcenter.com",
-                            FullName = "Trần Thị Bình",
-                            HireDate = new DateTime(2021, 3, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            HourlyRate = 180000m,
-                            IsActive = true,
-                            Password = "",
-                            PhoneNumber = "0902345678",
-                            Qualifications = "CELTA Certificate, BA in English Literature",
-                            Specialization = "Business English, Communication"
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.TeacherAvailability", b =>
@@ -1628,120 +1293,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("TestScores");
-
-                    b.HasData(
-                        new
-                        {
-                            TestScoreId = 1,
-                            ClassId = 1,
-                            Comments = "Good performance in listening and writing. Need more practice in speaking.",
-                            ListeningScore = 8.5m,
-                            ReadingScore = 7.8m,
-                            SpeakingScore = 7.5m,
-                            StudentId = 1,
-                            TestDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TestName = "Midterm Exam - Unit 1",
-                            TotalScore = 8.0m,
-                            WritingScore = 8.2m
-                        },
-                        new
-                        {
-                            TestScoreId = 2,
-                            ClassId = 1,
-                            Comments = "Excellent improvement in all skills. Keep up the good work!",
-                            ListeningScore = 9.0m,
-                            ReadingScore = 8.5m,
-                            SpeakingScore = 8.2m,
-                            StudentId = 1,
-                            TestDate = new DateTime(2024, 4, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TestName = "Final Exam - Unit 1",
-                            TotalScore = 8.6m,
-                            WritingScore = 8.8m
-                        },
-                        new
-                        {
-                            TestScoreId = 3,
-                            ClassId = 1,
-                            Comments = "Average performance. Should focus more on listening comprehension.",
-                            ListeningScore = 6.5m,
-                            ReadingScore = 7.0m,
-                            SpeakingScore = 7.2m,
-                            StudentId = 2,
-                            TestDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TestName = "Midterm Exam - Unit 1",
-                            TotalScore = 6.9m,
-                            WritingScore = 6.8m
-                        },
-                        new
-                        {
-                            TestScoreId = 4,
-                            ClassId = 1,
-                            Comments = "Good understanding of grammar. Vocabulary needs improvement.",
-                            ListeningScore = 7.2m,
-                            ReadingScore = 8.0m,
-                            SpeakingScore = 7.8m,
-                            StudentId = 2,
-                            TestDate = new DateTime(2024, 3, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TestName = "Quiz - Grammar & Vocabulary",
-                            TotalScore = 7.6m,
-                            WritingScore = 7.5m
-                        },
-                        new
-                        {
-                            TestScoreId = 5,
-                            ClassId = 1,
-                            Comments = "Outstanding speaking skills! Very fluent and confident.",
-                            ListeningScore = 8.8m,
-                            ReadingScore = 8.2m,
-                            SpeakingScore = 9.2m,
-                            StudentId = 1,
-                            TestDate = new DateTime(2024, 4, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TestName = "Quiz - Conversation Skills",
-                            TotalScore = 8.7m,
-                            WritingScore = 8.5m
-                        },
-                        new
-                        {
-                            TestScoreId = 6,
-                            ClassId = 1,
-                            Comments = "Below average performance. Requires additional support and practice.",
-                            ListeningScore = 5.5m,
-                            ReadingScore = 6.0m,
-                            SpeakingScore = 6.2m,
-                            StudentId = 3,
-                            TestDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TestName = "Midterm Exam - Unit 1",
-                            TotalScore = 5.9m,
-                            WritingScore = 5.8m
-                        },
-                        new
-                        {
-                            TestScoreId = 7,
-                            ClassId = 1,
-                            Comments = "Writing has improved. Still needs work on basic grammar.",
-                            ListeningScore = 6.0m,
-                            ReadingScore = 6.5m,
-                            SpeakingScore = 6.0m,
-                            StudentId = 3,
-                            TestDate = new DateTime(2024, 3, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TestName = "Assignment - Writing Practice",
-                            TotalScore = 6.3m,
-                            WritingScore = 6.8m
-                        },
-                        new
-                        {
-                            TestScoreId = 8,
-                            ClassId = 1,
-                            Comments = "Consistent high performance. Ready for advanced level.",
-                            ListeningScore = 9.2m,
-                            ReadingScore = 8.8m,
-                            SpeakingScore = 8.5m,
-                            StudentId = 1,
-                            TestDate = new DateTime(2024, 5, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TestName = "Final Exam - Unit 2",
-                            TotalScore = 8.9m,
-                            WritingScore = 9.0m
-                        });
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.User", b =>
@@ -1881,10 +1432,6 @@ namespace EnglishCenter.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("EnglishCenter.API.Models.Skill", "Skill")
-                        .WithMany()
-                        .HasForeignKey("SkillId");
-
                     b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
                         .WithMany("Assignments")
                         .HasForeignKey("TeacherId")
@@ -1892,8 +1439,6 @@ namespace EnglishCenter.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Class");
-
-                    b.Navigation("Skill");
 
                     b.Navigation("Teacher");
                 });

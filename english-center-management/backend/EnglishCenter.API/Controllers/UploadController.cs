@@ -15,7 +15,7 @@ namespace EnglishCenter.API.Controllers
             IWebHostEnvironment environment,
             ILogger<UploadController> logger)
         {
-            _environment = environment;
+            _environment = environment; 
             _logger = logger;
         }
 
@@ -82,6 +82,71 @@ namespace EnglishCenter.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error uploading avatar");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi upload file" });
+            }
+        }
+        [HttpPost("submission")]
+        public async Task<IActionResult> UploadSubmission(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest(new { message = "Không có file được chọn" });
+                }
+
+                // Validate file type
+                var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".txt", ".xls", ".xlsx", ".ppt", ".pptx", ".zip", ".rar",
+                    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".mp3" };
+                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    return BadRequest(new { message = "Định dạng file không được hỗ trợ" });
+                }
+
+                // Validate file size (max 50MB)
+                if (file.Length > 50 * 1024 * 1024)
+                {
+                    return BadRequest(new { message = "Kích thước file không được vượt quá 50MB" });
+                }
+
+                // Create uploads directory
+                var webRootPath = _environment.WebRootPath;
+                if (string.IsNullOrEmpty(webRootPath))
+                {
+                    webRootPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
+                    if (!Directory.Exists(webRootPath))
+                    {
+                        Directory.CreateDirectory(webRootPath);
+                    }
+                }
+                
+                var uploadsFolder = Path.Combine(webRootPath, "uploads", "submissions");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                // Generate unique filename
+                var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                // Save file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                var fileUrl = $"/uploads/submissions/{uniqueFileName}";
+                
+                _logger.LogInformation($"Submission file uploaded: {uniqueFileName}");
+
+                return Ok(new { url = fileUrl, fileName = file.FileName, size = file.Length });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading submission file");
                 return StatusCode(500, new { message = "Có lỗi xảy ra khi upload file" });
             }
         }
