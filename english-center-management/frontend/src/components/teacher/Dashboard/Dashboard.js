@@ -333,7 +333,7 @@ const TeacherDashboard = () => {
       subtitle: 'Quản lý và theo dõi lớp',
       path: '/teacher/classes',
       color: '#4F46E5',
-      badgeKey: 'classes'
+
     },
     { 
       icon: <Schedule />, 
@@ -350,12 +350,18 @@ const TeacherDashboard = () => {
       color: '#2563eb'
     },
     { 
+      icon: <Assessment />, 
+      title: 'Chấm điểm', 
+      subtitle: 'Quản lý điểm số học viên',
+      path: '/teacher/grading',
+      color: '#7c3aeb'
+    },
+    { 
       icon: <Folder />, 
       title: 'Tài liệu', 
       subtitle: 'Tài liệu giảng dạy',
       path: '/teacher/documents',
       color: '#4F46E5',
-      badgeKey: 'documents'
     },
   ];
 
@@ -499,7 +505,7 @@ const TeacherDashboard = () => {
                   variant="contained"
                   size="large"
                   startIcon={<PlayArrow />}
-                  onClick={() => navigate('/teacher/assignments')}
+                  onClick={() => navigate('/teacher/grading')}
                   sx={{
                     bgcolor: 'white',
                     color: '#4F46E5',
@@ -542,7 +548,7 @@ const TeacherDashboard = () => {
         </Typography>
         <Grid container spacing={2}>
           {menuItems.map((item, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
+            <Grid item xs={12} sm={6} md={2.4} key={index}>
               <QuickActionCard item={item} badge={item.badgeKey ? (menuBadges[item.badgeKey] > 0 ? `${menuBadges[item.badgeKey]} ${item.badgeKey === 'classes' ? 'lớp mới' : 'chưa duyệt'}` : null) : null} />
             </Grid>
           ))}
@@ -666,7 +672,7 @@ const TeacherDashboard = () => {
               </Typography>
             </Box>
             
-            <Box sx={{ position: 'relative' }}>
+            <Box sx={{ position: 'relative', maxHeight: 320, overflow: 'auto', pr: 1 }}>
               {/* Timeline line */}
               <Box
                 sx={{
@@ -681,7 +687,7 @@ const TeacherDashboard = () => {
               />
               
               <Stack spacing={0}>
-                {activities.map((activity, index) => (
+                {activities.slice(0, 10).map((activity, index) => (
                   <Box
                     key={index}
                     sx={{

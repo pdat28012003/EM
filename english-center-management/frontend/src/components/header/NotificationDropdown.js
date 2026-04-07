@@ -18,7 +18,7 @@ import {
   MarkEmailUnread,
   Circle
 } from '@mui/icons-material';
-import { notificationsAPI } from '../../services/api';
+import { notificationsAPI, BASE_URL } from '../../services/api';
 
 const NotificationDropdown = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -27,19 +27,68 @@ const NotificationDropdown = () => {
   const [actionMenuAnchor, setActionMenuAnchor] = useState(null);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const hasLoaded = useRef(false);
+  const eventSourceRef = useRef(null);
 
   const open = Boolean(anchorEl);
   const actionMenuOpen = Boolean(actionMenuAnchor);
 
   useEffect(() => {
     loadUnreadCount();
+    connectSSE();
 
-    const interval = setInterval(() => {
-      loadUnreadCount();
-    }, 30000);
-
-    return () => clearInterval(interval);
+    return () => {
+      disconnectSSE();
+    };
   }, []);
+
+  const connectSSE = () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const sseUrl = `${BASE_URL}/api/notifications/stream?token=${token}`;
+      
+      const eventSource = new EventSource(sseUrl);
+      eventSourceRef.current = eventSource;
+
+      eventSource.onopen = () => {
+        console.log('SSE connected');
+      };
+
+      eventSource.addEventListener('notification', (event) => {
+        try {
+          const newNotification = JSON.parse(event.data);
+          setNotifications((prev) => [newNotification, ...prev]);
+          setUnreadCount((prev) => prev + 1);
+        } catch (err) {
+          console.error('Error parsing SSE data:', err);
+        }
+      });
+
+      eventSource.addEventListener('unread-count', (event) => {
+        try {
+          const { count } = JSON.parse(event.data);
+          setUnreadCount(count);
+        } catch (err) {
+          console.error('Error parsing unread count:', err);
+        }
+      });
+
+      eventSource.onerror = (error) => {
+        console.error('SSE error:', error);
+        eventSource.close();
+        // Fallback to polling after 5 seconds
+        setTimeout(connectSSE, 5000);
+      };
+    } catch (err) {
+      console.error('Error setting up SSE:', err);
+    }
+  };
+
+  const disconnectSSE = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+  };
 
   const loadNotifications = async () => {
     try {
