@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Container,
   Grid,
   Paper,
   Typography,
@@ -73,7 +72,7 @@ const Dashboard = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ mt: 2, mb: 4 }}>
       <Typography variant="h4" gutterBottom fontWeight="bold" mb={4}>
         Dashboard - Tổng Quan
       </Typography>
@@ -137,7 +136,7 @@ const Dashboard = () => {
           </Paper>
         </Grid>
       </Grid>
-    </Container>
+    </Box>
   );
 };
 

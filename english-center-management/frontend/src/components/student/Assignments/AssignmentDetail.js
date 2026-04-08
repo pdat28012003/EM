@@ -17,7 +17,7 @@ import {
   RadioGroup,
   Chip,
 } from '@mui/material';
-import { ArrowBack, Save, Upload, AttachFile } from '@mui/icons-material';
+import { ArrowBack, Save, Upload, AttachFile, CheckCircle } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { assignmentsAPI, authAPI, studentsAPI, uploadAPI } from '../../../services/api';
@@ -35,6 +35,7 @@ const StudentAssignmentDetail = () => {
   const [questions, setQuestions] = useState([]);
   const [studentId, setStudentId] = useState(null);
   const [quizResult, setQuizResult] = useState(null);
+  const [submission, setSubmission] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const [content, setContent] = useState('');
@@ -120,6 +121,20 @@ const StudentAssignmentDetail = () => {
           const qRes = await assignmentsAPI.getQuizQuestions(numericAssignmentId);
           setQuestions(Array.isArray(qRes.data) ? qRes.data : []);
         } else {
+          // For regular assignments, check if already submitted
+          try {
+            const subRes = await assignmentsAPI.getMySubmission(numericAssignmentId, sId);
+            setSubmission(subRes.data);
+            // Pre-fill content if exists
+            if (subRes.data?.content) {
+              setContent(subRes.data.content);
+            }
+            if (subRes.data?.attachmentUrl) {
+              setAttachmentUrl(subRes.data.attachmentUrl);
+            }
+          } catch (e) {
+            // ignore 404 - not submitted yet
+          }
           setQuestions([]);
         }
       } catch (err) {
@@ -206,6 +221,7 @@ const StudentAssignmentDetail = () => {
       
       // Upload file nếu có
       let uploadedUrl = null;
+      let originalFileName = null;
       if (selectedFile) {
         const formData = new FormData();
         formData.append('file', selectedFile);
@@ -213,15 +229,21 @@ const StudentAssignmentDetail = () => {
         const uploadRes = await uploadAPI.uploadSubmission(formData);
         console.log('Upload response:', uploadRes.data);
         uploadedUrl = uploadRes.data?.url || uploadRes.data?.data?.url;
+        originalFileName = uploadRes.data?.fileName || uploadRes.data?.data?.fileName || selectedFile.name;
         console.log('Extracted URL:', uploadedUrl);
+        console.log('Original filename:', originalFileName);
       }
       
       await assignmentsAPI.createSubmission(numericAssignmentId, {
         studentId,
         content,
         attachmentUrl: uploadedUrl,
+        originalFileName: originalFileName,
       });
-      navigate('/student/assignments');
+      // Fetch submission to show result
+      const subRes = await assignmentsAPI.getMySubmission(numericAssignmentId, studentId);
+      setSubmission(subRes.data);
+      setSelectedFile(null);
     } catch (err) {
       console.error('Error submitting assignment:', err);
       setError(err.response?.data?.message || 'Không thể nộp bài. Vui lòng thử lại.');
@@ -392,7 +414,59 @@ const StudentAssignmentDetail = () => {
             </Alert>
           )}
         </Paper>
+      ) : submission ? (
+        // Show submitted result
+        <Paper sx={{ p: 3, borderRadius: 3 }}>
+          <Typography variant="h6" fontWeight={800} sx={{ mb: 2 }}>
+            Kết quả bài làm
+          </Typography>
+          
+          <Alert severity={submission.status === 'Graded' ? 'success' : 'info'} sx={{ mb: 3 }}>
+            <Typography variant="body1" fontWeight="bold">
+              {submission.status === 'Graded' 
+                ? `Đã chấm điểm: ${submission.score}/${assignment?.maxScore || 'N/A'}` 
+                : 'Đã nộp - Chờ chấm điểm'}
+            </Typography>
+            <Typography variant="body2">
+              Nộp lúc: {dayjs(submission.submittedAt).format('DD/MM/YYYY HH:mm')}
+            </Typography>
+            {submission.feedback && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                <strong>Nhận xét:</strong> {submission.feedback}
+              </Typography>
+            )}
+          </Alert>
+          
+          {/* Show submitted content */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+              Nội dung bài làm:
+            </Typography>
+            <Paper sx={{ p: 2, bgcolor: 'grey.50', minHeight: 200 }}>
+              <div dangerouslySetInnerHTML={{ __html: submission.content || 'Không có nội dung' }} />
+            </Paper>
+          </Box>
+          
+          {/* Show attachment if exists */}
+          {submission.attachmentUrl && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                File đính kèm:
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<AttachFile />}
+                href={submission.attachmentUrl}
+                target="_blank"
+                sx={{ borderRadius: 2 }}
+              >
+                Tải xuống file đính kèm
+              </Button>
+            </Box>
+          )}
+        </Paper>
       ) : (
+        // Show submission form
         <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Typography variant="h6" fontWeight={800} sx={{ mb: 2 }}>
             Bài làm của bạn

@@ -1,29 +1,31 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { Box, Container } from '@mui/material';
 import StudentHeader from '../header/StudentHeader';
 import Footer from '../footer/Footer';
 
 const StudentLayout = ({ children }) => {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* Student Header */}
       <StudentHeader />
       
-      {/* Main Content */}
-      <Box 
-        component="main" 
-        sx={{ 
+      {/* Scrollable Content Area */}
+      <Box
+        sx={{
           flexGrow: 1,
-          mt: 8, // Margin top for fixed header (64px)
-          pt: 2,
-          pb: 4
+          pt: '48px',
+          height: 'calc(100vh - 48px)',
+          overflowY: 'auto',
+          overflowX: 'hidden'
         }}
       >
-        {children}
+        <Box component="main" sx={{ pb: 4 }}>
+          <Container maxWidth="lg">
+            {children}
+          </Container>
+        </Box>
+        <Footer />
       </Box>
-      
-      {/* Footer */}
-      <Footer />
     </Box>
   );
 };

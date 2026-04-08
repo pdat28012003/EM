@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
   Paper,
   Typography,
   Button,
@@ -545,7 +544,7 @@ const handleDownload = async (doc) => {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Box sx={{ mt: 2, mb: 4 }}>
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h5" gutterBottom>
           Quản lý tài liệu hệ thống
@@ -829,7 +828,7 @@ const handleDownload = async (doc) => {
         classes={classes}
         dialogTitle="Chỉnh sửa tài liệu"
       />
-    </Container>
+    </Box>
   );
 };
 

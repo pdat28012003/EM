@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
+  Box,
   Paper,
   Typography,
   Tabs,
@@ -325,7 +325,7 @@ const Schedules = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ mt: 2, mb: 4 }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         Quản Lý Lịch Học
       </Typography>
@@ -401,7 +401,7 @@ const Schedules = () => {
           />
         )}
       </Paper>
-    </Container>
+    </Box>
   );
 };
 

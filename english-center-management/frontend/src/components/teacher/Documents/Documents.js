@@ -29,8 +29,7 @@ import {
   DialogActions,
   FormControl,
   InputLabel,
-  Select,
-  Fab
+  Select
 } from '@mui/material';
 import {
   Description,
@@ -202,14 +201,14 @@ const Documents = () => {
 
 const handleDownload = async (doc) => {
   try {
-    const response = await documentsAPI.download(doc.documentId);
+    const response = await documentsAPI.download(doc.DocumentId);
 
     const blob = new Blob([response.data]);
     const url = window.URL.createObjectURL(blob);
 
     const link = window.document.createElement('a');
     link.href = url;
-    link.download = doc.originalFileName || doc.title;
+    link.download = doc.OriginalFileName || doc.Title || 'download';
 
     window.document.body.appendChild(link);
     link.click();
@@ -432,7 +431,7 @@ const handleUpload = async () => {
                   </Box>
                   <Box>
                     <Typography variant="h4" fontWeight="bold">
-                      {documents.filter(d => d.uploadDate === new Date().toISOString().split('T')[0]).length}
+                      {documents.filter(d => d.UploadDate === new Date().toISOString().split('T')[0]).length}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Hôm nay
@@ -452,7 +451,7 @@ const handleUpload = async () => {
                   </Box>
                   <Box>
                     <Typography variant="h4" fontWeight="bold">
-                      {documents.reduce((sum, doc) => sum + doc.downloadCount, 0)}
+                      {documents.reduce((sum, doc) => sum + (doc.DownloadCount || 0), 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Lượt tải
@@ -565,9 +564,25 @@ const handleUpload = async () => {
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Danh sách tài liệu
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Danh sách tài liệu
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<CloudUpload />}
+                  onClick={handleUploadOpen}
+                  sx={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%)',
+                    }
+                  }}
+                >
+                  Thêm tài liệu
+                </Button>
+              </Box>
               
               <TableContainer>
                 <Table>
@@ -596,32 +611,32 @@ const handleUpload = async () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      documents.map((document) => (
-                       <TableRow key={document.documentId} hover>
+                      documents.map((document, index) => (
+                       <TableRow key={document.DocumentId || index} hover>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              {getFileIcon(document.fileType)}
+                              {getFileIcon(document.FileType)}
                               <Box>
                                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                  {document.title}
+                                  {document.Title}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                  {document.description}
+                                  {document.Description}
                                 </Typography>
                               </Box>
                             </Box>
                           </TableCell>
                           <TableCell>
                             <Chip 
-                              label={getTypeLabel(document.type)} 
-                              color={getTypeColor(document.type)}
+                              label={getTypeLabel(document.Type)} 
+                              color={getTypeColor(document.Type)}
                               size="small"
                             />
                           </TableCell>
-                          <TableCell>{document.className}</TableCell>
-                          <TableCell>{document.fileSize}</TableCell>
-                          <TableCell>{document.uploadDate}</TableCell>
-                          <TableCell>{document.downloadCount}</TableCell>
+                          <TableCell>{document.ClassName}</TableCell>
+                          <TableCell>{document.FileSize}</TableCell>
+                          <TableCell>{document.UploadDate}</TableCell>
+                          <TableCell>{document.DownloadCount}</TableCell>
                           <TableCell>
                             <IconButton
                               size="small"
@@ -639,20 +654,6 @@ const handleUpload = async () => {
             </Paper>
           </Grid>
         </Grid>
-
-        {/* Floating Action Button */}
-        <Fab
-          color="primary"
-          aria-label="upload"
-          onClick={handleUploadOpen}
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-          }}
-        >
-          <CloudUpload />
-        </Fab>
 
         {/* Context Menu */}
         <Menu
