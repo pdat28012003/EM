@@ -80,6 +80,13 @@ const AppRoutes = () => {
           </StudentLayout>
         </PrivateRoute>
       } />
+      <Route path="/student/assignments/:assignmentId" element={
+        <PrivateRoute allowedRoles={['student']}>
+          <StudentLayout>
+            <StudentAssignmentDetail />
+          </StudentLayout>
+        </PrivateRoute>
+      } />
 
       <Route path="/student/schedule" element={
         <PrivateRoute allowedRoles={['student']}>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authAPI } from '../../../services/api';
+import { authAPI, uploadAPI } from '../../../services/api';
 
 const UPLOAD_URL = process.env.REACT_APP_API_URL?.replace('/api', '') + '/upload' || 'http://localhost:5000/upload';
 const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
@@ -103,19 +103,8 @@ export const useProfile = () => {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
 
-      const uploadResponse = await fetch(UPLOAD_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: uploadFormData
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const uploadResult = await uploadResponse.json();
+      const uploadResponse = await uploadAPI.uploadAvatar(uploadFormData);
+      const uploadResult = uploadResponse.data;
       const avatarUrl = uploadResult.url || uploadResult.data?.url;
       const fullAvatarUrl = avatarUrl && !avatarUrl.startsWith('http') 
         ? `${BASE_URL}${avatarUrl}`

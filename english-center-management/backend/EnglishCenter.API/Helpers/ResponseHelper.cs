@@ -51,7 +51,7 @@ namespace EnglishCenter.API.Helpers
             return CreateResponse<object>(statusCode, message, messageEn, null, status, violations);
         }
 
-        public static ObjectResult Success<T>(string message, T data, string? messageEn = null)
+        public static ObjectResult Success<T>(string message, T? data, string? messageEn = null)
         {
             return CreateResponse(200, message, messageEn ?? message, data, "success");
         }
@@ -61,7 +61,7 @@ namespace EnglishCenter.API.Helpers
             return CreateBaseResponse(200, message, messageEn ?? message);
         }
 
-        public static ObjectResult Created<T>(string message, T data, string? messageEn = null)
+        public static ObjectResult Created<T>(string message, T? data, string? messageEn = null)
         {
             return CreateResponse(201, message, messageEn ?? message, data, "success");
         }

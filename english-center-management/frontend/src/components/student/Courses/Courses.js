@@ -20,39 +20,43 @@ import {
   Person,
   ArrowForward,
   Schedule,
+  LocationOn,
 } from '@mui/icons-material';
-import { studentsAPI, authAPI } from '../../../services/api';
+import { classesAPI, authAPI } from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 
-const StudentCourses = () => {
-  const [courses, setCourses] = useState([]);
+const StudentClasses = () => {
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadCourses();
+    loadClasses();
   }, []);
 
-  const loadCourses = async () => {
+  const loadClasses = async () => {
     try {
       setLoading(true);
       setError(null);
       const userData = localStorage.getItem('user');
       if (!userData) {
-        setError('Vui lòng đăng nhập để xem khóa học');
+        setError('Vui lòng đăng nhập để xem lớp học');
         return;
       }
 
       const user = JSON.parse(userData);
       let studentId = user.studentId;
+      console.log('User from localStorage:', user);
+      console.log('StudentId:', studentId);
 
       // Fallback: If studentId is missing, fetch profile from server
       if (!studentId) {
         try {
           const profileRes = await authAPI.getProfile();
           const profileData = profileRes.data?.data || profileRes.data;
+          console.log('Profile from API:', profileData);
           if (profileData && profileData.studentId) {
             studentId = profileData.studentId;
             localStorage.setItem('user', JSON.stringify({ ...user, studentId }));
@@ -69,9 +73,11 @@ const StudentCourses = () => {
         return;
       }
 
-      const response = await studentsAPI.getEnrollments(studentId);
-      const enrollments = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
-      setCourses(Array.isArray(enrollments) ? enrollments : []);
+      console.log('Fetching classes for studentId:', studentId);
+      const response = await classesAPI.getStudentClasses(studentId);
+      console.log('API Response:', response.data);
+      const classesData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
+      setClasses(Array.isArray(classesData) ? classesData : []);
     } catch (err) {
       console.error('Error loading courses:', err);
       if (err.response?.status === 404) {
@@ -115,11 +121,11 @@ const StudentCourses = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header Banner */}
-      <Paper 
-        sx={{ 
-          p: 4, 
-          mb: 4, 
-          borderRadius: 4, 
+      <Paper
+        sx={{
+          p: 4,
+          mb: 4,
+          borderRadius: 4,
           background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
           color: 'white',
           position: 'relative',
@@ -128,21 +134,21 @@ const StudentCourses = () => {
       >
         <Box sx={{ position: 'relative', zIndex: 1 }}>
           <Typography variant="h3" fontWeight="bold" gutterBottom>
-            Khóa học của tôi
+            Lớp học của tôi
           </Typography>
           <Typography variant="h6" sx={{ opacity: 0.9 }}>
             Quản lý các lớp học bạn đang tham gia tại trung tâm
           </Typography>
         </Box>
-        <School 
-          sx={{ 
-            position: 'absolute', 
-            right: -20, 
-            bottom: -20, 
-            fontSize: 200, 
-            opacity: 0.1, 
-            transform: 'rotate(-15deg)' 
-          }} 
+        <School
+          sx={{
+            position: 'absolute',
+            right: -20,
+            bottom: -20,
+            fontSize: 200,
+            opacity: 0.1,
+            transform: 'rotate(-15deg)'
+          }}
         />
       </Paper>
 
@@ -152,11 +158,11 @@ const StudentCourses = () => {
         </Alert>
       )}
 
-      {courses.length === 0 ? (
+      {classes.length === 0 ? (
         <Paper sx={{ p: 10, textAlign: 'center', borderRadius: 4, bgcolor: 'rgba(0,0,0,0.02)', border: '2px dashed #e0e0e0' }}>
           <School sx={{ fontSize: 80, color: '#bdbdbd', mb: 2 }} />
           <Typography variant="h5" color="textSecondary" gutterBottom>
-            Bạn chưa đăng ký khóa học nào
+            Bạn chưa đăng ký lớp học nào
           </Typography>
           <Typography variant="body1" color="textSecondary" sx={{ mb: 4 }}>
             Hãy liên hệ với trung tâm để được tư vấn và đăng ký lớp học phù hợp.
@@ -167,13 +173,13 @@ const StudentCourses = () => {
         </Paper>
       ) : (
         <Grid container spacing={3}>
-          {courses.map((enrollment) => (
-            <Grid item xs={12} md={6} lg={4} key={enrollment.enrollmentId}>
-              <Card 
-                sx={{ 
-                  borderRadius: 4, 
-                  height: '100%', 
-                  display: 'flex', 
+          {classes.map((classItem) => (
+            <Grid item xs={12} md={6} lg={4} key={classItem.classId}>
+              <Card
+                sx={{
+                  borderRadius: 4,
+                  height: '100%',
+                  display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.3s ease',
                   '&:hover': {
@@ -184,19 +190,23 @@ const StudentCourses = () => {
               >
                 <CardContent sx={{ p: 3, flexGrow: 1 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                    <Chip 
-                      label={getStatusLabel(enrollment.status)} 
-                      color={getStatusColor(enrollment.status)} 
-                      size="small" 
+                    <Chip
+                      label={getStatusLabel(classItem.status)}
+                      color={getStatusColor(classItem.status)}
+                      size="small"
                       sx={{ fontWeight: 'bold' }}
                     />
                     <Typography variant="caption" color="textSecondary">
-                      ID: {enrollment.classId}
+                      ID: {classItem.classId}
                     </Typography>
                   </Box>
 
                   <Typography variant="h5" fontWeight="bold" gutterBottom>
-                    {enrollment.className}
+                    {classItem.className}
+                  </Typography>
+
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                    {classItem.courseName}
                   </Typography>
 
                   <Divider sx={{ my: 2 }} />
@@ -211,21 +221,35 @@ const StudentCourses = () => {
                           Ngày bắt đầu
                         </Typography>
                         <Typography variant="body2" fontWeight="medium">
-                          {dayjs(enrollment.enrollmentDate).format('DD/MM/YYYY')}
+                          {dayjs(classItem.startDate).format('DD/MM/YYYY')}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box display="flex" alignItems="center" gap={1.5}>
+                      <Avatar sx={{ bgcolor: 'info.light', width: 32, height: 32 }}>
+                        <CalendarMonth sx={{ fontSize: 18 }} />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="caption" color="textSecondary" display="block">
+                          Ngày kết thúc
+                        </Typography>
+                        <Typography variant="body2" fontWeight="medium">
+                          {dayjs(classItem.endDate).format('DD/MM/YYYY')}
                         </Typography>
                       </Box>
                     </Box>
 
                     <Box display="flex" alignItems="center" gap={1.5}>
                       <Avatar sx={{ bgcolor: 'secondary.light', width: 32, height: 32 }}>
-                        <Schedule sx={{ fontSize: 18 }} />
+                        <LocationOn sx={{ fontSize: 18 }} />
                       </Avatar>
                       <Box>
                         <Typography variant="caption" color="textSecondary" display="block">
-                          Lịch học cố định
+                          Phòng học
                         </Typography>
                         <Typography variant="body2" fontWeight="medium">
-                          Thứ 2, 4, 6 (18:00 - 20:00)
+                          {classItem.roomName || 'Chưa cập nhật'}
                         </Typography>
                       </Box>
                     </Box>
@@ -239,16 +263,16 @@ const StudentCourses = () => {
                           Giáo viên phụ trách
                         </Typography>
                         <Typography variant="body2" fontWeight="medium">
-                          {enrollment.teacherName || 'Chưa cập nhật'}
+                          {classItem.teacherName || 'Chưa cập nhật'}
                         </Typography>
                       </Box>
                     </Box>
                   </Box>
                 </CardContent>
                 <Box p={2} pt={0}>
-                  <Button 
-                    fullWidth 
-                    variant="outlined" 
+                  <Button
+                    fullWidth
+                    variant="outlined"
                     endIcon={<ArrowForward />}
                     sx={{ borderRadius: 2, py: 1 }}
                     onClick={() => navigate('/student/schedule')}
@@ -265,4 +289,4 @@ const StudentCourses = () => {
   );
 };
 
-export default StudentCourses;
+export default StudentClasses;

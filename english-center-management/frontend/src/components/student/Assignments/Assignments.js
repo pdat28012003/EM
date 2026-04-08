@@ -25,12 +25,14 @@ import {
 } from '@mui/icons-material';
 import { studentsAPI, assignmentsAPI, authAPI } from '../../../services/api';
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 
 const StudentAssignments = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, completed
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadAssignments();
@@ -40,6 +42,7 @@ const StudentAssignments = () => {
     try {
       setLoading(true);
       setError(null);
+      setError(null);
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('Vui lòng đăng nhập để xem bài tập');
@@ -48,6 +51,7 @@ const StudentAssignments = () => {
 
       const user = JSON.parse(userData);
       let studentId = user.studentId;
+      const email = user.email;
 
       // Fallback: If studentId is missing, fetch profile from server
       if (!studentId) {
@@ -84,8 +88,10 @@ const StudentAssignments = () => {
       const allAssignments = [];
       for (const cls of classes) {
         try {
-          const res = await assignmentsAPI.getAll({ classId: cls.classId, pageSize: 1000 });
-          const assignmentsData = res.data?.Data || res.data?.data?.Data || res.data?.data?.data || res.data?.data || res.data || [];
+          const classId = cls.classId;
+          if (!classId) continue;
+          const res = await assignmentsAPI.getAll({ classId, studentId, pageSize: 1000 });
+          const assignmentsData = res.data?.data || res.data || [];
           allAssignments.push(...(Array.isArray(assignmentsData) ? assignmentsData : []));
         } catch (e) {
           console.error(`Error loading assignments for class ${cls.classId}:`, e);
@@ -110,11 +116,14 @@ const StudentAssignments = () => {
   };
 
   const getStatusInfo = (assignment) => {
+    if (assignment.studentStatus === 'Graded' || assignment.studentStatus === 'Submitted') {
+      return { label: 'Đã hoàn thành', color: 'success', icon: <AssignmentTurnedIn fontSize="small" /> };
+    }
+
     const now = dayjs();
     const dueDate = dayjs(assignment.dueDate);
     const isOverdue = now.isAfter(dueDate);
 
-    // This is a simplification as we don't have submission status per student in the main list yet
     if (isOverdue) return { label: 'Quá hạn', color: 'error', icon: <ErrorOutline fontSize="small" /> };
     return { label: 'Đang mở', color: 'primary', icon: <AccessTime fontSize="small" /> };
   };
@@ -255,6 +264,7 @@ const StudentAssignments = () => {
                   </Avatar>
                 </ListItemIcon>
                 <ListItemText
+                  disableTypography
                   primary={
                     <Box display="flex" alignItems="center" gap={2} mb={0.5}>
                       <Typography variant="h6" fontWeight="bold">{assignment.title}</Typography>
@@ -263,13 +273,18 @@ const StudentAssignments = () => {
                   }
                   secondary={
                     <Box mt={1}>
-                      <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                        Lớp: <Typography component="span" variant="body2" fontWeight="bold" color="textPrimary">{assignment.className}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Lớp:{' '}
+                        <Typography component="span" variant="body2" fontWeight="bold" color="text.primary">
+                          {assignment.className}
+                        </Typography>
                       </Typography>
-                      <Box display="flex" alignItems="center" gap={3}>
-                        <Box display="flex" alignItems="center" gap={0.5} color="text.secondary">
+                      <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
+                        <Box display="flex" alignItems="center" gap={0.5} sx={{ color: 'text.secondary' }}>
                           <AccessTime fontSize="small" />
-                          <Typography variant="caption">Hạn nộp: {dayjs(assignment.dueDate).format('DD/MM/YYYY HH:mm')}</Typography>
+                          <Typography variant="caption">
+                            Hạn nộp: {dayjs(assignment.dueDate).format('DD/MM/YYYY HH:mm')}
+                          </Typography>
                         </Box>
                         <Chip
                           icon={statusInfo.icon}
@@ -277,6 +292,22 @@ const StudentAssignments = () => {
                           color={statusInfo.color}
                           size="small"
                         />
+                        {assignment.studentScore !== null && (
+                          <Chip
+                            label={`Điểm: ${assignment.studentScore}/${assignment.maxScore}`}
+                            color="success"
+                            variant="outlined"
+                            size="small"
+                          />
+                        )}
+                        {assignment.timeSpentSeconds && (
+                          <Chip
+                            icon={<AccessTime fontSize="small" />}
+                            label={`Thời gian: ${Math.floor(assignment.timeSpentSeconds / 60)}:${String(assignment.timeSpentSeconds % 60).padStart(2, '0')}`}
+                            variant="outlined"
+                            size="small"
+                          />
+                        )}
                       </Box>
                     </Box>
                   }

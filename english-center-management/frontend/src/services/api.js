@@ -161,8 +161,15 @@ export const assignmentsAPI = {
   create: (data) => api.post('/assignment', data),
   update: (id, data) => api.put(`/assignment/${id}`, data),
   delete: (id) => api.delete(`/assignment/${id}`),
+  closeAssignment: (id) => api.put(`/assignment/${id}/close`),
+  reopenAssignment: (id) => api.put(`/assignment/${id}/reopen`),
   getSubmissions: (assignmentId, params = {}) => api.get(`/assignment/${assignmentId}/submissions`, { params }),
+  createSubmission: (assignmentId, data) => api.post(`/assignment/${assignmentId}/submissions`, data),
+  submitQuiz: (assignmentId, data) => api.post(`/assignment/${assignmentId}/submit-quiz`, data),
+  getQuizResult: (assignmentId, params) => api.get(`/assignment/${assignmentId}/quiz-result`, { params }),
   gradeSubmission: (submissionId, data) => api.put(`/assignment/submissions/${submissionId}/grade`, data),
+  getAllResults: (assignmentId) => api.get(`/assignment/${assignmentId}/all-results`),
+  resetSubmission: (assignmentId, studentId) => api.delete(`/assignment/${assignmentId}/students/${studentId}/reset-submission`),
   // Quiz endpoints
   getQuizQuestions: (assignmentId) => api.get(`/assignment/${assignmentId}/questions`),
   createQuizQuestion: (assignmentId, data) => api.post(`/assignment/${assignmentId}/questions`, data),
@@ -264,6 +271,16 @@ export const testScoresAPI = {
   create: (data) => api.post('/testscores', data),
   update: (id, data) => api.put(`/testscores/${id}`, data),
   delete: (id) => api.delete(`/testscores/${id}`),
+};
+
+// Upload API
+export const uploadAPI = {
+  uploadAvatar: (formData) => api.post('/upload/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  uploadSubmission: (formData) => api.post('/upload/submission', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 // Notifications API

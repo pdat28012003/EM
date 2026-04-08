@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace EnglishCenter.API.DTOs
 {
@@ -526,11 +527,16 @@ namespace EnglishCenter.API.DTOs
         public string Status { get; set; } = string.Empty;
         public int MaxScore { get; set; }
         public string? AttachmentUrl { get; set; }
+        public int? SkillId { get; set; }
+        public string? SkillName { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public string? ClassName { get; set; }
         public string? TeacherName { get; set; }
         public int SubmissionsCount { get; set; }
         public int GradedCount { get; set; }
+        public decimal? StudentScore { get; set; }
+        public string? StudentStatus { get; set; }
+        public int? TimeSpentSeconds { get; set; }
     }
 
     public class AssignmentSubmissionDto
@@ -549,6 +555,18 @@ namespace EnglishCenter.API.DTOs
         public int? GradedBy { get; set; }
         public string? StudentName { get; set; }
         public string? AssignmentTitle { get; set; }
+    }
+
+    public class StudentAssignmentResultDto
+    {
+        public int StudentId { get; set; }
+        public string? StudentName { get; set; }
+        public string? Email { get; set; }
+        public int? SubmissionId { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public decimal? Score { get; set; }
+        public DateTime? SubmittedAt { get; set; }
+        public string? Note { get; set; }
     }
 
     public class CreateAssignmentDto
@@ -572,6 +590,8 @@ namespace EnglishCenter.API.DTOs
 
         public string? AttachmentUrl { get; set; }
 
+        public int? SkillId { get; set; }
+
         [Required]
         [Range(1, 1000)]
         public int MaxScore { get; set; } = 100;
@@ -590,6 +610,8 @@ namespace EnglishCenter.API.DTOs
         public DateTime? DueDate { get; set; }
 
         public string? AttachmentUrl { get; set; }
+
+        public int? SkillId { get; set; }
 
         [Range(1, 1000)]
         public int? MaxScore { get; set; }
@@ -711,6 +733,19 @@ namespace EnglishCenter.API.DTOs
         public string? TextAnswer { get; set; }
     }
 
+    public class SubmitQuizDto
+    {
+        [Required]
+        public int StudentId { get; set; }
+
+        [Required]
+        [MinLength(1)]
+        public List<QuizAnswerSubmissionDto> Answers { get; set; } = new List<QuizAnswerSubmissionDto>();
+
+        public int? TimeSpentSeconds { get; set; }
+        public string? Note { get; set; }
+    }
+
     public class QuizResultDto
     {
         public int AttemptId { get; set; }
@@ -754,6 +789,7 @@ namespace EnglishCenter.API.DTOs
 
         public string? Content { get; set; }
 
+        [JsonPropertyName("attachmentUrl")]
         public string? AttachmentUrl { get; set; }
     }
 

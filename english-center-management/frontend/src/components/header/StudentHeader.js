@@ -78,7 +78,7 @@ const StudentHeader = () => {
   };
 
   const handleProfile = () => {
-    navigate('/profile');
+    navigate('/student/profile');
   };
 
   const handleLogout = async () => {

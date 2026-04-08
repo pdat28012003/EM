@@ -3,6 +3,7 @@ using EnglishCenter.API.Data;
 using EnglishCenter.API.Services;
 using EnglishCenter.API.Hubs;
 using EnglishCenter.API.Converters;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
 
@@ -13,7 +14,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new TimeSpanJsonConverter());
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Giữ PascalCase
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // Change to CamelCase
     });
 
 builder.Services.AddEndpointsApiExplorer();

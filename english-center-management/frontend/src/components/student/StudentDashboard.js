@@ -108,21 +108,38 @@ const StudentDashboard = () => {
       const userData = localStorage.getItem('user');
       if (userData) {
         const parsedUser = JSON.parse(userData);
-        let studentId = parsedUser.studentId;
+        // Handle both PascalCase (from API) and camelCase (from localStorage)
+        let studentId = parsedUser.studentId || parsedUser.StudentId;
 
         // Fallback if studentId is missing
         if (!studentId) {
           try {
             const profileRes = await authAPI.getProfile();
-            const profileData = profileRes.data?.data || profileRes.data;
-            if (profileData && profileData.studentId) {
-              studentId = profileData.studentId;
-              const updatedUser = { ...parsedUser, studentId };
+            // Handle PascalCase response: Data.UserId or Data.StudentId
+            const responseData = profileRes.data;
+            const profileData = responseData?.Data || responseData?.data || responseData;
+            
+            // Try to get studentId from various possible property names
+            const fetchedStudentId = profileData?.studentId || profileData?.StudentId || 
+                                    profileData?.userId || profileData?.UserId;
+            
+            if (fetchedStudentId) {
+              studentId = fetchedStudentId;
+              // Normalize to camelCase for localStorage
+              const updatedUser = { 
+                ...parsedUser, 
+                studentId: fetchedStudentId,
+                fullName: profileData?.fullName || profileData?.FullName || parsedUser.fullName,
+                name: profileData?.fullName || profileData?.FullName || parsedUser.name
+              };
               localStorage.setItem('user', JSON.stringify(updatedUser));
               setStudent(updatedUser);
+            } else {
+              setStudent(parsedUser);
             }
           } catch (err) {
             console.error('Error fetching fallback profile in dashboard:', err);
+            setStudent(parsedUser);
           }
         } else {
           setStudent(parsedUser);
@@ -130,7 +147,13 @@ const StudentDashboard = () => {
 
         if (studentId) {
           loadStudentDashboardData(studentId);
+        } else {
+          console.warn('No studentId found, cannot load dashboard data');
+          setLoading(false);
         }
+      } else {
+        console.warn('No user data in localStorage');
+        setLoading(false);
       }
     };
 

@@ -43,6 +43,7 @@ import {
   Grade,
   Person,
   FilterList,
+  Download,
 } from '@mui/icons-material';
 import { assignmentsAPI, classesAPI } from '../../../services/api';
 
@@ -449,10 +450,30 @@ const TeacherGrading = () => {
               Bài nộp:
             </Typography>
             <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
-              <Typography variant="body2">
-                {currentSubmission?.content || '(Không có nội dung)'}
-              </Typography>
+              {currentSubmission?.content ? (
+                <div dangerouslySetInnerHTML={{ __html: currentSubmission.content }} />
+              ) : (
+                <Typography variant="body2">(Không có nội dung)</Typography>
+              )}
             </Paper>
+
+            {currentSubmission?.attachmentUrl && (
+              <Button
+                variant="outlined"
+                startIcon={<Download />}
+                href={`http://localhost:5000${currentSubmission.attachmentUrl}`}
+                target="_blank"
+                download
+                sx={{ mb: 3 }}
+              >
+                Tải file đính kèm
+              </Button>
+            )}
+            {!currentSubmission?.attachmentUrl && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                (Không có file đính kèm - attachmentUrl: {currentSubmission?.attachmentUrl || 'undefined'})
+              </Typography>
+            )}
 
             <TextField
               label="Điểm số"
