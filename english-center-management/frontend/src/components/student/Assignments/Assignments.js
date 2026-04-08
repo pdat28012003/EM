@@ -39,6 +39,7 @@ const StudentAssignments = () => {
   const loadAssignments = async () => {
     try {
       setLoading(true);
+      setError(null);
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('Vui lòng đăng nhập để xem bài tập');
@@ -59,18 +60,20 @@ const StudentAssignments = () => {
           }
         } catch (profileErr) {
           console.error('Error fetching profile fallback:', profileErr);
+          setError('Không thể tải thông tin học viên. Vui lòng làm mới trang.');
+          return;
         }
       }
 
       if (!studentId) {
-        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin.');
+        setError('Tài khoản của bạn chưa được liên kết với hồ sơ học viên. Vui lòng liên hệ Admin để được hỗ trợ.');
         return;
       }
 
       // Step 1: Get student's classes
       const enrollmentsRes = await studentsAPI.getEnrollments(studentId);
       const classes = enrollmentsRes.data?.Data || enrollmentsRes.data?.data?.Data || enrollmentsRes.data?.data?.data || enrollmentsRes.data?.data || enrollmentsRes.data || [];
-      
+
       if (classes.length === 0) {
         setAssignments([]);
         return;
@@ -94,7 +97,13 @@ const StudentAssignments = () => {
       setAssignments(sorted);
     } catch (err) {
       console.error('Error loading assignments:', err);
-      setError('Không thể tải bài tập. Vui lòng thử lại sau.');
+      if (err.response?.status === 404) {
+        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
+      } else if (err.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        setError('Không thể tải bài tập. Vui lòng thử lại sau.');
+      }
     } finally {
       setLoading(false);
     }
@@ -130,11 +139,11 @@ const StudentAssignments = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header Banner */}
-      <Paper 
-        sx={{ 
-          p: 4, 
-          mb: 4, 
-          borderRadius: 4, 
+      <Paper
+        sx={{
+          p: 4,
+          mb: 4,
+          borderRadius: 4,
           background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
           color: 'white',
           position: 'relative',
@@ -149,15 +158,15 @@ const StudentAssignments = () => {
             Hoàn thành các bài tập để cải thiện kết quả học tập của bạn
           </Typography>
         </Box>
-        <AssignmentTurnedIn 
-          sx={{ 
-            position: 'absolute', 
-            right: -20, 
-            bottom: -20, 
-            fontSize: 200, 
-            opacity: 0.1, 
-            transform: 'rotate(-15deg)' 
-          }} 
+        <AssignmentTurnedIn
+          sx={{
+            position: 'absolute',
+            right: -20,
+            bottom: -20,
+            fontSize: 200,
+            opacity: 0.1,
+            transform: 'rotate(-15deg)'
+          }}
         />
       </Paper>
 
@@ -171,23 +180,23 @@ const StudentAssignments = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={8}>
           <Box display="flex" gap={1}>
-            <Button 
-              variant={filter === 'all' ? 'contained' : 'outlined'} 
+            <Button
+              variant={filter === 'all' ? 'contained' : 'outlined'}
               onClick={() => setFilter('all')}
               sx={{ borderRadius: 10 }}
             >
               Tất cả ({assignments.length})
             </Button>
-            <Button 
-              variant={filter === 'pending' ? 'contained' : 'outlined'} 
+            <Button
+              variant={filter === 'pending' ? 'contained' : 'outlined'}
               color="primary"
               onClick={() => setFilter('pending')}
               sx={{ borderRadius: 10 }}
             >
               Chờ nộp
             </Button>
-            <Button 
-              variant={filter === 'overdue' ? 'contained' : 'outlined'} 
+            <Button
+              variant={filter === 'overdue' ? 'contained' : 'outlined'}
               color="error"
               onClick={() => setFilter('overdue')}
               sx={{ borderRadius: 10 }}
@@ -226,13 +235,13 @@ const StudentAssignments = () => {
           {filteredAssignments.map((assignment) => {
             const statusInfo = getStatusInfo(assignment);
             return (
-              <ListItem 
+              <ListItem
                 key={assignment.assignmentId}
                 component={Paper}
                 elevation={1}
-                sx={{ 
-                  borderRadius: 3, 
-                  p: 3, 
+                sx={{
+                  borderRadius: 3,
+                  p: 3,
                   transition: '0.2s',
                   '&:hover': {
                     transform: 'scale(1.01)',
@@ -262,11 +271,11 @@ const StudentAssignments = () => {
                           <AccessTime fontSize="small" />
                           <Typography variant="caption">Hạn nộp: {dayjs(assignment.dueDate).format('DD/MM/YYYY HH:mm')}</Typography>
                         </Box>
-                        <Chip 
+                        <Chip
                           icon={statusInfo.icon}
-                          label={statusInfo.label} 
-                          color={statusInfo.color} 
-                          size="small" 
+                          label={statusInfo.label}
+                          color={statusInfo.color}
+                          size="small"
                         />
                       </Box>
                     </Box>
@@ -274,9 +283,9 @@ const StudentAssignments = () => {
                 />
                 <Box>
                   <Tooltip title="Vào làm bài">
-                    <Button 
-                      variant="contained" 
-                      endIcon={<Launch />} 
+                    <Button
+                      variant="contained"
+                      endIcon={<Launch />}
                       sx={{ borderRadius: 2 }}
                     >
                       Làm bài

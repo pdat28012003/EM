@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
 using EnglishCenter.API.Services;
+using EnglishCenter.API.Hubs;
 using EnglishCenter.API.Converters;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
@@ -64,12 +65,19 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // Register CAPTCHA service
 builder.Services.AddHttpClient<ICaptchaService, CaptchaService>();
 
+// Register SePay service
+builder.Services.AddHttpClient<ISePayService, SePayService>();
+
+// Add SignalR
+builder.Services.AddSignalR();
+
 // Configure Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
-        // Register custom services
+
+// Register custom services
 builder.Services.AddScoped<IMappingService, MappingService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
@@ -125,5 +133,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map SignalR hubs
+app.MapHub<PaymentHub>("/paymentHub");
 
 app.Run();

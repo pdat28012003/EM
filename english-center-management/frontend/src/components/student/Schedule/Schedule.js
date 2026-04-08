@@ -38,7 +38,7 @@ const StudentSchedule = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('Vui lòng đăng nhập để xem lịch học');
@@ -61,23 +61,31 @@ const StudentSchedule = () => {
           }
         } catch (profileErr) {
           console.error('Error fetching profile fallback:', profileErr);
+          setError('Không thể tải thông tin học viên. Vui lòng làm mới trang.');
+          return;
         }
       }
 
       if (!studentId) {
-        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
+        setError('Tài khoản của bạn chưa được liên kết với hồ sơ học viên. Vui lòng liên hệ Admin để được hỗ trợ.');
         return;
       }
 
       // Add date parameter if selected
       const params = selectedDate ? { date: selectedDate.format('YYYY-MM-DD') } : {};
       const response = await studentsAPI.getSchedule(studentId, params);
-      
+
       const scheduleData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
       setSchedule(Array.isArray(scheduleData) ? scheduleData : []);
     } catch (err) {
       console.error('Error loading schedule:', err);
-      setError('Không thể tải lịch học. Vui lòng thử lại sau.');
+      if (err.response?.status === 404) {
+        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
+      } else if (err.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        setError('Không thể tải lịch học. Vui lòng thử lại sau.');
+      }
       setSchedule([]);
     } finally {
       setLoading(false);
@@ -104,7 +112,7 @@ const StudentSchedule = () => {
       <Typography variant="h4" gutterBottom fontWeight="bold">
         Lịch Học Của Tôi
       </Typography>
-      
+
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
@@ -116,7 +124,7 @@ const StudentSchedule = () => {
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={8}>
             <Typography variant="h6">
-              {selectedDate 
+              {selectedDate
                 ? `Lịch học ngày ${selectedDate.format('DD/MM/YYYY')}`
                 : 'Tất cả lịch học'
               }
@@ -141,13 +149,13 @@ const StudentSchedule = () => {
         <Paper sx={{ p: 10, textAlign: 'center', border: '2px dashed', borderColor: 'grey.300', bgcolor: 'transparent' }}>
           <CalendarMonth sx={{ fontSize: 60, color: 'grey.300', mb: 2 }} />
           <Typography variant="h6" color="textSecondary">
-            {selectedDate 
+            {selectedDate
               ? 'Không có lịch học vào ngày này'
               : 'Không có lịch học nào'
             }
           </Typography>
           <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            {selectedDate 
+            {selectedDate
               ? 'Vui lòng chọn ngày khác để xem lịch học'
               : 'Liên hệ quản trị viên để được đăng ký lớp học'
             }
@@ -219,11 +227,11 @@ const StudentSchedule = () => {
                         </Box>
                       )}
                       <Box sx={{ mt: 'auto', pt: 2 }}>
-                        <Chip 
-                          label={sessionItem.status || 'Scheduled'} 
-                          size="small" 
+                        <Chip
+                          label={sessionItem.status || 'Scheduled'}
+                          size="small"
                           color={sessionItem.status === 'Scheduled' ? 'success' : 'default'}
-                          variant="outlined" 
+                          variant="outlined"
                         />
                       </Box>
                     </CardContent>
@@ -231,7 +239,7 @@ const StudentSchedule = () => {
                 </Grid>
               ))}
           </Grid>
-          
+
           {/* Summary */}
           <Paper sx={{ p: 3, mt: 3 }}>
             <Typography variant="h6" gutterBottom>

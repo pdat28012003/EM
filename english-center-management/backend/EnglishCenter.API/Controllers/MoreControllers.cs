@@ -292,7 +292,12 @@ namespace EnglishCenter.API.Controllers
                     PaymentDate = p.PaymentDate,
                     PaymentMethod = p.PaymentMethod,
                     Status = p.Status,
-                    Notes = p.Notes
+                    Notes = p.Notes,
+                    TransactionId = p.TransactionId,
+                    QRCodeUrl = p.QRCodeUrl,
+                    Gateway = p.Gateway,
+                    PaymentCompletedDate = p.PaymentCompletedDate,
+                    Courses = new List<CourseForPaymentDto>() // Empty list for manual payments
                 })
                 .OrderByDescending(p => p.PaymentDate)
                 .Skip((page - 1) * pageSize)
@@ -328,7 +333,7 @@ namespace EnglishCenter.API.Controllers
                 StudentId = dto.StudentId,
                 Amount = dto.Amount,
                 PaymentDate = DateTime.Now,
-                PaymentMethod = dto.PaymentMethod,
+                PaymentMethod = "Cash", // Default payment method for manual creation
                 Status = "Completed",
                 Notes = dto.Notes ?? ""
             };
@@ -345,7 +350,12 @@ namespace EnglishCenter.API.Controllers
                 PaymentDate = payment.PaymentDate,
                 PaymentMethod = payment.PaymentMethod,
                 Status = payment.Status,
-                Notes = payment.Notes ?? ""
+                Notes = payment.Notes ?? "",
+                TransactionId = payment.TransactionId,
+                QRCodeUrl = payment.QRCodeUrl,
+                Gateway = payment.Gateway,
+                PaymentCompletedDate = payment.PaymentCompletedDate,
+                Courses = new List<CourseForPaymentDto>() // Empty list for manual payments
             };
 
             return CreatedAtAction(nameof(GetPayments), new { id = payment.PaymentId }, paymentDto);

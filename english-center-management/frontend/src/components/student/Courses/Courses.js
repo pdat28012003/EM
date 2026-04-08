@@ -38,6 +38,7 @@ const StudentCourses = () => {
   const loadCourses = async () => {
     try {
       setLoading(true);
+      setError(null);
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('Vui lòng đăng nhập để xem khóa học');
@@ -58,11 +59,13 @@ const StudentCourses = () => {
           }
         } catch (profileErr) {
           console.error('Error fetching profile fallback:', profileErr);
+          setError('Không thể tải thông tin học viên. Vui lòng làm mới trang.');
+          return;
         }
       }
 
       if (!studentId) {
-        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin.');
+        setError('Tài khoản của bạn chưa được liên kết với hồ sơ học viên. Vui lòng liên hệ Admin để được hỗ trợ.');
         return;
       }
 
@@ -71,7 +74,13 @@ const StudentCourses = () => {
       setCourses(Array.isArray(enrollments) ? enrollments : []);
     } catch (err) {
       console.error('Error loading courses:', err);
-      setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
+      if (err.response?.status === 404) {
+        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
+      } else if (err.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
+      }
     } finally {
       setLoading(false);
     }

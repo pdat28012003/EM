@@ -1,0 +1,374 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using EnglishCenter.API.Data;
+using EnglishCenter.API.Models;
+using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Services;
+using EnglishCenter.API.Hubs;
+using System.Security.Claims;
+
+namespace EnglishCenter.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PaymentController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly ISePayService _sePayService;
+        private readonly IHubContext<PaymentHub> _hubContext;
+        private readonly ILogger<PaymentController> _logger;
+
+        public PaymentController(
+            ApplicationDbContext context,
+            ISePayService sePayService,
+            IHubContext<PaymentHub> hubContext,
+            ILogger<PaymentController> logger)
+        {
+            _context = context;
+            _sePayService = sePayService;
+            _hubContext = hubContext;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Gets enrolled courses for a student with payment status
+        /// </summary>
+        [HttpGet("student/{studentId}/enrolled-courses")]
+        public async Task<ActionResult<StudentEnrolledCoursesDto>> GetStudentEnrolledCourses(int studentId)
+        {
+            try
+            {
+                var student = await _context.Students
+                    .Include(s => s.Enrollments)
+                        .ThenInclude(e => e.Class)
+                            .ThenInclude(c => c.Course)
+                    .FirstOrDefaultAsync(s => s.StudentId == studentId);
+
+                if (student == null)
+                {
+                    return NotFound("Student not found");
+                }
+
+                var courses = student.Enrollments
+                    .Where(e => e.Status == "Active")
+                    .Select(e => e.Class.Course)
+                    .Distinct()
+                    .Select(course => new CourseForPaymentDto
+                    {
+                        CourseId = course.CourseId,
+                        CourseName = course.CourseName,
+                        CourseCode = course.CourseCode,
+                        Fee = course.Fee,
+                        IsSelected = false,
+                        IsPaid = false // TODO: Check if course is already paid
+                    })
+                    .ToList();
+
+                // Check which courses are already paid
+                var paidCourseIds = await _context.PaymentCourses
+                    .Include(pc => pc.Payment)
+                    .Where(pc => pc.Payment.StudentId == studentId && pc.Payment.Status == "Completed")
+                    .Select(pc => pc.CourseId)
+                    .ToListAsync();
+
+                foreach (var course in courses)
+                {
+                    course.IsPaid = paidCourseIds.Contains(course.CourseId);
+                }
+
+                var result = new StudentEnrolledCoursesDto
+                {
+                    StudentId = studentId,
+                    StudentName = student.FullName,
+                    Courses = courses,
+                    TotalSelectedAmount = 0
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting enrolled courses for student {StudentId}", studentId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Creates a new payment with QR code
+        /// </summary>
+        [HttpPost("create-payment")]
+        public async Task<ActionResult<PaymentDto>> CreatePayment([FromBody] CreatePaymentDto createPaymentDto)
+        {
+            try
+            {
+                // Validate student exists
+                var student = await _context.Students.FindAsync(createPaymentDto.StudentId);
+                if (student == null)
+                {
+                    return NotFound("Student not found");
+                }
+
+                // Calculate total amount from selected courses
+                var courses = await _context.Courses
+                    .Where(c => createPaymentDto.CourseIds.Contains(c.CourseId))
+                    .ToListAsync();
+
+                if (courses.Count != createPaymentDto.CourseIds.Count)
+                {
+                    return BadRequest("One or more courses not found");
+                }
+
+                var calculatedAmount = courses.Sum(c => c.Fee);
+                if (Math.Abs(calculatedAmount - createPaymentDto.Amount) > 0.01m)
+                {
+                    return BadRequest("Amount does not match the sum of selected course fees");
+                }
+
+                // Create payment record
+                var payment = new Payment
+                {
+                    StudentId = createPaymentDto.StudentId,
+                    Amount = createPaymentDto.Amount,
+                    PaymentDate = DateTime.Now,
+                    PaymentMethod = "SePay",
+                    Status = "Pending",
+                    Notes = createPaymentDto.Notes ?? $"Payment for {courses.Count} course(s)"
+                };
+
+                _context.Payments.Add(payment);
+                await _context.SaveChangesAsync();
+
+                // Add payment-course relationships
+                foreach (var course in courses)
+                {
+                    _context.PaymentCourses.Add(new PaymentCourse
+                    {
+                        PaymentId = payment.PaymentId,
+                        CourseId = course.CourseId,
+                        CourseFee = course.Fee
+                    });
+                }
+                await _context.SaveChangesAsync();
+
+                // Generate QR code
+                var qrRequest = new SePayQRRequestDto
+                {
+                    accountNumber = "0399076806",
+                    accountName = "DOAN VU BINH DUONG",
+                    acqId = "970422",
+                    addInfo = $"EC-PAY-{payment.PaymentId}",
+                    amount = payment.Amount.ToString(),
+                    template = "compact"
+                };
+
+                var qrResponse = await _sePayService.GenerateQRCodeAsync(qrRequest);
+                
+                if (qrResponse != null)
+                {
+                    payment.QRCodeUrl = qrResponse.img;
+                    payment.TransactionId = qrResponse.qrCode;
+                    await _context.SaveChangesAsync();
+                }
+
+                // Return payment DTO
+                var paymentDto = new PaymentDto
+                {
+                    PaymentId = payment.PaymentId,
+                    StudentId = payment.StudentId,
+                    StudentName = student.FullName,
+                    Amount = payment.Amount,
+                    PaymentDate = payment.PaymentDate,
+                    PaymentMethod = payment.PaymentMethod,
+                    Status = payment.Status,
+                    Notes = payment.Notes,
+                    TransactionId = payment.TransactionId,
+                    QRCodeUrl = payment.QRCodeUrl,
+                    Gateway = payment.Gateway,
+                    PaymentCompletedDate = payment.PaymentCompletedDate,
+                    Courses = courses.Select(c => new CourseForPaymentDto
+                    {
+                        CourseId = c.CourseId,
+                        CourseName = c.CourseName,
+                        CourseCode = c.CourseCode,
+                        Fee = c.Fee,
+                        IsSelected = true,
+                        IsPaid = false
+                    }).ToList()
+                };
+
+                return CreatedAtAction(nameof(GetPayment), new { id = payment.PaymentId }, paymentDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating payment");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Gets payment by ID
+        /// </summary>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<PaymentDto>> GetPayment(int id)
+        {
+            try
+            {
+                var payment = await _context.Payments
+                    .Include(p => p.Student)
+                    .Include(p => p.PaymentCourses)
+                        .ThenInclude(pc => pc.Course)
+                    .FirstOrDefaultAsync(p => p.PaymentId == id);
+
+                if (payment == null)
+                {
+                    return NotFound();
+                }
+
+                var paymentDto = new PaymentDto
+                {
+                    PaymentId = payment.PaymentId,
+                    StudentId = payment.StudentId,
+                    StudentName = payment.Student.FullName,
+                    Amount = payment.Amount,
+                    PaymentDate = payment.PaymentDate,
+                    PaymentMethod = payment.PaymentMethod,
+                    Status = payment.Status,
+                    Notes = payment.Notes,
+                    TransactionId = payment.TransactionId,
+                    QRCodeUrl = payment.QRCodeUrl,
+                    Gateway = payment.Gateway,
+                    PaymentCompletedDate = payment.PaymentCompletedDate,
+                    Courses = payment.PaymentCourses.Select(pc => new CourseForPaymentDto
+                    {
+                        CourseId = pc.Course.CourseId,
+                        CourseName = pc.Course.CourseName,
+                        CourseCode = pc.Course.CourseCode,
+                        Fee = pc.CourseFee,
+                        IsSelected = true,
+                        IsPaid = payment.Status == "Completed"
+                    }).ToList()
+                };
+
+                return Ok(paymentDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting payment {PaymentId}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// SePay webhook endpoint
+        /// </summary>
+        [HttpPost("sepay/webhook")]
+        public async Task<IActionResult> SePayWebhook([FromBody] SePayWebhookDto webhookData)
+        {
+            try
+            {
+                _logger.LogInformation("Received SePay webhook: {@WebhookData}", webhookData);
+
+                // Extract payment ID from content (format: "EC-PAY-{PaymentId}")
+                if (webhookData.content != null && webhookData.content.StartsWith("EC-PAY-"))
+                {
+                    var paymentIdStr = webhookData.content.Replace("EC-PAY-", "");
+                    if (int.TryParse(paymentIdStr, out var paymentId))
+                    {
+                        var payment = await _context.Payments.FindAsync(paymentId);
+                        if (payment != null && payment.Status == "Pending")
+                        {
+                            // Verify amount matches
+                            if (decimal.TryParse(webhookData.amount, out var receivedAmount))
+                            {
+                                if (Math.Abs(receivedAmount - payment.Amount) < 0.01m)
+                                {
+                                    // Update payment status
+                                    payment.Status = "Completed";
+                                    payment.PaymentCompletedDate = DateTime.Now;
+                                    payment.Gateway = "SePay";
+                                    payment.TransactionId = webhookData.code;
+                                    
+                                    await _context.SaveChangesAsync();
+
+                                    // Send real-time update via SignalR
+                                    await _hubContext.Clients.Group($"payment_{paymentId}")
+                                        .SendAsync("PaymentStatusChanged", new
+                                        {
+                                            paymentId = payment.PaymentId,
+                                            status = payment.Status,
+                                            completedDate = payment.PaymentCompletedDate
+                                        });
+
+                                    _logger.LogInformation("Payment {PaymentId} marked as completed", paymentId);
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Amount mismatch for payment {PaymentId}: expected {Expected}, received {Received}", 
+                                        paymentId, payment.Amount, receivedAmount);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing SePay webhook");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Gets payment history for a student
+        /// </summary>
+        [HttpGet("student/{studentId}/history")]
+        public async Task<ActionResult<List<PaymentDto>>> GetPaymentHistory(int studentId)
+        {
+            try
+            {
+                var payments = await _context.Payments
+                    .Include(p => p.Student)
+                    .Include(p => p.PaymentCourses)
+                        .ThenInclude(pc => pc.Course)
+                    .Where(p => p.StudentId == studentId)
+                    .OrderByDescending(p => p.PaymentDate)
+                    .ToListAsync();
+
+                var paymentDtos = payments.Select(p => new PaymentDto
+                {
+                    PaymentId = p.PaymentId,
+                    StudentId = p.StudentId,
+                    StudentName = p.Student.FullName,
+                    Amount = p.Amount,
+                    PaymentDate = p.PaymentDate,
+                    PaymentMethod = p.PaymentMethod,
+                    Status = p.Status,
+                    Notes = p.Notes,
+                    TransactionId = p.TransactionId,
+                    QRCodeUrl = p.QRCodeUrl,
+                    Gateway = p.Gateway,
+                    PaymentCompletedDate = p.PaymentCompletedDate,
+                    Courses = p.PaymentCourses.Select(pc => new CourseForPaymentDto
+                    {
+                        CourseId = pc.Course.CourseId,
+                        CourseName = pc.Course.CourseName,
+                        CourseCode = pc.Course.CourseCode,
+                        Fee = pc.CourseFee,
+                        IsSelected = true,
+                        IsPaid = p.Status == "Completed"
+                    }).ToList()
+                }).ToList();
+
+                return Ok(paymentDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting payment history for student {StudentId}", studentId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+    }
+}
