@@ -45,6 +45,11 @@ const StudentSchedule = () => {
   const [startDate, setStartDate] = useState(dayjs().startOf('week').add(1, 'day'));
   const [endDate, setEndDate] = useState(dayjs().endOf('week').add(1, 'day'));
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'table'
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  const clearDateFilter = () => {
+    setSelectedDate(null);
+  };
 
   useEffect(() => {
     loadSchedule();

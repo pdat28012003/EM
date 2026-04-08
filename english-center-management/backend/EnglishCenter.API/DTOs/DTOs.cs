@@ -871,6 +871,15 @@ namespace EnglishCenter.API.DTOs
     public class SePayQRResponseDto
     {
         public string? qrCode { get; set; }
+        public string? qrData { get; set; }
         public string? img { get; set; }
+    }
+
+    public class SePayResponse<T>
+    {
+        public int status { get; set; }
+        public string? error { get; set; }
+        public List<string> messages { get; set; } = new List<string>();
+        public T? data { get; set; }
     }
 }
