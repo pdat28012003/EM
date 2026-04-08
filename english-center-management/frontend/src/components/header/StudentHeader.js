@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AppBar,
+  Container,
   Toolbar,
   Typography,
   IconButton,
@@ -101,13 +102,15 @@ const StudentHeader = () => {
 
   return (
     <AppBar
-      position="sticky"
+      position="fixed"
       sx={{
         background: 'linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        zIndex: 9999
       }}
     >
-      <Toolbar sx={{ minHeight: '48px !important', height: '48px' }}>
+      <Container maxWidth="lg">
+        <Toolbar disableGutters sx={{ minHeight: '48px !important', height: '48px' }}>
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
           <Box
@@ -279,7 +282,8 @@ const StudentHeader = () => {
           isAuthenticated={isAuthenticated}
           user={user}
         />
-      </Toolbar>
+        </Toolbar>
+      </Container>
     </AppBar>
   );
 };

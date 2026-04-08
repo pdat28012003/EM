@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Container,
   Paper,
   Typography,
   Button,
@@ -182,7 +181,7 @@ const Attendance = () => {
   };
 
   return (
-    <Container maxWidth={isSmallMobile ? "sm" : "xl"}>
+    <Box sx={{ mt: 2, mb: 4 }}>
       <Typography variant={isMobile ? "h5" : "h4"} gutterBottom>
         Quản Lý Điểm Danh
       </Typography>
@@ -412,7 +411,7 @@ const Attendance = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   );
 };
 

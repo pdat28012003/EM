@@ -229,6 +229,9 @@ namespace EnglishCenter.API.Migrations
                     b.Property<int?>("GradedBy")
                         .HasColumnType("int");
 
+                    b.Property<string>("OriginalFileName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("Score")
                         .HasColumnType("decimal(18,2)");
 

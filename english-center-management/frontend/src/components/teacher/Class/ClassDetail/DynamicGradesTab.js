@@ -43,12 +43,13 @@ import {
   Settings,
   Visibility
 } from '@mui/icons-material';
-import { classesAPI, assignmentsAPI, skillsAPI, gradesAPI } from '../../../../services/api';
+import { classesAPI, assignmentsAPI, skillsAPI, gradesAPI, assignmentSkillsAPI } from '../../../../services/api';
 
 export default function DynamicGradesTab({ classId, classInfo }) {
   const [students, setStudents] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [skills, setSkills] = useState([]);
+  const [assignmentSkills, setAssignmentSkills] = useState([]);
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [addGradeDialogOpen, setAddGradeDialogOpen] = useState(false);
@@ -427,7 +428,22 @@ export default function DynamicGradesTab({ classId, classInfo }) {
                 <Select
                   labelId="assignment-label"
                   value={newGrade.assignmentId || ''}
-                  onChange={(e) => setNewGrade({ ...newGrade, assignmentId: e.target.value || null })}
+                  onChange={async (e) => {
+                    const assignmentId = e.target.value;
+                    setNewGrade({ ...newGrade, assignmentId: assignmentId || null, skillId: '' });
+                    if (assignmentId) {
+                      try {
+                        const response = await assignmentSkillsAPI.getByAssignment(assignmentId);
+                        const skillsData = response.data?.Data || response.data?.data || [];
+                        setAssignmentSkills(Array.isArray(skillsData) ? skillsData : []);
+                      } catch (err) {
+                        console.error('Error loading assignment skills:', err);
+                        setAssignmentSkills([]);
+                      }
+                    } else {
+                      setAssignmentSkills([]);
+                    }
+                  }}
                   displayEmpty
                   label="Bài tập"
                 >
@@ -443,17 +459,27 @@ export default function DynamicGradesTab({ classId, classInfo }) {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Kỹ năng</InputLabel>
+              <FormControl fullWidth disabled={newGrade.assignmentId ? assignmentSkills.length === 0 : skills.length === 0}>
+                <InputLabel>
+                  {newGrade.assignmentId
+                    ? (assignmentSkills.length === 0 ? 'Bài tập chưa có kỹ năng' : 'Kỹ năng')
+                    : 'Kỹ năng'}
+                </InputLabel>
                 <Select
                   value={newGrade.skillId}
                   onChange={(e) => setNewGrade({ ...newGrade, skillId: e.target.value })}
                 >
-                  {skills.map((skill) => (
-                    <MenuItem key={skill.skillId} value={skill.skillId}>
-                      {skill.name}
-                    </MenuItem>
-                  ))}
+                  {newGrade.assignmentId
+                    ? assignmentSkills.map((assignmentSkill) => (
+                        <MenuItem key={assignmentSkill.skillId} value={assignmentSkill.skillId}>
+                          {assignmentSkill.skillName}
+                        </MenuItem>
+                      ))
+                    : skills.map((skill) => (
+                        <MenuItem key={skill.skillId} value={skill.skillId}>
+                          {skill.name}
+                        </MenuItem>
+                      ))}
                 </Select>
               </FormControl>
             </Grid>

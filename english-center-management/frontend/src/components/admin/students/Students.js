@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Container,
   Paper,
   Typography,
   Button,
@@ -405,7 +404,7 @@ const Students = () => {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ mt: 2, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" fontWeight="bold" color="primary">
           Quản Lý Học Viên
@@ -758,7 +757,7 @@ const Students = () => {
           <Typography variant="body2">Xóa học viên</Typography>
         </MenuItem>
       </Menu>
-    </Container>
+    </Box>
   );
 };
 

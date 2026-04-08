@@ -36,7 +36,8 @@ import {
   Payment
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { classesAPI, gradesAPI, activityLogsAPI, studentsAPI, authAPI } from '../../services/api';
+import dayjs from 'dayjs';
+import { classesAPI, gradesAPI, activityLogsAPI, studentsAPI, authAPI, assignmentsAPI } from '../../services/api';
 
 // Safe text render - no highlighting
 const HighlightText = ({ text }) => {
@@ -182,10 +183,30 @@ const StudentDashboard = () => {
 
       // 3. Load Schedule (Stats)
       const scheduleRes = await studentsAPI.getSchedule(studentId);
-      const scheduleData = scheduleRes.data || [];
-
-      // 4. Load Activities
-      const activitiesRes = await activityLogsAPI.getMyActivities({ limit: 8 });
+      const scheduleData = scheduleRes.data?.data || scheduleRes.data?.Data || scheduleRes.data || [];
+      
+      // Calculate sessions for this week vs last week
+      const now = dayjs();
+      const startOfThisWeek = now.startOf('week').add(1, 'day'); // Monday
+      const endOfThisWeek = now.endOf('week').add(1, 'day'); // Sunday
+      const startOfLastWeek = startOfThisWeek.subtract(7, 'day');
+      const endOfLastWeek = endOfThisWeek.subtract(7, 'day');
+      
+      
+      const thisWeekSessions = scheduleData.filter(s => {
+        const date = dayjs(s.date || s.Date);
+        const isThisWeek = date.isAfter(startOfThisWeek.subtract(1, 'day')) && date.isBefore(endOfThisWeek.add(1, 'day'));
+        return isThisWeek;
+      }).length;
+      
+      const lastWeekSessions = scheduleData.filter(s => {
+        const date = dayjs(s.date || s.Date);
+        return date.isAfter(startOfLastWeek.subtract(1, 'day')) && date.isBefore(endOfLastWeek.add(1, 'day'));
+      }).length;
+      
+      
+      // 4. Load Activities (limit to 4)
+      const activitiesRes = await activityLogsAPI.getMyActivities({ limit: 4 });
       const activitiesData = activitiesRes.data || [];
       setActivities(activitiesData.map(a => ({
         type: a.iconType || 'default',
@@ -196,12 +217,40 @@ const StudentDashboard = () => {
         color: getActivityColor(a.iconType)
       })));
 
+      // 5. Load Assignments to count completed
+      let completedCount = 0;
+      let totalAssignments = 0;
+      try {
+        for (const cls of enrollmentsData.slice(0, 5)) { // Limit to 5 classes for performance
+          const classId = cls.classId;
+          if (!classId) continue;
+          const res = await assignmentsAPI.getAll({ classId, studentId, pageSize: 100 });
+          const assignmentsData = res.data?.data || res.data || [];
+          const classAssignments = Array.isArray(assignmentsData) ? assignmentsData : [];
+          totalAssignments += classAssignments.length;
+          completedCount += classAssignments.filter(a => 
+            a.studentStatus === 'Graded' || a.studentStatus === 'Submitted'
+          ).length;
+        }
+      } catch (e) {
+        console.error('Error loading assignments for stats:', e);
+      }
+
+      // Calculate change percentage for sessions
+      const sessionChange = lastWeekSessions === 0 
+        ? (thisWeekSessions > 0 ? 100 : 0)
+        : Math.round(((thisWeekSessions - lastWeekSessions) / lastWeekSessions) * 100);
+
       // Update Stats
       setStats({
         totalCourses: { currentValue: enrollmentsData.length, change: 0, changeType: 'increase' },
-        sessionsThisWeek: { currentValue: scheduleData.length || 0, change: 2, changeType: 'increase' },
+        sessionsThisWeek: { 
+          currentValue: thisWeekSessions, 
+          change: Math.abs(sessionChange), 
+          changeType: sessionChange >= 0 ? 'increase' : 'decrease' 
+        },
         averageGrade: { currentValue: `${avgGrade}/10`, change: 0.5, changeType: 'increase' },
-        completedAssignments: { currentValue: 12, change: 3, changeType: 'increase' },
+        completedAssignments: { currentValue: completedCount, change: 0, changeType: 'increase' },
       });
 
     } catch (error) {
@@ -435,34 +484,38 @@ const StudentDashboard = () => {
 
         {/* Learning Activity */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%', borderRadius: 3, border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <Notifications sx={{ color: '#4F46E5' }} />
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>Hoạt động học tập</Typography>
+          <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Notifications sx={{ color: '#4F46E5' }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>Hoạt động học tập</Typography>
+              </Box>
             </Box>
-
-            <Box sx={{ position: 'relative' }}>
-              <Box sx={{ position: 'absolute', left: 20, top: 0, bottom: 0, width: 2, bgcolor: 'rgba(0,0,0,0.06)', borderRadius: 1 }} />
-              <Stack spacing={0}>
-                {activities.map((activity, index) => (
-                  <Box key={index} sx={{ display: 'flex', gap: 2, py: 2, position: 'relative', borderBottom: index < activities.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
-                    <Box sx={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: activity.color.bg, color: activity.color.icon, zIndex: 1, flexShrink: 0 }}>
-                      {React.cloneElement(activity.icon, { sx: { fontSize: 20 } })}
-                    </Box>
-                    <Box sx={{ flex: 1, pt: 0.5 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 600, color: '#1e293b', lineHeight: 1.5 }}>
-                        <HighlightText text={activity.title} />
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.5 }}>{activity.description}</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
-                        <AccessTime sx={{ fontSize: 14, color: 'text.disabled' }} />
-                        <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 500 }}>{activity.time}</Typography>
+            
+            <Box sx={{ maxHeight: 280, overflowY: 'auto', pr: 1 }}>
+              <Box sx={{ position: 'relative' }}>
+                <Box sx={{ position: 'absolute', left: 20, top: 0, bottom: 0, width: 2, bgcolor: 'rgba(0,0,0,0.06)', borderRadius: 1 }} />
+                <Stack spacing={0}>
+                  {activities.slice(0, 4).map((activity, index) => (
+                    <Box key={index} sx={{ display: 'flex', gap: 2, py: 1.5, position: 'relative', borderBottom: index < 3 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+                      <Box sx={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: activity.color.bg, color: activity.color.icon, zIndex: 1, flexShrink: 0 }}>
+                        {React.cloneElement(activity.icon, { sx: { fontSize: 20 } })}
+                      </Box>
+                      <Box sx={{ flex: 1, pt: 0.5 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 600, color: '#1e293b', lineHeight: 1.4, fontSize: '0.9rem' }}>
+                          <HighlightText text={activity.title} />
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3, lineHeight: 1.4, fontSize: '0.8rem' }}>{activity.description}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                          <AccessTime sx={{ fontSize: 12, color: 'text.disabled' }} />
+                          <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 500 }}>{activity.time}</Typography>
+                        </Box>
                       </Box>
                     </Box>
-                  </Box>
-                ))}
-                {activities.length === 0 && <Typography variant="body2" color="text.secondary">Chưa có hoạt động nào.</Typography>}
-              </Stack>
+                  ))}
+                  {activities.length === 0 && <Typography variant="body2" color="text.secondary">Chưa có hoạt động nào.</Typography>}
+                </Stack>
+              </Box>
             </Box>
           </Paper>
         </Grid>

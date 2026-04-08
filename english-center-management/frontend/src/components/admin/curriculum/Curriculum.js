@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
   Paper,
   Typography,
   Button,
@@ -308,7 +307,7 @@ const Curriculum = () => {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ mt: 2, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" fontWeight="bold">
           Quản lý Chương trình học
@@ -477,7 +476,6 @@ const Curriculum = () => {
           justify-content: center;
           align-items: center;
         }
-
         .modal-content {
           background-color: #fefefe;
           padding: 20px;
@@ -489,14 +487,12 @@ const Curriculum = () => {
           position: relative;
           z-index: 10000;
         }
-
         .modal-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 15px;
         }
-
         .close-btn {
           background: none;
           border: none;
@@ -504,17 +500,14 @@ const Curriculum = () => {
           font-weight: bold;
           cursor: pointer;
         }
-
         .form-group {
           margin-bottom: 15px;
         }
-
         .form-group label {
           display: block;
           margin-bottom: 5px;
           font-weight: 500;
         }
-
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -524,14 +517,12 @@ const Curriculum = () => {
           border-radius: 4px;
           box-sizing: border-box;
         }
-
         .modal-footer {
           display: flex;
           justify-content: flex-end;
           gap: 10px;
           margin-top: 20px;
         }
-
         .btn {
           padding: 8px 16px;
           border: none;
@@ -539,17 +530,14 @@ const Curriculum = () => {
           cursor: pointer;
           font-size: 14px;
         }
-
         .btn-primary {
           background-color: #007bff;
           color: white;
         }
-
         .btn-secondary {
           background-color: #6c757d;
           color: white;
         }
-
         .teacher-list {
           max-height: 400px;
           overflow-y: auto;
@@ -558,7 +546,6 @@ const Curriculum = () => {
           border-radius: 4px;
           background-color: #f9f9f9;
         }
-
         .teacher-checkbox-item {
           margin-bottom: 12px;
           padding: 10px;
@@ -566,31 +553,27 @@ const Curriculum = () => {
           border-radius: 4px;
           border-left: 3px solid #007bff;
         }
-
         .teacher-checkbox-item label {
           display: flex;
           align-items: center;
           margin: 0;
           cursor: pointer;
         }
-
         .teacher-checkbox-item input[type="checkbox"] {
           width: auto;
           margin-right: 10px;
           cursor: pointer;
         }
-
         .teacher-name {
           flex: 1;
         }
-
         .teacher-email {
           color: #666;
           font-size: 13px;
           margin-left: 5px;
         }
       `}</style>
-    </Container>
+    </Box>
   );
 };
 

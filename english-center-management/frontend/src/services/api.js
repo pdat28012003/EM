@@ -55,6 +55,10 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
+    // Skip transforming blob data (file downloads)
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
     response.data = keysToCamelCaseDeep(response.data);
     return response;
   },
@@ -170,12 +174,14 @@ export const assignmentsAPI = {
   gradeSubmission: (submissionId, data) => api.put(`/assignment/submissions/${submissionId}/grade`, data),
   getAllResults: (assignmentId) => api.get(`/assignment/${assignmentId}/all-results`),
   resetSubmission: (assignmentId, studentId) => api.delete(`/assignment/${assignmentId}/students/${studentId}/reset-submission`),
+  getMySubmission: (assignmentId, studentId) => api.get(`/assignment/${assignmentId}/my-submission`, { params: { studentId } }),
   // Quiz endpoints
   getQuizQuestions: (assignmentId) => api.get(`/assignment/${assignmentId}/questions`),
   createQuizQuestion: (assignmentId, data) => api.post(`/assignment/${assignmentId}/questions`, data),
   updateQuizQuestion: (questionId, data) => api.put(`/assignment/questions/${questionId}`, data),
   deleteQuizQuestion: (questionId) => api.delete(`/assignment/questions/${questionId}`),
   deleteQuizAnswer: (answerId) => api.delete(`/assignment/answers/${answerId}`),
+  downloadSubmission: (submissionId) => api.get(`/assignment/submissions/${submissionId}/download`, { responseType: 'blob' }),
 };
 
 // Enrollments API
@@ -262,15 +268,6 @@ export const documentsAPI = {
   getTeacherDocuments: (teacherId, params) => api.get(`/documents/teacher/${teacherId}`, { params }),
   getStudentDocuments: (studentId, params) => api.get(`/documents/student/${studentId}`, { params }),
   getPendingDocuments: (params) => api.get('/documents/pending', { params }),
-};
-
-// Test Scores API
-export const testScoresAPI = {
-  getAll: (params) => api.get('/testscores', { params }),
-  getById: (id) => api.get(`/testscores/${id}`),
-  create: (data) => api.post('/testscores', data),
-  update: (id, data) => api.put(`/testscores/${id}`, data),
-  delete: (id) => api.delete(`/testscores/${id}`),
 };
 
 // Upload API

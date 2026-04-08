@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AppBar,
+  Container,
   Toolbar,
   Typography,
   IconButton,
@@ -10,16 +11,7 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  School,
-  Notifications,
-  AccountCircle,
-  Assignment,
-  Assessment,
-  Dashboard,
-  Class,
-  Schedule,
-  EventAvailable,
-  Folder
+  School
 } from '@mui/icons-material';
 import { authAPI } from '../../services/api';
 import { useNavigation } from '../../hooks/useNavigation';
@@ -120,14 +112,16 @@ const TeacherHeader = () => {
   };
 
   return (
-    <AppBar 
-      position="sticky" 
-      sx={{ 
+    <AppBar
+      position="fixed"
+      sx={{
         background: 'linear-gradient(90deg, #7c3aed 0%, #6d28d9 100%)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        zIndex: 9999
       }}
     >
-      <Toolbar sx={{ minHeight: '48px !important', height: '48px' }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+        <Toolbar disableGutters sx={{ minHeight: '48px !important', height: '48px' }}>
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
           <Box 
@@ -166,7 +160,6 @@ const TeacherHeader = () => {
               textTransform: 'none',
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
-            startIcon={<Dashboard sx={{ fontSize: 18 }} />}
           >
             Dashboard
           </Button>
@@ -179,7 +172,6 @@ const TeacherHeader = () => {
               textTransform: 'none',
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
-            startIcon={<Class sx={{ fontSize: 18 }} />}
           >
             Lớp học
           </Button>
@@ -192,7 +184,6 @@ const TeacherHeader = () => {
               textTransform: 'none',
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
-            startIcon={<Schedule sx={{ fontSize: 18 }} />}
           >
             Lịch dạy
           </Button>
@@ -205,7 +196,6 @@ const TeacherHeader = () => {
               textTransform: 'none',
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
-            startIcon={<EventAvailable sx={{ fontSize: 18 }} />}
           >
             Lịch rảnh
           </Button>
@@ -218,7 +208,6 @@ const TeacherHeader = () => {
               textTransform: 'none',
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
-            startIcon={<Folder sx={{ fontSize: 18 }} />}
           >
             Tài liệu
           </Button>
@@ -255,7 +244,6 @@ const TeacherHeader = () => {
                 borderColor: 'white',
                 color: 'white',
                 fontSize: '0.75rem',
-                px: 2,
                 py: 0.5,
                 '&:hover': { 
                   borderColor: 'white',
@@ -287,7 +275,8 @@ const TeacherHeader = () => {
           isAuthenticated={isAuthenticated}
           user={user}
         />
-      </Toolbar>
+        </Toolbar>
+      </Container>
     </AppBar>
   );
 };

@@ -546,6 +546,7 @@ namespace EnglishCenter.API.DTOs
         public int StudentId { get; set; }
         public string? Content { get; set; }
         public string? AttachmentUrl { get; set; }
+        public string? OriginalFileName { get; set; }
         public DateTime SubmittedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public string Status { get; set; } = string.Empty;
@@ -791,6 +792,9 @@ namespace EnglishCenter.API.DTOs
 
         [JsonPropertyName("attachmentUrl")]
         public string? AttachmentUrl { get; set; }
+
+        [JsonPropertyName("originalFileName")]
+        public string? OriginalFileName { get; set; }
     }
 
     // Payment DTOs
