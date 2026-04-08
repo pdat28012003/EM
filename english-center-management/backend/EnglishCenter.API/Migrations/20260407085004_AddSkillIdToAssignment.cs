@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,6 +13,7 @@ namespace EnglishCenter.API.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+/*
             migrationBuilder.AddColumn<int>(
                 name: "SkillId",
                 table: "Assignments",
@@ -30,6 +31,7 @@ namespace EnglishCenter.API.Migrations
                 column: "SkillId",
                 principalTable: "Skills",
                 principalColumn: "SkillId");
+*/
         }
 
         /// <inheritdoc />

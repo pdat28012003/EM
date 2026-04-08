@@ -9,13 +9,10 @@ import PrivateRoute from '../components/admin/PrivateRoute';
 
 import StudentDashboard from '../components/student/StudentDashboard';
 import StudentLayout from '../components/student/StudentLayout';
-import StudentDocuments from '../components/student/Documents/Documents';
 import StudentCourses from '../components/student/Courses/Courses';
 import StudentClassDetail from '../components/student/Courses/StudentClassDetail';
-import StudentSchedule from '../components/student/Schedule/Schedule';
 import StudentAssignments from '../components/student/Assignments/Assignments';
 import StudentAssignmentDetail from '../components/student/Assignments/AssignmentDetail';
-
 import TeacherDashboard from '../components/teacher/Dashboard/Dashboard';
 import TeacherLayout from '../components/teacher/TeacherLayout';
 import TeacherClasses from '../components/teacher/Class/Class';
@@ -24,7 +21,9 @@ import TeacherSchedule from '../components/teacher/Schedule/Schedule';
 import TeacherAvailabilityManager from '../components/teacher/Availability/TeacherAvailabilityManager';
 import TeacherGrading from '../components/teacher/Grading/TeacherGrading';
 import Documents from '../components/teacher/Documents/Documents';
-
+import StudentDocuments from '../components/student/Documents/Documents';
+import StudentSchedule from '../components/student/Schedule/Schedule';
+import StudentPayment from '../components/student/Payments/StudentPayment';
 import AdminDocuments from '../components/admin/documents/Documents';
 import Profile from '../components/profile/Profile';
 import Dashboard from '../components/admin/Dashboard';
@@ -96,8 +95,14 @@ const AppRoutes = () => {
           <StudentLayout><StudentAssignmentDetail /></StudentLayout>
         </PrivateRoute>
       } />
-
-      {/* Teacher */}
+      <Route path="/student/payments" element={
+        <PrivateRoute allowedRoles={['student']}>
+          <StudentLayout>
+            <StudentPayment />
+          </StudentLayout>
+        </PrivateRoute>
+      } />
+      {/* Teacher Routes */}
       <Route path="/teacher/dashboard" element={
         <PrivateRoute allowedRoles={['teacher']}>
           <TeacherLayout><TeacherDashboard /></TeacherLayout>

@@ -122,6 +122,7 @@ namespace EnglishCenter.API.Models
         // Navigation properties
         public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<Curriculum> Curriculums { get; set; } = new List<Curriculum>();
+        public ICollection<PaymentCourse> PaymentCourses { get; set; } = new List<PaymentCourse>();
     }
 
     public class Class
@@ -207,17 +208,56 @@ namespace EnglishCenter.API.Models
         public DateTime PaymentDate { get; set; }
 
         [MaxLength(50)]
-        public string PaymentMethod { get; set; } = string.Empty; // Cash, Card, Transfer
+        public string PaymentMethod { get; set; } = string.Empty; // Cash, Card, Transfer, SePay
 
         [MaxLength(50)]
-        public string Status { get; set; } = "Completed"; // Completed, Pending, Cancelled
+        public string Status { get; set; } = "Pending"; // Completed, Pending, Cancelled
 
         [MaxLength(500)]
         public string Notes { get; set; } = string.Empty;
 
+        // SePay fields
+        [MaxLength(100)]
+        public string? TransactionId { get; set; } // SePay transaction ID
+
+        [MaxLength(500)]
+        public string? QRCodeUrl { get; set; } // URL của mã QR
+
+        [MaxLength(50)]
+        public string? Gateway { get; set; } // Payment gateway (MBBank, etc.)
+
+        public DateTime? PaymentCompletedDate { get; set; } // Thời gian thanh toán hoàn tất
+
         // Navigation properties
         [ForeignKey("StudentId")]
         public Student Student { get; set; } = null!;
+
+        // Many-to-many relationship with courses
+        public ICollection<PaymentCourse> PaymentCourses { get; set; } = new List<PaymentCourse>();
+    }
+
+    public class PaymentCourse
+    {
+        [Key]
+        public int PaymentCourseId { get; set; }
+
+        [Required]
+        public int PaymentId { get; set; }
+
+        [Required]
+        public int CourseId { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal CourseFee { get; set; } // Lưu lại học phí tại thời điểm thanh toán
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // Navigation properties
+        [ForeignKey("PaymentId")]
+        public Payment Payment { get; set; } = null!;
+
+        [ForeignKey("CourseId")]
+        public Course Course { get; set; } = null!;
     }
 
     public class TestScore

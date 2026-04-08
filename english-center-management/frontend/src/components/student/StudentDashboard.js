@@ -32,7 +32,8 @@ import {
   CalendarToday,
   ChevronRight,
   PlayArrow,
-  Star
+  Star,
+  Payment
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -103,7 +104,7 @@ const StudentDashboard = () => {
   useEffect(() => {
     if (hasLoaded.current) return;
     hasLoaded.current = true;
-    
+
     const initDashboard = async () => {
       const userData = localStorage.getItem('user');
       if (userData) {
@@ -176,7 +177,7 @@ const StudentDashboard = () => {
       // 2. Load Grades for Stats
       const gradesRes = await gradesAPI.getByStudent(studentId);
       const gradesData = gradesRes.data || [];
-      const avgGrade = gradesData.length > 0 
+      const avgGrade = gradesData.length > 0
         ? (gradesData.reduce((acc, curr) => acc + curr.score, 0) / gradesData.length).toFixed(1)
         : 0;
 
@@ -280,9 +281,9 @@ const StudentDashboard = () => {
               <Typography variant="h3" sx={{ fontWeight: 700, color: '#1e293b', mb: 1 }}>{value}</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{
-                    display: 'flex', alignItems: 'center', bgcolor: isPositive ? 'rgba(56, 142, 60, 0.1)' : 'rgba(211, 47, 47, 0.1)',
-                    color: isPositive ? '#388e3c' : '#d32f2f', px: 1, py: 0.5, borderRadius: 1, fontSize: '0.75rem', fontWeight: 600,
-                  }}>
+                  display: 'flex', alignItems: 'center', bgcolor: isPositive ? 'rgba(56, 142, 60, 0.1)' : 'rgba(211, 47, 47, 0.1)',
+                  color: isPositive ? '#388e3c' : '#d32f2f', px: 1, py: 0.5, borderRadius: 1, fontSize: '0.75rem', fontWeight: 600,
+                }}>
                   {isPositive ? <ArrowUpward sx={{ fontSize: 14, mr: 0.3 }} /> : <ArrowDownward sx={{ fontSize: 14, mr: 0.3 }} />}
                   {isPositive ? '+' : ''}{change}%
                 </Box>
@@ -333,6 +334,7 @@ const StudentDashboard = () => {
     { icon: <Schedule />, title: 'Lịch học', subtitle: 'Thời khóa biểu cá nhân', path: '/student/schedule', color: '#4F46E5' },
     { icon: <Assessment />, title: 'Kết quả', subtitle: 'Bảng điểm & Nhận xét', path: '/student/grades', color: '#4F46E5' },
     { icon: <Folder />, title: 'Tài liệu', subtitle: 'Kho tài liệu bài tập', path: '/student/documents', color: '#4F46E5' },
+    { icon: <Payment />, title: 'Thanh toán', subtitle: 'Học phí & Lịch sử', path: '/student/payments', color: '#4F46E5' },
   ];
 
   const statsCards = [
@@ -355,7 +357,7 @@ const StudentDashboard = () => {
           {/* Decorative background elements */}
           <Box sx={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
           <Box sx={{ position: 'absolute', bottom: -30, right: 100, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-          
+
           <Box sx={{ p: 4, position: 'relative', zIndex: 1 }}>
             <Grid container spacing={3} alignItems="center">
               <Grid item xs={12} md={8}>
@@ -374,7 +376,7 @@ const StudentDashboard = () => {
                     </Typography>
                   </Box>
                 </Box>
-                
+
                 <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 2, bgcolor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', borderRadius: 2, px: 3, py: 2 }}>
                   <CalendarToday sx={{ fontSize: 24 }} />
                   <Box>
@@ -383,7 +385,7 @@ const StudentDashboard = () => {
                   </Box>
                 </Box>
               </Grid>
-              
+
               <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
                 <Button
                   variant="contained" size="large" startIcon={<PlayArrow />}
@@ -435,7 +437,7 @@ const StudentDashboard = () => {
               </Box>
               <Button size="small" endIcon={<ChevronRight />} onClick={() => navigate('/student/courses')} sx={{ textTransform: 'none', fontWeight: 600 }}>Xem tất cả</Button>
             </Box>
-            
+
             <Stack spacing={2}>
               {recentClasses.length > 0 ? recentClasses.map((classItem) => (
                 <Card

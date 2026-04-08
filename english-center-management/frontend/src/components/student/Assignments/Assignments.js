@@ -42,6 +42,7 @@ const StudentAssignments = () => {
     try {
       setLoading(true);
       setError(null);
+      setError(null);
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('Vui lòng đăng nhập để xem bài tập');
@@ -63,35 +64,20 @@ const StudentAssignments = () => {
           }
         } catch (profileErr) {
           console.error('Error fetching profile fallback:', profileErr);
-        }
-      }
-
-      // Fallback #2: resolve studentId by email (common when login payload lacks studentId)
-      if (!studentId && email) {
-        try {
-          const studentsRes = await studentsAPI.getAll({ search: email, page: 1, pageSize: 10, isActive: true });
-          const paged = studentsRes.data?.data || studentsRes.data;
-          const list = paged?.data || paged || [];
-          const normalized = Array.isArray(list) ? list : [];
-          const matched = normalized.find((s) => String(s.email || '').toLowerCase() === String(email).toLowerCase()) || normalized[0];
-          if (matched?.studentId) {
-            studentId = matched.studentId;
-            localStorage.setItem('user', JSON.stringify({ ...user, studentId }));
-          }
-        } catch (e) {
-          console.error('Error resolving studentId by email fallback:', e);
+          setError('Không thể tải thông tin học viên. Vui lòng làm mới trang.');
+          return;
         }
       }
 
       if (!studentId) {
-        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin.');
+        setError('Tài khoản của bạn chưa được liên kết với hồ sơ học viên. Vui lòng liên hệ Admin để được hỗ trợ.');
         return;
       }
 
       // Step 1: Get student's classes
       const enrollmentsRes = await studentsAPI.getEnrollments(studentId);
-      const classes = enrollmentsRes.data?.data || enrollmentsRes.data || [];
-      
+      const classes = enrollmentsRes.data?.Data || enrollmentsRes.data?.data?.Data || enrollmentsRes.data?.data?.data || enrollmentsRes.data?.data || enrollmentsRes.data || [];
+
       if (classes.length === 0) {
         setAssignments([]);
         return;
@@ -117,7 +103,13 @@ const StudentAssignments = () => {
       setAssignments(sorted);
     } catch (err) {
       console.error('Error loading assignments:', err);
-      setError('Không thể tải bài tập. Vui lòng thử lại sau.');
+      if (err.response?.status === 404) {
+        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
+      } else if (err.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        setError('Không thể tải bài tập. Vui lòng thử lại sau.');
+      }
     } finally {
       setLoading(false);
     }
@@ -127,7 +119,7 @@ const StudentAssignments = () => {
     if (assignment.studentStatus === 'Graded' || assignment.studentStatus === 'Submitted') {
       return { label: 'Đã hoàn thành', color: 'success', icon: <AssignmentTurnedIn fontSize="small" /> };
     }
-    
+
     const now = dayjs();
     const dueDate = dayjs(assignment.dueDate);
     const isOverdue = now.isAfter(dueDate);
@@ -156,11 +148,11 @@ const StudentAssignments = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header Banner */}
-      <Paper 
-        sx={{ 
-          p: 4, 
-          mb: 4, 
-          borderRadius: 4, 
+      <Paper
+        sx={{
+          p: 4,
+          mb: 4,
+          borderRadius: 4,
           background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
           color: 'white',
           position: 'relative',
@@ -175,15 +167,15 @@ const StudentAssignments = () => {
             Hoàn thành các bài tập để cải thiện kết quả học tập của bạn
           </Typography>
         </Box>
-        <AssignmentTurnedIn 
-          sx={{ 
-            position: 'absolute', 
-            right: -20, 
-            bottom: -20, 
-            fontSize: 200, 
-            opacity: 0.1, 
-            transform: 'rotate(-15deg)' 
-          }} 
+        <AssignmentTurnedIn
+          sx={{
+            position: 'absolute',
+            right: -20,
+            bottom: -20,
+            fontSize: 200,
+            opacity: 0.1,
+            transform: 'rotate(-15deg)'
+          }}
         />
       </Paper>
 
@@ -194,31 +186,51 @@ const StudentAssignments = () => {
       )}
 
       {/* Stats and Filters */}
-      <Box display="flex" gap={1} sx={{ mb: 4 }}>
-        <Button 
-          variant={filter === 'all' ? 'contained' : 'outlined'} 
-          onClick={() => setFilter('all')}
-          sx={{ borderRadius: 10 }}
-        >
-          Tất cả ({assignments.length})
-        </Button>
-        <Button 
-          variant={filter === 'pending' ? 'contained' : 'outlined'} 
-          color="primary"
-          onClick={() => setFilter('pending')}
-          sx={{ borderRadius: 10 }}
-        >
-          Chờ nộp
-        </Button>
-        <Button 
-          variant={filter === 'overdue' ? 'contained' : 'outlined'} 
-          color="error"
-          onClick={() => setFilter('overdue')}
-          sx={{ borderRadius: 10 }}
-        >
-          Quá hạn
-        </Button>
-      </Box>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={8}>
+          <Box display="flex" gap={1}>
+            <Button
+              variant={filter === 'all' ? 'contained' : 'outlined'}
+              onClick={() => setFilter('all')}
+              sx={{ borderRadius: 10 }}
+            >
+              Tất cả ({assignments.length})
+            </Button>
+            <Button
+              variant={filter === 'pending' ? 'contained' : 'outlined'}
+              color="primary"
+              onClick={() => setFilter('pending')}
+              sx={{ borderRadius: 10 }}
+            >
+              Chờ nộp
+            </Button>
+            <Button
+              variant={filter === 'overdue' ? 'contained' : 'outlined'}
+              color="error"
+              onClick={() => setFilter('overdue')}
+              sx={{ borderRadius: 10 }}
+            >
+              Quá hạn
+            </Button>
+          </Box>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, display: 'flex', justifyContent: 'space-around', boxShadow: 1 }}>
+            <Box textAlign="center">
+              <Typography variant="h6" fontWeight="bold" color="primary">{assignments.length}</Typography>
+              <Typography variant="caption" color="textSecondary">Tổng bài</Typography>
+            </Box>
+            <Box textAlign="center">
+              <Typography variant="h6" fontWeight="bold" color="error">{assignments.filter(a => dayjs().isAfter(dayjs(a.dueDate))).length}</Typography>
+              <Typography variant="caption" color="textSecondary">Quá hạn</Typography>
+            </Box>
+            <Box textAlign="center">
+              <Typography variant="h6" fontWeight="bold" color="success">12</Typography>
+              <Typography variant="caption" color="textSecondary">Hoàn thành</Typography>
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
 
       {filteredAssignments.length === 0 ? (
         <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 4, border: '2px dashed #e0e0e0' }}>
@@ -232,13 +244,13 @@ const StudentAssignments = () => {
           {filteredAssignments.map((assignment) => {
             const statusInfo = getStatusInfo(assignment);
             return (
-              <ListItem 
+              <ListItem
                 key={assignment.assignmentId}
                 component={Paper}
                 elevation={1}
-                sx={{ 
-                  borderRadius: 3, 
-                  p: 3, 
+                sx={{
+                  borderRadius: 3,
+                  p: 3,
                   transition: '0.2s',
                   '&:hover': {
                     transform: 'scale(1.01)',
@@ -274,14 +286,6 @@ const StudentAssignments = () => {
                             Hạn nộp: {dayjs(assignment.dueDate).format('DD/MM/YYYY HH:mm')}
                           </Typography>
                         </Box>
-                        {assignment.skillName && (
-                          <Chip
-                            label={assignment.skillName}
-                            size="small"
-                            color="info"
-                            variant="outlined"
-                          />
-                        )}
                         <Chip
                           icon={statusInfo.icon}
                           label={statusInfo.label}
@@ -289,17 +293,17 @@ const StudentAssignments = () => {
                           size="small"
                         />
                         {assignment.studentScore !== null && (
-                          <Chip 
-                            label={`Điểm: ${assignment.studentScore}/${assignment.maxScore}`} 
-                            color="success" 
+                          <Chip
+                            label={`Điểm: ${assignment.studentScore}/${assignment.maxScore}`}
+                            color="success"
                             variant="outlined"
                             size="small"
                           />
                         )}
                         {assignment.timeSpentSeconds && (
-                          <Chip 
+                          <Chip
                             icon={<AccessTime fontSize="small" />}
-                            label={`Thời gian: ${Math.floor(assignment.timeSpentSeconds / 60)}:${String(assignment.timeSpentSeconds % 60).padStart(2, '0')}`} 
+                            label={`Thời gian: ${Math.floor(assignment.timeSpentSeconds / 60)}:${String(assignment.timeSpentSeconds % 60).padStart(2, '0')}`}
                             variant="outlined"
                             size="small"
                           />
@@ -309,63 +313,15 @@ const StudentAssignments = () => {
                   }
                 />
                 <Box>
-                  {(() => {
-                    const isOverdue = dayjs().isAfter(dayjs(assignment.dueDate));
-                    const isSubmitted = assignment.studentStatus === 'Graded' || assignment.studentStatus === 'Submitted';
-                    
-                    if (!isSubmitted && !isOverdue) {
-                      return (
-                        <Tooltip title="Vào làm bài">
-                          <Button 
-                            variant="contained" 
-                            endIcon={<Launch />} 
-                            sx={{ borderRadius: 2 }}
-                            onClick={async () => {
-                              try {
-                                if (
-                                  String(assignment.type || '').toLowerCase() === 'quiz' &&
-                                  !document.fullscreenElement &&
-                                  document.documentElement.requestFullscreen
-                                ) {
-                                  await document.documentElement.requestFullscreen();
-                                }
-                              } catch (e) {
-                                // Ignore fullscreen errors; still navigate
-                              } finally {
-                                navigate(`/student/assignments/${assignment.assignmentId}`);
-                              }
-                            }}
-                          >
-                            Làm bài
-                          </Button>
-                        </Tooltip>
-                      );
-                    }
-                    
-                    if (!isSubmitted && isOverdue) {
-                      return (
-                        <Button 
-                          variant="outlined" 
-                          color="error"
-                          disabled
-                          sx={{ borderRadius: 2 }}
-                        >
-                          Đã quá hạn
-                        </Button>
-                      );
-                    }
-                    
-                    return (
-                      <Button 
-                        variant="outlined" 
-                        color="success"
-                        sx={{ borderRadius: 2 }}
-                        onClick={() => navigate(`/student/assignments/${assignment.assignmentId}`)}
-                      >
-                        Xem kết quả
-                      </Button>
-                    );
-                  })()}
+                  <Tooltip title="Vào làm bài">
+                    <Button
+                      variant="contained"
+                      endIcon={<Launch />}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Làm bài
+                    </Button>
+                  </Tooltip>
                 </Box>
               </ListItem>
             );

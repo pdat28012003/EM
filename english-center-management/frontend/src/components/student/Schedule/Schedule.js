@@ -45,6 +45,11 @@ const StudentSchedule = () => {
   const [startDate, setStartDate] = useState(dayjs().startOf('week').add(1, 'day'));
   const [endDate, setEndDate] = useState(dayjs().endOf('week').add(1, 'day'));
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'table'
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  const clearDateFilter = () => {
+    setSelectedDate(null);
+  };
 
   useEffect(() => {
     loadSchedule();
@@ -54,7 +59,7 @@ const StudentSchedule = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('Vui lòng đăng nhập để xem lịch học');
@@ -77,11 +82,13 @@ const StudentSchedule = () => {
           }
         } catch (profileErr) {
           console.error('Error fetching profile fallback:', profileErr);
+          setError('Không thể tải thông tin học viên. Vui lòng làm mới trang.');
+          return;
         }
       }
 
       if (!studentId) {
-        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
+        setError('Tài khoản của bạn chưa được liên kết với hồ sơ học viên. Vui lòng liên hệ Admin để được hỗ trợ.');
         return;
       }
 
@@ -91,14 +98,20 @@ const StudentSchedule = () => {
         endDate: endDate.format('YYYY-MM-DD'),
         pageSize: 100
       };
-      
+
       const response = await studentsAPI.getSchedule(studentId, params);
-      
+
       const scheduleData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
       setSchedule(Array.isArray(scheduleData) ? scheduleData : []);
     } catch (err) {
       console.error('Error loading schedule:', err);
-      setError('Không thể tải lịch học. Vui lòng thử lại sau.');
+      if (err.response?.status === 404) {
+        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
+      } else if (err.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        setError('Không thể tải lịch học. Vui lòng thử lại sau.');
+      }
       setSchedule([]);
     } finally {
       setLoading(false);
@@ -121,7 +134,7 @@ const StudentSchedule = () => {
   const getScheduleByDay = () => {
     const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
     const timeSlots = ['08:00', '10:00', '14:00', '16:00', '18:00', '20:00'];
-    
+
     const scheduleMap = {};
     timeSlots.forEach(time => {
       scheduleMap[time] = {};
@@ -135,7 +148,7 @@ const StudentSchedule = () => {
         const date = dayjs(item.date || item.Date);
         const dayOfWeek = days[date.day() === 0 ? 6 : date.day() - 1];
         const startTime = item.startTime || item.StartTime;
-        
+
         // Find closest time slot
         const slot = timeSlots.find(t => startTime >= t) || timeSlots[timeSlots.length - 1];
         if (slot && dayOfWeek) {
@@ -158,74 +171,57 @@ const StudentSchedule = () => {
   }
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h4" gutterBottom fontWeight="bold">
-          Lịch Học Của Tôi
-        </Typography>
-        
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Typography variant="h4" gutterBottom fontWeight="bold">
+        Lịch Học Của Tôi
+      </Typography>
 
-        {/* Filter Controls */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Grid container spacing={3} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Box display="flex" alignItems="center" gap={2}>
-                <DatePicker
-                  label="Từ ngày"
-                  value={startDate}
-                  onChange={(newValue) => newValue && setStartDate(newValue)}
-                  format="DD/MM/YYYY"
-                  slotProps={{ textField: { size: 'small' } }}
-                />
-                <Typography variant="body1">-</Typography>
-                <DatePicker
-                  label="Đến ngày"
-                  value={endDate}
-                  onChange={(newValue) => newValue && setEndDate(newValue)}
-                  format="DD/MM/YYYY"
-                  slotProps={{ textField: { size: 'small' } }}
-                />
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box display="flex" gap={2} justifyContent="flex-end">
-                <ToggleButtonGroup
-                  value={viewMode}
-                  exclusive
-                  onChange={handleViewModeChange}
-                  size="small"
-                >
-                  <ToggleButton value="list">
-                    <ViewList sx={{ mr: 1 }} />
-                    Danh sách
-                  </ToggleButton>
-                  <ToggleButton value="table">
-                    <ViewModule sx={{ mr: 1 }} />
-                    Bảng TKB
-                  </ToggleButton>
-                </ToggleButtonGroup>
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
-                <Button variant="contained" startIcon={<Refresh />} onClick={loadSchedule}>
-                  Làm mới
-                </Button>
-              </Box>
-            </Grid>
+      {/* Filter Controls */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Grid container spacing={3} alignItems="center">
+          <Grid item xs={12} md={8}>
+            <Typography variant="h6">
+              {selectedDate
+                ? `Lịch học ngày ${selectedDate.format('DD/MM/YYYY')}`
+                : 'Tất cả lịch học'
+              }
+            </Typography>
           </Grid>
-        </Paper>
+          <Grid item xs={12} md={4}>
+            <Box display="flex" gap={2}>
+              {selectedDate && (
+                <Button variant="outlined" onClick={clearDateFilter}>
+                  Xóa bộ lọc
+                </Button>
+              )}
+              <Button variant="contained" startIcon={<Refresh />} onClick={loadSchedule}>
+                Làm mới
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
 
-        {schedule.length === 0 ? (
+      {schedule.length === 0 ? (
         <Paper sx={{ p: 10, textAlign: 'center', border: '2px dashed', borderColor: 'grey.300', bgcolor: 'transparent' }}>
           <CalendarMonth sx={{ fontSize: 60, color: 'grey.300', mb: 2 }} />
           <Typography variant="h6" color="textSecondary">
-            Không có lịch học trong tuần này
+            {selectedDate
+              ? 'Không có lịch học vào ngày này'
+              : 'Không có lịch học nào'
+            }
           </Typography>
           <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Liên hệ quản trị viên để được đăng ký lớp học
+            {selectedDate
+              ? 'Vui lòng chọn ngày khác để xem lịch học'
+              : 'Liên hệ quản trị viên để được đăng ký lớp học'
+            }
           </Typography>
         </Paper>
       ) : viewMode === 'table' ? (
@@ -279,7 +275,7 @@ const StudentSchedule = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          
+
           {/* Summary */}
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -388,11 +384,11 @@ const StudentSchedule = () => {
                         </Box>
                       )}
                       <Box sx={{ mt: 'auto', pt: 2 }}>
-                        <Chip 
-                          label={sessionItem.status || 'Scheduled'} 
-                          size="small" 
+                        <Chip
+                          label={sessionItem.status || 'Scheduled'}
+                          size="small"
                           color={sessionItem.status === 'Scheduled' ? 'success' : 'default'}
-                          variant="outlined" 
+                          variant="outlined"
                         />
                       </Box>
                     </CardContent>
@@ -400,7 +396,7 @@ const StudentSchedule = () => {
                 </Grid>
               ))}
           </Grid>
-          
+
           {/* Summary */}
           <Paper sx={{ p: 3, mt: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -444,7 +440,6 @@ const StudentSchedule = () => {
         </>
       )}
     </Container>
-    </LocalizationProvider>
   );
 };
 

@@ -35,7 +35,7 @@ const StudentHeader = () => {
     const loadUserData = () => {
       const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
       const userData = localStorage.getItem('user');
-      
+
       setIsAuthenticated(isAuthenticated);
       if (userData) {
         setUser(JSON.parse(userData));
@@ -43,7 +43,7 @@ const StudentHeader = () => {
     };
 
     loadUserData();
-    
+
     // Listen for user updates to refresh header data
     const handleUserUpdate = (event) => {
       const updatedUser = event.detail;
@@ -54,9 +54,9 @@ const StudentHeader = () => {
         loadUserData();
       }
     };
-    
+
     window.addEventListener('userUpdated', handleUserUpdate);
-    
+
     return () => {
       window.removeEventListener('userUpdated', handleUserUpdate);
     };
@@ -113,21 +113,21 @@ const StudentHeader = () => {
         <Toolbar disableGutters sx={{ minHeight: '48px !important', height: '48px' }}>
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-          <Box 
+          <Box
             onClick={() => navigateToHome(user, navigate)}
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
               cursor: 'pointer',
               '&:hover': { opacity: 0.8 }
             }}
           >
             <School sx={{ color: 'white', fontSize: 20, mr: 1 }} />
-            <Typography 
-              variant="h6" 
-              component="h1" 
-              sx={{ 
-                color: 'white', 
+            <Typography
+              variant="h6"
+              component="h1"
+              sx={{
+                color: 'white',
                 fontSize: '1rem',
                 fontWeight: 'bold',
                 letterSpacing: 'tight'
@@ -140,10 +140,10 @@ const StudentHeader = () => {
 
         {/* Desktop Navigation - Student focused */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
-          <Button 
+          <Button
             onClick={() => navigateToHome(user, navigate)}
-            sx={{ 
-              color: 'white', 
+            sx={{
+              color: 'white',
               fontSize: '0.75rem',
               px: 2,
               py: 0.5,
@@ -152,11 +152,11 @@ const StudentHeader = () => {
           >
             Dashboard
           </Button>
-          <Button 
+          <Button
             component={Link}
             to="/student/courses"
-            sx={{ 
-              color: 'white', 
+            sx={{
+              color: 'white',
               fontSize: '0.75rem',
               px: 2,
               py: 0.5,
@@ -165,11 +165,11 @@ const StudentHeader = () => {
           >
             Khóa học của tôi
           </Button>
-          <Button 
+          <Button
             component={Link}
             to="/student/schedule"
-            sx={{ 
-              color: 'white', 
+            sx={{
+              color: 'white',
               fontSize: '0.75rem',
               px: 2,
               py: 0.5,
@@ -178,11 +178,11 @@ const StudentHeader = () => {
           >
             Lịch học
           </Button>
-          <Button 
+          <Button
             component={Link}
             to="/student/assignments"
-            sx={{ 
-              color: 'white', 
+            sx={{
+              color: 'white',
               fontSize: '0.75rem',
               px: 2,
               py: 0.5,
@@ -191,11 +191,11 @@ const StudentHeader = () => {
           >
             Bài tập
           </Button>
-          <Button 
+          <Button
             component={Link}
             to="/student/documents"
-            sx={{ 
-              color: 'white', 
+            sx={{
+              color: 'white',
               fontSize: '0.75rem',
               px: 2,
               py: 0.5,
@@ -203,6 +203,19 @@ const StudentHeader = () => {
             }}
           >
             Tài liệu
+          </Button>
+          <Button
+            component={Link}
+            to="/student/payments"
+            sx={{
+              color: 'white',
+              fontSize: '0.75rem',
+              px: 2,
+              py: 0.5,
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            Thanh toán
           </Button>
         </Box>
 
@@ -213,8 +226,8 @@ const StudentHeader = () => {
               {/* Notifications */}
               <NotificationDropdown />
 
-              <UserAvatar 
-                user={user} 
+              <UserAvatar
+                user={user}
                 isAuthenticated={isAuthenticated}
                 showName={true}
                 onUserMenuOpen={handleUserMenuOpen}
@@ -229,19 +242,19 @@ const StudentHeader = () => {
               />
             </>
           ) : (
-            <Button 
+            <Button
               component={Link}
               to="/login"
               variant="outlined"
-              sx={{ 
+              sx={{
                 borderColor: 'white',
                 color: 'white',
                 fontSize: '0.75rem',
                 px: 2,
                 py: 0.5,
-                '&:hover': { 
+                '&:hover': {
                   borderColor: 'white',
-                  backgroundColor: 'rgba(255,255,255,0.1)' 
+                  backgroundColor: 'rgba(255,255,255,0.1)'
                 }
               }}
             >
