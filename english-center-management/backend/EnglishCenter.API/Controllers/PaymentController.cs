@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using EnglishCenter.API.Data;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
@@ -18,17 +19,20 @@ namespace EnglishCenter.API.Controllers
         private readonly ISePayService _sePayService;
         private readonly IHubContext<PaymentHub> _hubContext;
         private readonly ILogger<PaymentController> _logger;
+        private readonly IConfiguration _configuration;
 
         public PaymentController(
             ApplicationDbContext context,
             ISePayService sePayService,
             IHubContext<PaymentHub> hubContext,
-            ILogger<PaymentController> logger)
+            ILogger<PaymentController> logger,
+            IConfiguration configuration)
         {
             _context = context;
             _sePayService = sePayService;
             _hubContext = hubContext;
             _logger = logger;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -50,8 +54,13 @@ namespace EnglishCenter.API.Controllers
                     return NotFound("Student not found");
                 }
 
+                if (student.Enrollments == null)
+                {
+                    return Ok(new StudentEnrolledCoursesDto { StudentId = studentId, StudentName = student.FullName });
+                }
+
                 var courses = student.Enrollments
-                    .Where(e => e.Status == "Active")
+                    .Where(e => e.Status != "Dropped" && e.Status != "Cancelled" && e.Class != null && e.Class.Course != null)
                     .Select(e => e.Class.Course)
                     .Distinct()
                     .Select(course => new CourseForPaymentDto
@@ -61,14 +70,14 @@ namespace EnglishCenter.API.Controllers
                         CourseCode = course.CourseCode,
                         Fee = course.Fee,
                         IsSelected = false,
-                        IsPaid = false // TODO: Check if course is already paid
+                        IsPaid = false
                     })
                     .ToList();
 
                 // Check which courses are already paid
                 var paidCourseIds = await _context.PaymentCourses
                     .Include(pc => pc.Payment)
-                    .Where(pc => pc.Payment.StudentId == studentId && pc.Payment.Status == "Completed")
+                    .Where(pc => pc.Payment != null && pc.Payment.StudentId == studentId && pc.Payment.Status == "Completed")
                     .Select(pc => pc.CourseId)
                     .ToListAsync();
 
@@ -90,7 +99,7 @@ namespace EnglishCenter.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting enrolled courses for student {StudentId}", studentId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 
@@ -152,13 +161,14 @@ namespace EnglishCenter.API.Controllers
                 await _context.SaveChangesAsync();
 
                 // Generate QR code
+                _logger.LogInformation("Creating payment {PaymentId}. Requesting QR code from SePay Service...", payment.PaymentId);
                 var qrRequest = new SePayQRRequestDto
                 {
-                    accountNumber = "0399076806",
-                    accountName = "DOAN VU BINH DUONG",
-                    acqId = "970422",
+                    accountNumber = _configuration["SePay:AccountNumber"] ?? "0399076806",
+                    accountName = _configuration["SePay:AccountName"] ?? "DOAN VU BINH DUONG",
+                    acqId = _configuration["SePay:AcqId"] ?? "970422",
                     addInfo = $"EC-PAY-{payment.PaymentId}",
-                    amount = payment.Amount.ToString(),
+                    amount = payment.Amount.ToString("0"),
                     template = "compact"
                 };
 
@@ -166,9 +176,14 @@ namespace EnglishCenter.API.Controllers
                 
                 if (qrResponse != null)
                 {
+                    _logger.LogInformation("Received QR code from SePay for Payment {PaymentId}", payment.PaymentId);
                     payment.QRCodeUrl = qrResponse.img;
                     payment.TransactionId = qrResponse.qrCode;
                     await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to generate QR code for Payment {PaymentId}", payment.PaymentId);
                 }
 
                 // Return payment DTO
@@ -341,25 +356,29 @@ namespace EnglishCenter.API.Controllers
                 {
                     PaymentId = p.PaymentId,
                     StudentId = p.StudentId,
-                    StudentName = p.Student.FullName,
+                    StudentName = p.Student != null ? p.Student.FullName : "Unknown Student",
                     Amount = p.Amount,
                     PaymentDate = p.PaymentDate,
                     PaymentMethod = p.PaymentMethod,
-                    Status = p.Status,
+                    Status = p.Status == "Completed" ? "Complete" : "Pending",
                     Notes = p.Notes,
                     TransactionId = p.TransactionId,
                     QRCodeUrl = p.QRCodeUrl,
                     Gateway = p.Gateway,
                     PaymentCompletedDate = p.PaymentCompletedDate,
-                    Courses = p.PaymentCourses.Select(pc => new CourseForPaymentDto
-                    {
-                        CourseId = pc.Course.CourseId,
-                        CourseName = pc.Course.CourseName,
-                        CourseCode = pc.Course.CourseCode,
-                        Fee = pc.CourseFee,
-                        IsSelected = true,
-                        IsPaid = p.Status == "Completed"
-                    }).ToList()
+                    Courses = p.PaymentCourses != null 
+                        ? p.PaymentCourses
+                            .Where(pc => pc.Course != null)
+                            .Select(pc => new CourseForPaymentDto
+                            {
+                                CourseId = pc.Course.CourseId,
+                                CourseName = pc.Course.CourseName,
+                                CourseCode = pc.Course.CourseCode,
+                                Fee = pc.CourseFee,
+                                IsSelected = true,
+                                IsPaid = p.Status == "Completed"
+                            }).ToList()
+                        : new List<CourseForPaymentDto>()
                 }).ToList();
 
                 return Ok(paymentDtos);
@@ -367,7 +386,7 @@ namespace EnglishCenter.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting payment history for student {StudentId}", studentId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
     }

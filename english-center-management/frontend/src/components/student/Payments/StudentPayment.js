@@ -82,20 +82,37 @@ const StudentPayment = () => {
     }
   }, [studentId]);
 
+  const connectionRef = React.useRef(null);
+
   useEffect(() => {
     // Setup SignalR connection for real-time payment updates
-    const connection = signalR.createHubConnection();
+    if (!connectionRef.current) {
+      connectionRef.current = signalR.createHubConnection();
+    }
 
-    connection.start()
-      .then(() => {
-        console.log('Connected to payment hub');
-      })
-      .catch(err => console.error('SignalR connection error:', err));
+    const startConnection = async () => {
+      try {
+        if (connectionRef.current.state === 'Disconnected') {
+          await connectionRef.current.start();
+          console.log('Connected to payment hub');
+          
+          if (currentPayment) {
+            await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
+          }
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('SignalR connection error:', err);
+        }
+      }
+    };
 
-    connection.on('PaymentStatusChanged', (data) => {
+    startConnection();
+
+    const handleStatusChange = (data) => {
       if (currentPayment && data.paymentId === currentPayment.paymentId) {
         setPaymentStatus(data.status);
-        if (data.status === 'Completed') {
+        if (data.status === 'Completed' || data.status === 'Complete') {
           setTimeout(() => {
             setQrDialog(false);
             loadEnrolledCourses();
@@ -103,10 +120,14 @@ const StudentPayment = () => {
           }, 2000);
         }
       }
-    });
+    };
+
+    connectionRef.current.on('PaymentStatusChanged', handleStatusChange);
 
     return () => {
-      connection.stop();
+      if (connectionRef.current) {
+        connectionRef.current.off('PaymentStatusChanged', handleStatusChange);
+      }
     };
   }, [currentPayment]);
 
@@ -171,9 +192,8 @@ const StudentPayment = () => {
       setQrDialog(true);
       setPaymentStatus('Pending');
 
-      // Join SignalR group for this payment
-      const connection = signalR.createHubConnection();
-      connection.invoke('JoinPaymentGroup', response.data.paymentId.toString());
+      // The JoinPaymentGroup is handled in the SignalR useEffect
+      // when currentPayment is updated
 
     } catch (error) {
       console.error('Error creating payment:', error);
@@ -193,6 +213,7 @@ const StudentPayment = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Completed':
+      case 'Complete':
         return 'success';
       case 'Pending':
         return 'warning';
@@ -204,6 +225,7 @@ const StudentPayment = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'Completed':
+      case 'Complete':
         return <CheckCircle color="success" />;
       case 'Pending':
         return <RadioButtonUnchecked color="warning" />;

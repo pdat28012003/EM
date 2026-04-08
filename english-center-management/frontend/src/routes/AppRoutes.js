@@ -19,6 +19,7 @@ import StudentDocuments from '../components/student/Documents/Documents';
 import StudentSchedule from '../components/student/Schedule/Schedule';
 import StudentCourses from '../components/student/Courses/Courses';
 import StudentAssignments from '../components/student/Assignments/Assignments';
+import StudentAssignmentDetail from '../components/student/Assignments/AssignmentDetail';
 import StudentPayment from '../components/student/Payments/StudentPayment';
 import AdminDocuments from '../components/admin/documents/Documents';
 import Profile from '../components/profile/Profile';

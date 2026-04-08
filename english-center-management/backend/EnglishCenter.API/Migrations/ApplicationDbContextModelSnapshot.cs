@@ -139,6 +139,9 @@ namespace EnglishCenter.API.Migrations
                     b.Property<int>("MaxScore")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SkillId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -162,6 +165,8 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("AssignmentId");
 
                     b.HasIndex("ClassId");
+
+                    b.HasIndex("SkillId");
 
                     b.HasIndex("TeacherId");
 
@@ -1920,6 +1925,10 @@ namespace EnglishCenter.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("EnglishCenter.API.Models.Skill", "Skill")
+                        .WithMany()
+                        .HasForeignKey("SkillId");
+
                     b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
                         .WithMany("Assignments")
                         .HasForeignKey("TeacherId")
@@ -1927,6 +1936,8 @@ namespace EnglishCenter.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Class");
+
+                    b.Navigation("Skill");
 
                     b.Navigation("Teacher");
                 });

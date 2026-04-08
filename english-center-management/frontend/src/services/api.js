@@ -307,16 +307,16 @@ export const activityLogsAPI = {
 // Payments API
 export const paymentAPI = {
   // Get enrolled courses for a student
-  getStudentEnrolledCourses: (studentId) => api.get(`/api/payment/student/${studentId}/enrolled-courses`),
+  getStudentEnrolledCourses: (studentId) => api.get(`/payment/student/${studentId}/enrolled-courses`),
 
   // Create a new payment
-  createPayment: (data) => api.post('/api/payment/create-payment', data),
+  createPayment: (data) => api.post('/payment/create-payment', data),
 
   // Get payment by ID
-  getPaymentById: (id) => api.get(`/api/payment/${id}`),
+  getPaymentById: (id) => api.get(`/payment/${id}`),
 
   // Get payment history for a student
-  getStudentPaymentHistory: (studentId) => api.get(`/api/payment/student/${studentId}/history`),
+  getStudentPaymentHistory: (studentId) => api.get(`/payment/student/${studentId}/history`),
 
   // Legacy endpoints (for admin)
   getAll: (params) => api.get('/payments', { params }),
