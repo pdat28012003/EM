@@ -8,12 +8,12 @@ import {
 } from '@mui/material';
 import { useNavigation } from '../../hooks/useNavigation';
 
-const StudentNavigationMenu = ({ 
-  anchorEl, 
-  open, 
-  onClose, 
-  isAuthenticated, 
-  user 
+const StudentNavigationMenu = ({
+  anchorEl,
+  open,
+  onClose,
+  isAuthenticated,
+  user
 }) => {
   const { navigateToHomeWindow } = useNavigation();
 
@@ -44,7 +44,10 @@ const StudentNavigationMenu = ({
       <MenuItem component={Link} to="/student/documents" onClick={onClose}>
         Tài liệu
       </MenuItem>
-      
+      <MenuItem component={Link} to="/student/payments" onClick={onClose}>
+        Thanh toán
+      </MenuItem>
+
       {isAuthenticated && user ? (
         <>
           <Divider />

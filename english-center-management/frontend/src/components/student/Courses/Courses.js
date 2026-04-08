@@ -39,6 +39,7 @@ const StudentClasses = () => {
   const loadClasses = async () => {
     try {
       setLoading(true);
+      setError(null);
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('Vui lòng đăng nhập để xem lớp học');
@@ -62,11 +63,13 @@ const StudentClasses = () => {
           }
         } catch (profileErr) {
           console.error('Error fetching profile fallback:', profileErr);
+          setError('Không thể tải thông tin học viên. Vui lòng làm mới trang.');
+          return;
         }
       }
 
       if (!studentId) {
-        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin.');
+        setError('Tài khoản của bạn chưa được liên kết với hồ sơ học viên. Vui lòng liên hệ Admin để được hỗ trợ.');
         return;
       }
 
@@ -76,8 +79,14 @@ const StudentClasses = () => {
       const classesData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
       setClasses(Array.isArray(classesData) ? classesData : []);
     } catch (err) {
-      console.error('Error loading classes:', err);
-      setError('Không thể tải danh sách lớp học. Vui lòng thử lại sau.');
+      console.error('Error loading courses:', err);
+      if (err.response?.status === 404) {
+        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
+      } else if (err.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
+      }
     } finally {
       setLoading(false);
     }
@@ -112,11 +121,11 @@ const StudentClasses = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header Banner */}
-      <Paper 
-        sx={{ 
-          p: 4, 
-          mb: 4, 
-          borderRadius: 4, 
+      <Paper
+        sx={{
+          p: 4,
+          mb: 4,
+          borderRadius: 4,
           background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
           color: 'white',
           position: 'relative',
@@ -131,15 +140,15 @@ const StudentClasses = () => {
             Quản lý các lớp học bạn đang tham gia tại trung tâm
           </Typography>
         </Box>
-        <School 
-          sx={{ 
-            position: 'absolute', 
-            right: -20, 
-            bottom: -20, 
-            fontSize: 200, 
-            opacity: 0.1, 
-            transform: 'rotate(-15deg)' 
-          }} 
+        <School
+          sx={{
+            position: 'absolute',
+            right: -20,
+            bottom: -20,
+            fontSize: 200,
+            opacity: 0.1,
+            transform: 'rotate(-15deg)'
+          }}
         />
       </Paper>
 
@@ -162,15 +171,15 @@ const StudentClasses = () => {
             Về bảng điều khiển
           </Button>
         </Paper>
-        ) : (
+      ) : (
         <Grid container spacing={3}>
           {classes.map((classItem) => (
             <Grid item xs={12} md={6} lg={4} key={classItem.classId}>
-              <Card 
-                sx={{ 
-                  borderRadius: 4, 
-                  height: '100%', 
-                  display: 'flex', 
+              <Card
+                sx={{
+                  borderRadius: 4,
+                  height: '100%',
+                  display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.3s ease',
                   '&:hover': {
@@ -181,10 +190,10 @@ const StudentClasses = () => {
               >
                 <CardContent sx={{ p: 3, flexGrow: 1 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                    <Chip 
-                      label={getStatusLabel(classItem.status)} 
-                      color={getStatusColor(classItem.status)} 
-                      size="small" 
+                    <Chip
+                      label={getStatusLabel(classItem.status)}
+                      color={getStatusColor(classItem.status)}
+                      size="small"
                       sx={{ fontWeight: 'bold' }}
                     />
                     <Typography variant="caption" color="textSecondary">
@@ -261,9 +270,9 @@ const StudentClasses = () => {
                   </Box>
                 </CardContent>
                 <Box p={2} pt={0}>
-                  <Button 
-                    fullWidth 
-                    variant="outlined" 
+                  <Button
+                    fullWidth
+                    variant="outlined"
                     endIcon={<ArrowForward />}
                     sx={{ borderRadius: 2, py: 1 }}
                     onClick={() => navigate('/student/schedule')}

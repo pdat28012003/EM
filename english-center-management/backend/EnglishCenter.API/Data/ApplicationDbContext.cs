@@ -15,6 +15,7 @@ namespace EnglishCenter.API.Data
         public DbSet<Class> Classes { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<PaymentCourse> PaymentCourses { get; set; }
         public DbSet<TestScore> TestScores { get; set; }
         public DbSet<Curriculum> Curriculums { get; set; }
         public DbSet<CurriculumDay> CurriculumDays { get; set; }
@@ -89,6 +90,18 @@ namespace EnglishCenter.API.Data
                 .HasOne(p => p.Student)
                 .WithMany(s => s.Payments)
                 .HasForeignKey(p => p.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PaymentCourse>()
+                .HasOne(pc => pc.Payment)
+                .WithMany(p => p.PaymentCourses)
+                .HasForeignKey(pc => pc.PaymentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PaymentCourse>()
+                .HasOne(pc => pc.Course)
+                .WithMany(c => c.PaymentCourses)
+                .HasForeignKey(pc => pc.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<TestScore>()

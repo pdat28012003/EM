@@ -304,5 +304,27 @@ export const activityLogsAPI = {
   delete: (id) => api.delete(`/activitylogs/${id}`),
 };
 
+// Payments API
+export const paymentAPI = {
+  // Get enrolled courses for a student
+  getStudentEnrolledCourses: (studentId) => api.get(`/api/payment/student/${studentId}/enrolled-courses`),
+
+  // Create a new payment
+  createPayment: (data) => api.post('/api/payment/create-payment', data),
+
+  // Get payment by ID
+  getPaymentById: (id) => api.get(`/api/payment/${id}`),
+
+  // Get payment history for a student
+  getStudentPaymentHistory: (studentId) => api.get(`/api/payment/student/${studentId}/history`),
+
+  // Legacy endpoints (for admin)
+  getAll: (params) => api.get('/payments', { params }),
+  getById: (id) => api.get(`/payments/${id}`),
+  create: (data) => api.post('/payments', data),
+  update: (id, data) => api.put(`/payments/${id}`, data),
+  delete: (id) => api.delete(`/payments/${id}`),
+};
+
 export default api;
 export { UPLOAD_URL, BASE_URL };
