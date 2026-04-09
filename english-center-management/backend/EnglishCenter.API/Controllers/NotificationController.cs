@@ -29,7 +29,7 @@ namespace EnglishCenter.API.Controllers
         [HttpGet("stream")]
         [AllowAnonymous] // Token checked manually
         public async Task StreamNotifications(
-            [EnumeratorCancellation] CancellationToken cancellationToken,
+            CancellationToken cancellationToken,
             [FromQuery] string? token = null)
         {
             // Validate token

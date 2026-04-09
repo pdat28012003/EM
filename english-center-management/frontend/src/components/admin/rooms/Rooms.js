@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Paper,
   Typography,
@@ -12,12 +12,22 @@ import {
   IconButton,
   Chip,
   Grid,
+  Avatar,
+  useTheme,
+  Tooltip,
+  Fade,
+  Menu,
+  MenuItem,
+  Switch,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, Delete, Room } from '@mui/icons-material';
+import { Add, Edit, Delete, Room, MoreVert } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
 import { roomsAPI } from '../../../services/api';
 
 const Rooms = () => {
+  const theme = useTheme();
+  
   const formatTimeHHmm = (value) => {
     if (value === null || value === undefined) return '--:--';
     const s = value.toString();
@@ -25,6 +35,10 @@ const Rooms = () => {
   };
 
   const [rooms, setRooms] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -137,53 +151,170 @@ const Rooms = () => {
     }
   };
 
+  const handleOpenMenu = (event, room) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setSelectedRoom(room);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+    setSelectedRoom(null);
+  };
+
   const columns = [
     { field: 'roomId', headerName: 'ID', width: 70 },
-    { field: 'roomName', headerName: 'Tên Phòng', width: 150 },
-    { field: 'capacity', headerName: 'Sức Chứa', width: 100 },
+    {
+      field: 'roomName',
+      headerName: 'Tên Phòng',
+      flex: 1,
+      minWidth: 180,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
+          <Avatar
+            sx={{
+              width: 28,
+              height: 28,
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(249, 115, 22, 0.18)' : 'rgba(249, 115, 22, 0.12)',
+              color: theme.palette.warning.main,
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'rgba(249, 115, 22, 0.25)' : 'rgba(249, 115, 22, 0.18)',
+              flexShrink: 0,
+            }}
+          >
+            <Room fontSize="small" />
+          </Avatar>
+          <Typography variant="body2" fontWeight={800} noWrap>
+            {params.value}
+          </Typography>
+        </Box>
+      ),
+    },
+    { 
+      field: 'capacity', 
+      headerName: 'Sức Chứa', 
+      width: 110,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => (
+        <Typography variant="body2" fontWeight={700}>
+          {params.value} chỗ
+        </Typography>
+      ),
+    },
     { 
       field: 'availableHours', 
-      headerName: 'Khung Giờ Cho Phép', 
-      width: 200,
+      headerName: 'Khung Giờ', 
+      width: 180,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
-        <Typography variant="body2">
-          {formatTimeHHmm(params.row.availableStartTime)} - {formatTimeHHmm(params.row.availableEndTime)}
-        </Typography>
+        <Box
+          sx={{
+            display: 'inline-block',
+            bgcolor: alpha(theme.palette.grey[500], 0.12),
+            border: '1px solid',
+            borderColor: alpha(theme.palette.grey[500], 0.25),
+            borderRadius: 1.5,
+            px: 1.5,
+            py: 0.5,
+          }}
+        >
+          <Typography variant="caption" fontWeight={700}>
+            {formatTimeHHmm(params.row.availableStartTime)} - {formatTimeHHmm(params.row.availableEndTime)}
+          </Typography>
+        </Box>
       )
     },
-    { field: 'description', headerName: 'Mô Tả', width: 250 },
+    { 
+      field: 'description', 
+      headerName: 'Mô Tả', 
+      width: 250,
+      renderCell: (params) => {
+        const desc = params.value || '';
+        const features = [];
+        
+        // Parse features from description
+        if (desc.toLowerCase().includes('máy chiếu') || desc.toLowerCase().includes('projector')) {
+          features.push({ label: 'Máy Chiếu', icon: '📽️' });
+        }
+        if (desc.toLowerCase().includes('lab') || desc.toLowerCase().includes('phòng lab')) {
+          features.push({ label: 'Phòng Lab', icon: '🖥️' });
+        }
+        if (desc.toLowerCase().includes('bảng thông minh') || desc.toLowerCase().includes('smart board')) {
+          features.push({ label: 'Bảng Thông Minh', icon: '📺' });
+        }
+        if (desc.toLowerCase().includes('wifi') || desc.toLowerCase().includes('internet')) {
+          features.push({ label: 'WiFi', icon: '📶' });
+        }
+        
+        if (features.length > 0) {
+          return (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {features.map((feature, index) => (
+                <Chip
+                  key={index}
+                  label={`${feature.icon} ${feature.label}`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.7rem', height: '20px' }}
+                />
+              ))}
+            </Box>
+          );
+        }
+        
+        // Fallback to original description if no features detected
+        return (
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            {desc || 'Không có mô tả'}
+          </Typography>
+        );
+      },
+    },
     {
       field: 'isActive',
       headerName: 'Trạng Thái',
-      width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Sẵn sàng' : 'Bảo trì'}
-          color={params.value ? 'success' : 'warning'}
-          size="small"
-        />
-      ),
+      width: 140,
+      align: 'left',
+      headerAlign: 'left',
+      sortable: false,
+      renderCell: (params) => {
+        const isActive = Boolean(params.value);
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-start' }}>
+            <Chip
+              label={isActive ? 'Sẵn sàng' : 'Bảo trì'}
+              color={isActive ? 'success' : 'warning'}
+              size="small"
+              sx={{ fontWeight: 700 }}
+            />
+          </Box>
+        );
+      },
     },
     {
       field: 'actions',
-      headerName: 'Thao Tác',
-      width: 120,
+      headerName: 'Hành Động',
+      width: 80,
+      align: 'center',
+      headerAlign: 'center',
       sortable: false,
+      pinned: 'right',
       renderCell: (params) => (
-        <Box>
-          <IconButton onClick={() => handleOpenDialog(params.row)} color="primary" size="small">
-            <Edit fontSize="small" />
-          </IconButton>
-          <IconButton onClick={() => handleDelete(params.row.roomId)} color="error" size="small">
-            <Delete fontSize="small" />
-          </IconButton>
-        </Box>
+        <IconButton
+          size="small"
+          onClick={(e) => handleOpenMenu(e, params.row)}
+          sx={{ color: 'text.secondary' }}
+        >
+          <MoreVert fontSize="small" />
+        </IconButton>
       ),
     },
   ];
 
   return (
-    <Box sx={{ mt: 2, mb: 4 }}>
+    <Box sx={{ mt: 2, mb: 4, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={1}>
         
@@ -200,7 +331,7 @@ const Rooms = () => {
         </Button>
       </Box>
 
-      <Paper sx={{ height: 600, width: '100%' }}>
+      <Paper sx={{ flex: 1, width: '100%', overflow: 'auto' }}>
         <DataGrid
           rows={rooms}
           columns={columns}
@@ -214,6 +345,44 @@ const Rooms = () => {
           disableSelectionOnClick
         />
       </Paper>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMenu}
+        TransitionComponent={Fade}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: 200,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+            border: '1px solid',
+            borderColor: 'divider',
+            mt: 1,
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedRoom) handleOpenDialog(selectedRoom);
+            handleCloseMenu();
+          }}
+          sx={{ gap: 1.5, py: 1 }}
+        >
+          <Edit fontSize="small" color="primary" />
+          <Typography variant="body2" fontWeight={700}>Chỉnh Sửa</Typography>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (selectedRoom) handleDelete(selectedRoom.roomId);
+            handleCloseMenu();
+          }}
+          sx={{ gap: 1.5, py: 1, color: 'error.main' }}
+        >
+          <Delete fontSize="small" />
+          <Typography variant="body2" fontWeight={700}>Xóa Phòng</Typography>
+        </MenuItem>
+      </Menu>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{editingId ? 'Chỉnh Sửa Phòng Học' : 'Thêm Phòng Học Mới'}</DialogTitle>

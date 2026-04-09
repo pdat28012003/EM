@@ -27,6 +27,7 @@ namespace EnglishCenter.API.Controllers
         /// Gets assignments for a class with pagination. (Lấy danh sách bài tập của một lớp học với phân trang.)
         /// </summary>
         /// <param name="classId">Class ID (ID lớp học)</param>
+        /// <param name="studentId">Student ID (ID học viên)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
         /// <param name="status">Assignment status (Trạng thái bài tập)</param>
@@ -807,7 +808,7 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var assignment = await _context.Assignments
-                    .Include(a => a.Class)
+                    .Include(a => a.Class!)
                         .ThenInclude(c => c.Enrollments)
                             .ThenInclude(e => e.Student)
                     .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId);
@@ -835,7 +836,7 @@ namespace EnglishCenter.API.Controllers
                     
                     string status;
                     decimal? score = null;
-                    string note = null;
+                    string? note = null;
 
                     if (submission != null)
                     {
@@ -942,7 +943,7 @@ namespace EnglishCenter.API.Controllers
                     return NotFound(new { message = "Submission not found" });
                 }
 
-                if (gradeDto.Score > submission.Assignment.MaxScore)
+                if (gradeDto.Score > submission.Assignment!.MaxScore)
                 {
                     return BadRequest(new { message = $"Score cannot exceed maximum score of {submission.Assignment.MaxScore}" });
                 }
@@ -1044,7 +1045,7 @@ namespace EnglishCenter.API.Controllers
                     StudentId = submission.StudentId,
                     Action = "ASSIGNMENT_GRADED",
                     Title = "Bài tập đã được chấm",
-                    Description = $"Bài '{submission.Assignment.Title}' của bạn được chấm: {gradeDto.Score}/{submission.Assignment.MaxScore}",
+                    Description = $"Bài '{submission.Assignment!.Title}' của bạn được chấm: {gradeDto.Score}/{submission.Assignment.MaxScore}",
                     IconType = "grading",
                     Color = "warning",
                     TargetId = submission.SubmissionId,
@@ -1069,8 +1070,8 @@ namespace EnglishCenter.API.Controllers
                     Feedback = submission.Feedback,
                     GradedAt = submission.GradedAt,
                     GradedBy = submission.GradedBy,
-                    StudentName = submission.Student.FullName,
-                    AssignmentTitle = submission.Assignment.Title
+                    StudentName = submission.Student != null ? submission.Student.FullName : string.Empty,
+                    AssignmentTitle = submission.Assignment != null ? submission.Assignment.Title : string.Empty
                 };
 
                 return Ok(submissionDto);
