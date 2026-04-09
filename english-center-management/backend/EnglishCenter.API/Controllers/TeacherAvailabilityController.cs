@@ -78,7 +78,7 @@ namespace EnglishCenter.API.Controllers
             var conflictingTeacherIds = potentialConflicts
                 .Where(cs => cs.CurriculumDay != null && 
                              cs.CurriculumDay.ScheduleDate.DayOfWeek == dayOfWeek)
-                .Select(cs => cs.TeacherId.Value)
+                .Select(cs => cs.TeacherId!.Value)
                 .Distinct()
                 .ToList();
 

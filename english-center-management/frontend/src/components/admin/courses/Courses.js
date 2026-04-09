@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Typography,
   Box,
@@ -11,19 +11,47 @@ import {
   DialogActions,
   IconButton,
   MenuItem,
-  Alert,
+  Stack,
+  Chip,
+  Menu,
+  InputAdornment,
+  CircularProgress,
+  useTheme,
+  Grid,
+  Avatar,
+  Fade,
+  Tooltip,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { 
+  Add, 
+  Edit, 
+  Delete, 
+  Search, 
+  MoreVert, 
+  School, 
+  Payments, 
+  AccessTime,
+  Close,
+  Label,
+  Info
+} from '@mui/icons-material';
 import { coursesAPI } from '../../../services/api';
+import { alpha } from '@mui/material/styles';
 
 const Courses = () => {
+  const theme = useTheme();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [rowCount, setRowCount] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterLevel, setFilterLevel] = useState('Tất cả');
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  
   const [formData, setFormData] = useState({
     courseName: '',
     courseCode: '',
@@ -33,17 +61,28 @@ const Courses = () => {
     price: 0,
   });
 
+  const [errors, setErrors] = useState({});
+
+  const levels = ['Tất cả', 'Beginner', 'Elementary', 'Intermediate', 'Advanced'];
+
   useEffect(() => {
     loadCourses();
-  }, [paginationModel]);
+  }, [paginationModel, filterLevel, searchTerm]);
 
   const loadCourses = async () => {
     try {
       setLoading(true);
-      const response = await coursesAPI.getAll({
+      const params = {
         page: paginationModel.page + 1,
         pageSize: paginationModel.pageSize,
-      });
+        search: searchTerm,
+      };
+      
+      if (filterLevel !== 'Tất cả') {
+        params.level = filterLevel;
+      }
+
+      const response = await coursesAPI.getAll(params);
       
       setCourses(response.data.data || []);
       setRowCount(response.data.totalCount || 0);
@@ -52,6 +91,21 @@ const Courses = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatPrice = (value) => {
+    const n = Number(value) || 0;
+    return `${new Intl.NumberFormat('vi-VN').format(n)} đ`;
+  };
+
+  const handleOpenMenu = (event, course) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedCourse(course);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+    setSelectedCourse(null);
   };
 
   const handleOpenDialog = (course = null) => {
@@ -76,23 +130,42 @@ const Courses = () => {
         price: 0,
       });
     }
+    setErrors({});
     setOpenDialog(true);
+    handleCloseMenu();
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
   };
 
- const handleInputChange = (e) => {
-  const { name, value } = e.target;
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    // Clear error
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
 
-  setFormData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-};
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.courseName.trim()) newErrors.courseName = 'Tên khóa học không được trống';
+    if (!formData.courseCode.trim()) newErrors.courseCode = 'Mã khóa học không được trống';
+    if (!formData.level) newErrors.level = 'Vui lòng chọn cấp độ';
+    if (formData.duration <= 0) newErrors.duration = 'Thời lượng phải lớn hơn 0';
+    if (formData.price < 0) newErrors.price = 'Học phí không được âm';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async () => {
+    if (!validateForm()) return;
+
     try {
       const payload = {
         courseName: formData.courseName,
@@ -110,81 +183,270 @@ const Courses = () => {
         await coursesAPI.create(payload);
       }
       handleCloseDialog();
-      setPaginationModel(prev => ({ ...prev, page: 0 }));
       loadCourses();
     } catch (error) {
       console.error('Error saving course:', error);
-      alert('Có lỗi xảy ra khi lưu thông tin khóa học');
     }
   };
 
-  const columns = [
-    { field: 'courseId', headerName: 'ID', width: 70 },
-    { field: 'courseName', headerName: 'Tên Khóa Học', width: 200 },
-    { field: 'courseCode', headerName: 'Mã Khóa Học', width: 150 },
-    { field: 'description', headerName: 'Mô Tả', width: 250 },
-    { field: 'level', headerName: 'Cấp Độ', width: 100 },
-    { field: 'durationInWeeks', headerName: 'Thời Lượng (tuần)', width: 120 },
-    { field: 'fee', headerName: 'Học Phí', width: 120 },
-    {
-      field: 'actions',
-      headerName: 'Hành Động',
-      width: 150,
-      sortable: false,
-      renderCell: (params) => (
-        <>
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={() => handleOpenDialog(params.row)}
-            title="Chỉnh sửa"
-          >
-            <Edit />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="error"
-            onClick={() => handleDeleteCourse(params.row)}
-            title="Xóa khóa học"
-          >
-            <Delete />
-          </IconButton>
-        </>
-      ),
-    },
-  ];
+  const handleDeleteClick = () => {
+    if (selectedCourse) {
+      handleDeleteCourse(selectedCourse);
+    }
+    handleCloseMenu();
+  };
 
   const handleDeleteCourse = async (course) => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa khóa học "${course.courseName}"?`)) {
       try {
         await coursesAPI.delete(course.courseId);
-        alert('Xóa khóa học thành công!');
         loadCourses();
       } catch (error) {
         console.error('Error deleting course:', error);
-        const errorMessage = error.response?.data?.message || 
-                            error.message || 
-                            'Lỗi không xác định khi xóa khóa học';
-        alert('Lỗi xóa: ' + errorMessage);
       }
     }
   };
 
+  const levelColor = useMemo(() => ({
+    Beginner: theme.palette.success.main,
+    Elementary: theme.palette.info.main,
+    Intermediate: theme.palette.warning.main,
+    Advanced: theme.palette.error.main,
+  }), [theme.palette.error.main, theme.palette.info.main, theme.palette.success.main, theme.palette.warning.main]);
+
+  const getLevelStyle = (level) => {
+    switch (level) {
+      case 'Beginner':
+      case 'Elementary':
+      case 'Intermediate':
+      case 'Advanced': {
+        const c = levelColor[level];
+        return {
+          bg: alpha(c, theme.palette.mode === 'dark' ? 0.22 : 0.14),
+          text: c,
+          border: alpha(c, theme.palette.mode === 'dark' ? 0.35 : 0.25),
+        };
+      }
+      default: {
+        const c = theme.palette.text.secondary;
+        return { bg: alpha(c, 0.1), text: c, border: alpha(c, 0.2) };
+      }
+    }
+  };
+
+  const columns = [
+    { 
+      field: 'courseId', 
+      headerName: 'ID', 
+      width: 60,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => (
+        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+          {params.value}
+        </Typography>
+      )
+    },
+    { 
+      field: 'courseName', 
+      headerName: 'Tên Khóa Học', 
+      flex: 1.5,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '1rem' }}>
+            <School fontSize="small" />
+          </Avatar>
+          <Typography variant="body2" fontWeight={700}>
+            {params.value}
+          </Typography>
+        </Stack>
+      )
+    },
+    { 
+      field: 'courseCode', 
+      headerName: 'Mã', 
+      width: 100,
+      renderCell: (params) => (
+        <Chip label={params.value} size="small" variant="outlined" sx={{ borderRadius: 1, height: 20, fontSize: '0.65rem', fontWeight: 700 }} />
+      )
+    },
+    { 
+      field: 'description', 
+      headerName: 'Mô Tả', 
+      flex: 1.2,
+      minWidth: 260,
+      renderCell: (params) => (
+        <Tooltip title={params.value || ''}>
+          <Typography variant="caption" color="text.secondary" sx={{
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis', 
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            lineHeight: 1.5,
+            maxWidth: 420,
+          }}>
+            {params.value || 'Chưa có mô tả'}
+          </Typography>
+        </Tooltip>
+      )
+    },
+    { 
+      field: 'level', 
+      headerName: 'Cấp Độ', 
+      width: 130,
+      renderCell: (params) => {
+        const colors = getLevelStyle(params.value);
+        return (
+          <Chip 
+            label={params.value} 
+            size="small" 
+            sx={{ 
+              bgcolor: colors.bg, 
+              color: colors.text, 
+              fontWeight: 700, 
+              borderRadius: 1.5,
+              fontSize: '0.7rem',
+              border: '1px solid',
+              borderColor: colors.border
+            }} 
+          />
+        );
+      }
+    },
+    { 
+      field: 'durationInWeeks', 
+      headerName: 'Thời Lượng', 
+      width: 120,
+      renderCell: (params) => (
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
+          <Typography variant="body2" fontWeight={700}>
+            {params.value} tuần
+          </Typography>
+          {params.row?.totalHours ? (
+            <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
+              • {params.row.totalHours} giờ
+            </Typography>
+          ) : null}
+        </Stack>
+      )
+    },
+    { 
+      field: 'fee', 
+      headerName: 'Học Phí', 
+      width: 140,
+      align: 'right',
+      headerAlign: 'right',
+      renderCell: (params) => (
+        <Typography variant="body2" fontWeight={700} color="primary.main">
+          {formatPrice(params.value)}
+        </Typography>
+      )
+    },
+    {
+      field: 'actions',
+      headerName: 'Thao Tác',
+      width: 80,
+      sortable: false,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => (
+        <IconButton 
+          size="small" 
+          onClick={(e) => handleOpenMenu(e, params.row)}
+          className="actions-icon"
+          sx={{ transition: 'all 0.2s', color: 'text.secondary' }}
+        >
+          <MoreVert fontSize="small" />
+        </IconButton>
+      ),
+    },
+  ];
+
   return (
     <Box sx={{ mt: 2, mb: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight="bold">
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Typography variant="h4" fontWeight={900} sx={{ letterSpacing: -0.5 }}>
           Quản Lý Khóa Học
         </Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
-          onClick={handleOpenDialog}
+          onClick={() => handleOpenDialog()}
+          sx={{
+            px: 3,
+            borderRadius: 2.5,
+            textTransform: 'none',
+            fontWeight: 700,
+            boxShadow: '0 8px 16px rgba(59, 130, 246, 0.25)',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 12px 20px rgba(59, 130, 246, 0.35)',
+            },
+            transition: 'all 0.3s'
+          }}
         >
           Thêm Khóa Học Mới
         </Button>
       </Box>
-      <Paper sx={{ height: 600, width: '100%' }}>
+
+      <Paper sx={{ mb: 3, p: 2, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <TextField
+             placeholder="Tìm kiếm theo tên hoặc mã..."
+             variant="outlined"
+             size="small"
+             value={searchTerm}
+             onChange={(e) => setSearchTerm(e.target.value)}
+             InputProps={{
+               startAdornment: (
+                 <InputAdornment position="start">
+                   <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
+                 </InputAdornment>
+               ),
+               sx: { borderRadius: 3, bgcolor: 'background.default' },
+               autoComplete: 'off'
+             }}
+          />
+          <Stack direction="row" spacing={1}>
+            {levels.map((lvl) => {
+              const isActive = filterLevel === lvl;
+              return (
+                <Chip 
+                  key={lvl} 
+                  label={lvl} 
+                  onClick={() => setFilterLevel(lvl)} 
+                  variant={isActive ? 'filled' : 'outlined'}
+                  color={isActive ? 'primary' : 'default'}
+                  sx={{ 
+                    borderRadius: 1.5, 
+                    fontWeight: 600, 
+                    fontSize: '0.75rem',
+                    height: 32,
+                    cursor: 'pointer',
+                    bgcolor: isActive ? 'primary.main' : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'transparent'),
+                    boxShadow: (isActive && theme.palette.mode === 'dark') ? '0 0 12px rgba(59, 130, 246, 0.5)' : 'none',
+                    '&:hover': { bgcolor: 'primary.main', color: 'white' }
+                  }}
+                />
+              );
+            })}
+          </Stack>
+        </Box>
+      </Paper>
+
+      <Paper sx={{ 
+        height: 600, 
+        width: '100%',
+        borderRadius: 4,
+        boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+        overflow: 'hidden',
+        border: '1px solid',
+        borderColor: 'divider',
+        position: 'relative'
+      }}>
         <DataGrid
           rows={courses}
           columns={columns}
@@ -192,84 +454,181 @@ const Courses = () => {
           loading={loading}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[1, 10, 25, 50]}
+          pageSizeOptions={[10, 25, 50]}
           rowCount={rowCount}
           paginationMode="server"
           disableSelectionOnClick
+          sx={{
+            border: 'none',
+            '& .MuiDataGrid-columnHeaders': {
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.7)' : 'rgba(248, 250, 252, 0.5)',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+            },
+            '& .MuiDataGrid-row': {
+              transition: 'background-color 0.18s ease',
+              '&:hover': {
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+                '& .actions-icon': {
+                  opacity: 1,
+                  transform: 'scale(1.1)',
+                  color: 'primary.main'
+                }
+              }
+            },
+            '& .actions-icon': {
+              opacity: 0.5,
+              transition: 'all 0.2s'
+            }
+          }}
         />
       </Paper>
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingId ? 'Cập Nhật Khóa Học' : 'Thêm Khóa Học Mới'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <TextField
-              name="courseName"
-              label="Tên Khóa Học"
-              value={formData.courseName}
-              onChange={handleInputChange}
-              required
-              fullWidth
-              placeholder="VD: Tiếng Anh Giao Tiếp"
-            />
-            <TextField
-              name="courseCode"
-              label="Mã Khóa Học"
-              value={formData.courseCode}
-              onChange={handleInputChange}
-              required
-              fullWidth
-              placeholder="VD: ENG101"
-            />
-            <TextField
-              name="description"
-              label="Mô Tả"
-              value={formData.description}
-              onChange={handleInputChange}
-              multiline
-              rows={4}
-              fullWidth
-              placeholder="Mô tả chi tiết về khóa học..."
-            />
-            <TextField
-              name="level"
-              label="Cấp Độ"
-              value={formData.level}
-              onChange={handleInputChange}
-              select
-              fullWidth
-            >
-              <MenuItem value="">-- Chọn cấp độ --</MenuItem>
-              <MenuItem value="Beginner">Beginner (Sơ cấp)</MenuItem>
-              <MenuItem value="Intermediate">Intermediate (Trung cấp)</MenuItem>
-              <MenuItem value="Advanced">Advanced (Cao cấp)</MenuItem>
-            </TextField>
-            <TextField
-              name="duration"
-              label="Thời Lượng (tuần)"
-              type="number"
-              value={formData.duration}
-              onChange={handleInputChange}
-              required
-              fullWidth
-              inputProps={{ min: 1, max: 52 }}
-            />
-            <TextField
-              name="price"
-              label="Học Phí"
-              type="number"
-              value={formData.price}
-              onChange={handleInputChange}
-              required
-              fullWidth
-              inputProps={{ min: 0, step: 100000 }}
-            />
+
+      {/* Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMenu}
+        TransitionComponent={Fade}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: 150,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            border: '1px solid',
+            borderColor: 'divider',
+            mt: 1
+          }
+        }}
+      >
+        <MenuItem onClick={() => handleOpenDialog(selectedCourse)} sx={{ gap: 1.5, py: 1 }}>
+          <Edit fontSize="small" color="primary" />
+          <Typography variant="body2" fontWeight={600}>Chỉnh sửa</Typography>
+        </MenuItem>
+        <MenuItem onClick={handleDeleteClick} sx={{ gap: 1.5, py: 1, color: 'error.main' }}>
+          <Delete fontSize="small" />
+          <Typography variant="body2" fontWeight={600}>Xóa khóa học</Typography>
+        </MenuItem>
+      </Menu>
+
+      {/* Course Dialog */}
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4, backgroundImage: 'none' } }}
+      >
+        <DialogTitle sx={{ m: 0, p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
+              <School />
+            </Avatar>
+            <Typography variant="h6" fontWeight={800}>
+              {editingId ? 'Cập Nhật Khóa Học' : 'Thêm Khóa Học Mới'}
+            </Typography>
           </Box>
+          <IconButton onClick={handleCloseDialog} size="small" sx={{ color: 'text.secondary' }}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 4 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={8}>
+              <TextField
+                name="courseName"
+                label="Tên Khóa Học *"
+                value={formData.courseName}
+                onChange={handleInputChange}
+                error={!!errors.courseName}
+                helperText={errors.courseName}
+                fullWidth
+                InputProps={{ sx: { borderRadius: 2.5 } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                name="courseCode"
+                label="Mã Khóa Học *"
+                value={formData.courseCode}
+                onChange={handleInputChange}
+                error={!!errors.courseCode}
+                helperText={errors.courseCode}
+                fullWidth
+                InputProps={{ sx: { borderRadius: 2.5 } }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="description"
+                label="Mô Tả"
+                value={formData.description}
+                onChange={handleInputChange}
+                multiline
+                rows={3}
+                fullWidth
+                InputProps={{ sx: { borderRadius: 2.5 } }}
+                placeholder="Mô tả chi tiết về khóa học này..."
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                name="level"
+                label="Cấp Độ *"
+                value={formData.level}
+                onChange={handleInputChange}
+                error={!!errors.level}
+                helperText={errors.level}
+                select
+                fullWidth
+                InputProps={{ sx: { borderRadius: 2.5 } }}
+              >
+                {levels.filter(l => l !== 'Tất cả').map(l => (
+                  <MenuItem key={l} value={l}>{l}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                name="duration"
+                label="Thời Lượng (tuần) *"
+                type="number"
+                value={formData.duration}
+                onChange={handleInputChange}
+                error={!!errors.duration}
+                helperText={errors.duration}
+                fullWidth
+                InputProps={{ 
+                  sx: { borderRadius: 2.5 },
+                  startAdornment: <InputAdornment position="start"><AccessTime fontSize="small"/></InputAdornment>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                name="price"
+                label="Học Phí (VND) *"
+                type="number"
+                value={formData.price}
+                onChange={handleInputChange}
+                error={!!errors.price}
+                helperText={errors.price}
+                fullWidth
+                InputProps={{ 
+                  sx: { borderRadius: 2.5 },
+                  startAdornment: <InputAdornment position="start"><Payments fontSize="small"/></InputAdornment>
+                }}
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Hủy</Button>
-          <Button onClick={handleSubmit} variant="contained">
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button onClick={handleCloseDialog} sx={{ px: 4, borderRadius: 2.5, fontWeight: 700 }}>Hủy</Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            sx={{ px: 4, borderRadius: 2.5, fontWeight: 700 }}
+          >
             {editingId ? 'Cập Nhật' : 'Thêm Mới'}
           </Button>
         </DialogActions>
