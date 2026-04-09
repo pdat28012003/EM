@@ -293,41 +293,48 @@ namespace EnglishCenter.API.Controllers
                         var payment = await _context.Payments.FindAsync(paymentId);
                         if (payment != null && payment.Status == "Pending")
                         {
-                            // Verify amount matches
-                            if (decimal.TryParse(webhookData.amount, out var receivedAmount))
+                            // Verify amount matches using either amount or transferAmount from SePay webhook.
+                            decimal receivedAmount = 0;
+                            if (!string.IsNullOrEmpty(webhookData.amount) && decimal.TryParse(webhookData.amount, out var parsedAmount))
                             {
-                                if (Math.Abs(receivedAmount - payment.Amount) < 0.01m)
-                                {
-                                    // Update payment status
-                                    payment.Status = "Completed";
-                                    payment.PaymentCompletedDate = DateTime.Now;
-                                    payment.Gateway = "SePay";
-                                    payment.TransactionId = webhookData.code;
-                                    
-                                    await _context.SaveChangesAsync();
+                                receivedAmount = parsedAmount;
+                            }
+                            else if (webhookData.transferAmount.HasValue)
+                            {
+                                receivedAmount = webhookData.transferAmount.Value;
+                            }
 
-                                    // Send real-time update via SignalR
-                                    await _hubContext.Clients.Group($"payment_{paymentId}")
-                                        .SendAsync("PaymentStatusChanged", new
-                                        {
-                                            paymentId = payment.PaymentId,
-                                            status = payment.Status,
-                                            completedDate = payment.PaymentCompletedDate
-                                        });
+                            if (receivedAmount > 0 && Math.Abs(receivedAmount - payment.Amount) < 0.01m)
+                            {
+                                // Update payment status
+                                payment.Status = "Completed";
+                                payment.PaymentCompletedDate = DateTime.Now;
+                                payment.Gateway = "SePay";
+                                payment.TransactionId = webhookData.code ?? webhookData.referenceCode;
 
-                                    _logger.LogInformation("Payment {PaymentId} marked as completed", paymentId);
-                                }
-                                else
-                                {
-                                    _logger.LogWarning("Amount mismatch for payment {PaymentId}: expected {Expected}, received {Received}", 
-                                        paymentId, payment.Amount, receivedAmount);
-                                }
+                                await _context.SaveChangesAsync();
+
+                                // Send real-time update via SignalR
+                                await _hubContext.Clients.Group($"payment_{paymentId}")
+                                    .SendAsync("PaymentStatusChanged", new
+                                    {
+                                        paymentId = payment.PaymentId,
+                                        status = payment.Status,
+                                        completedDate = payment.PaymentCompletedDate
+                                    });
+
+                                _logger.LogInformation("Payment {PaymentId} marked as completed", paymentId);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Amount mismatch for payment {PaymentId}: expected {Expected}, received {Received}", 
+                                    paymentId, payment.Amount, receivedAmount);
                             }
                         }
                     }
                 }
 
-                return Ok();
+                return StatusCode(201, new { success = true });
             }
             catch (Exception ex)
             {
