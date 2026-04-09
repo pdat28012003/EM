@@ -19,6 +19,7 @@ import {
   MenuItem,
   Avatar,
   InputBase,
+  Tooltip,
 } from '@mui/material';
 import { 
   LayoutDashboard, 
@@ -45,6 +46,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
 
 const drawerWidth = 280;
+const collapsedWidth = 80;
 
 const menuItems = [
   { text: 'Dashboard', icon: <LayoutDashboard size={22} />, path: '/' },
@@ -63,15 +65,25 @@ const menuItems = [
 
 const Layout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   const theme = useTheme();
   const colorMode = useContext(ColorModeContext);
+  const collapsedWidthValue = collapsed ? collapsedWidth : drawerWidth;
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleSidebarCollapse = () => {
+    setCollapsed((prev) => !prev);
+  };
+
+  const handleSidebarExpand = () => {
+    if (collapsed) setCollapsed(false);
   };
 
   const handleMenuClick = (event) => {
@@ -80,6 +92,10 @@ const Layout = ({ children }) => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleNavigateHome = () => {
+    navigate('/');
   };
 
   const handleLogout = async () => {
@@ -97,24 +113,71 @@ const Layout = ({ children }) => {
   };
 
   const drawer = (
-    <Box sx={{ bgcolor: '#1e293b', height: '100%', color: 'white', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Box sx={{ 
-          width: 32, 
-          height: 32, 
-          bgcolor: 'primary.main', 
-          borderRadius: 1.5, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center' 
-        }}>
-          <GraduationCap color="white" size={18} />
+    <Box sx={{ bgcolor: theme.palette.background.paper, color: theme.palette.text.primary, height: '100%', display: 'flex', flexDirection: 'column', transition: 'width 0.3s ease' }}>
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, transition: 'all 0.3s ease' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 1.5, transition: 'all 0.3s ease' }}>
+          {collapsed ? (
+            <Tooltip title="Mở menu" arrow>
+              <IconButton
+                onClick={handleSidebarExpand}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  bgcolor: 'primary.main',
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                  },
+                }}
+              >
+                <GraduationCap color="white" size={18} />
+              </IconButton>
+            </Tooltip>
+          ) : (
+            <Box sx={{
+              width: 32,
+              height: 32,
+              bgcolor: 'primary.main',
+              borderRadius: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <GraduationCap color="white" size={18} />
+            </Box>
+          )}
+          {!collapsed && (
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1.1rem', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+              English Center
+            </Typography>
+          )}
         </Box>
-        <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1.1rem', letterSpacing: 0.5 }}>
-          English Center
-        </Typography>
+        <Tooltip title={collapsed ? 'Mở menu' : 'Thu gọn menu'} arrow>
+          <IconButton
+            color="inherit"
+            aria-label="toggle sidebar"
+            onClick={handleSidebarCollapse}
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: '50%',
+              bgcolor: theme.palette.mode === 'light' ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.08)',
+              boxShadow: theme.palette.mode === 'light' ? '0 8px 20px rgba(15, 23, 42, 0.08)' : '0 8px 20px rgba(15, 23, 42, 0.14)',
+              transition: 'all 0.25s ease',
+              '&:hover': {
+                bgcolor: theme.palette.mode === 'light' ? 'rgba(15, 23, 42, 0.12)' : 'rgba(255, 255, 255, 0.16)',
+                transform: 'scale(1.02)',
+              },
+            }}
+          >
+            <MenuIcon size={18} />
+          </IconButton>
+        </Tooltip>
       </Box>
-      <List sx={{ px: 1.5, mt: 0.5, '& .MuiListItem-root': { px: 0.5 } }}>
+      <List sx={{ px: collapsed ? 0 : 1.5, mt: 0.5, '& .MuiListItem-root': { px: 0.5 } }}>
         {menuItems.map((item) => {
           const isActive = item.path === '/' 
             ? location.pathname === '/' 
@@ -124,51 +187,91 @@ const Layout = ({ children }) => {
               <ListItemButton
                 component={Link}
                 to={item.path}
+                title={collapsed ? item.text : undefined}
                 sx={{
+                  width: '100%',
                   borderRadius: '10px',
                   py: 0.8,
-                  px: 1.5,
+                  px: collapsed ? 0 : 1.5,
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  alignItems: 'center',
                   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  bgcolor: isActive ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-                  color: isActive ? 'white' : 'rgba(203, 213, 225, 0.52)',
+                  bgcolor: isActive
+                    ? theme.palette.mode === 'light'
+                      ? 'rgba(59, 130, 246, 0.16)'
+                      : 'rgba(59, 130, 246, 0.24)'
+                    : 'transparent',
+                  color: isActive ? theme.palette.text.primary : theme.palette.text.secondary,
                   '&:hover': {
-                    bgcolor: isActive ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.1)',
-                    color: 'white',
-                    transform: 'translateX(6px)',
+                    bgcolor: isActive
+                      ? theme.palette.mode === 'light'
+                        ? 'rgba(59, 130, 246, 0.22)'
+                        : 'rgba(59, 130, 246, 0.28)'
+                      : theme.palette.action.hover,
+                    color: theme.palette.text.primary,
+                    transform: collapsed ? 'none' : 'translateX(6px)',
                   },
                 }}
               >
                 <ListItemIcon
                   sx={{
-                    minWidth: 32,
-                    mr: 1.5,
+                    minWidth: 0,
+                    mr: collapsed ? 0 : 1.5,
+                    display: 'flex',
+                    justifyContent: 'center',
                     color: 'inherit',
+                    width: collapsed ? '100%' : 'auto',
                   }}
                 >
                   {React.cloneElement(item.icon, { size: 20, strokeWidth: isActive ? 2.5 : 2 })}
                 </ListItemIcon>
                 <ListItemText 
-                  primary={item.text} 
+                  primary={item.text}
                   primaryTypographyProps={{ 
                     variant: 'body2', 
                     fontWeight: isActive ? 700 : 500,
                     sx: { fontSize: '0.85rem' }
-                  }} 
+                  }}
+                  sx={{
+                    opacity: collapsed ? 0 : 1,
+                    width: collapsed ? 0 : 'auto',
+                    transition: 'opacity 0.25s ease, width 0.25s ease',
+                    overflow: 'hidden',
+                  }}
                 />
               </ListItemButton>
             </ListItem>
           );
         })}
       </List>
-      <Box sx={{ mt: 'auto', p: 1, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+      <Box sx={{ mt: 'auto', p: 1, borderTop: `1px solid ${theme.palette.divider}` }}>
         <ListItemButton
           onClick={handleLogout}
-          sx={{ borderRadius: '10px', py: 0.8, color: '#f87171', '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.1)' } }}
+          sx={{
+            width: '100%',
+            borderRadius: '10px',
+            py: 0.8,
+            px: collapsed ? 0 : 1.5,
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            alignItems: 'center',
+            color: theme.palette.mode === 'light' ? '#dc2626' : '#f87171',
+            '&:hover': { bgcolor: theme.palette.mode === 'light' ? 'rgba(220, 38, 38, 0.12)' : 'rgba(248, 113, 113, 0.14)' },
+          }}
+          title={collapsed ? 'Đăng xuất' : undefined}
         >
-          <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>
+          <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 1.5, display: 'flex', justifyContent: 'center', color: 'inherit' }}>
             <LogOut size={18} />
           </ListItemIcon>
-          <ListItemText primary="Đăng xuất" primaryTypographyProps={{ variant: 'body2', fontWeight: 600, sx: { fontSize: '0.85rem' } }} />
+          <ListItemText 
+            primary="Đăng xuất" 
+            primaryTypographyProps={{ variant: 'body2', fontWeight: 600, sx: { fontSize: '0.85rem' } }}
+            sx={{
+              opacity: collapsed ? 0 : 1,
+              width: collapsed ? 0 : 'auto',
+              transition: 'opacity 0.25s ease, width 0.25s ease',
+              overflow: 'hidden',
+            }}
+          />
         </ListItemButton>
       </Box>
     </Box>
@@ -181,8 +284,8 @@ const Layout = ({ children }) => {
         position="fixed"
         elevation={0}
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { sm: `calc(100% - ${collapsedWidthValue}px)` },
+          ml: { sm: `${collapsedWidthValue}px` },
           bgcolor: theme.palette.mode === 'light' 
             ? 'rgba(255, 255, 255, 0.8)' 
             : 'rgba(30, 41, 59, 0.8)',
@@ -202,15 +305,22 @@ const Layout = ({ children }) => {
             >
               <MenuIcon size={24} />
             </IconButton>
-            <Box sx={{ 
-              display: { xs: 'none', md: 'flex' }, 
-              alignItems: 'center', 
-              gap: 1.5,
-              ml: 1
-            }}>
+            <Box
+              onClick={handleNavigateHome}
+              sx={{
+                display: { xs: 'none', md: 'flex' },
+                alignItems: 'center',
+                gap: 1.5,
+                ml: 1,
+                cursor: 'pointer',
+                '&:hover .headerBreadcrumb': {
+                  color: theme.palette.primary.main,
+                },
+              }}
+            >
               <Home size={18} color={theme.palette.text.secondary} />
               <Typography variant="body2" sx={{ color: theme.palette.divider }}>/</Typography>
-              <Typography variant="subtitle2" component="div" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: -0.2 }}>
+              <Typography className="headerBreadcrumb" variant="subtitle2" component="div" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: -0.2 }}>
                 Dashboard
               </Typography>
             </Box>
@@ -312,7 +422,11 @@ const Layout = ({ children }) => {
       </AppBar>
       <Box
         component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{
+          width: { sm: collapsedWidthValue },
+          flexShrink: { sm: 0 },
+          cursor: collapsed ? 'pointer' : 'default',
+        }}
       >
         <Drawer
           variant="temporary"
@@ -337,7 +451,9 @@ const Layout = ({ children }) => {
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: drawerWidth,
+              width: collapsedWidthValue,
+              transition: 'width 0.3s ease',
+              overflowX: 'hidden',
             },
           }}
           open
@@ -350,9 +466,10 @@ const Layout = ({ children }) => {
         sx={{
           flexGrow: 1,
           p: 2,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: { sm: `calc(100% - ${collapsedWidthValue}px)` },
           minHeight: '100vh',
           bgcolor: 'background.default',
+          transition: 'width 0.3s ease',
         }}
       >
         <Toolbar />
