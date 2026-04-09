@@ -5,6 +5,7 @@ using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -14,16 +15,19 @@ namespace EnglishCenter.API.Controllers
     public class AssignmentController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _environment;
 
-        public AssignmentController(ApplicationDbContext context)
+        public AssignmentController(ApplicationDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
         /// <summary>
         /// Gets assignments for a class with pagination. (Lấy danh sách bài tập của một lớp học với phân trang.)
         /// </summary>
         /// <param name="classId">Class ID (ID lớp học)</param>
+        /// <param name="studentId">Student ID (ID học viên)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
         /// <param name="status">Assignment status (Trạng thái bài tập)</param>
@@ -577,6 +581,7 @@ namespace EnglishCenter.API.Controllers
                 Console.WriteLine($"[DEBUG] dto.StudentId={dto.StudentId}");
                 Console.WriteLine($"[DEBUG] dto.Content={dto.Content}");
                 Console.WriteLine($"[DEBUG] dto.AttachmentUrl={dto.AttachmentUrl}");
+                Console.WriteLine($"[DEBUG] dto.OriginalFileName={dto.OriginalFileName}");
                 
                 var assignment = await _context.Assignments
                     .Include(a => a.Class)
@@ -603,6 +608,7 @@ namespace EnglishCenter.API.Controllers
                     StudentId = dto.StudentId,
                     Content = dto.Content,
                     AttachmentUrl = dto.AttachmentUrl,
+                    OriginalFileName = dto.OriginalFileName,
                     SubmittedAt = DateTime.UtcNow,
                     Status = "Submitted"
                 };
@@ -649,6 +655,7 @@ namespace EnglishCenter.API.Controllers
                 {
                     SubmissionId = submission.SubmissionId,
                     AssignmentId = submission.AssignmentId,
+                    OriginalFileName = submission.OriginalFileName,
                     StudentId = submission.StudentId,
                     Content = submission.Content,
                     AttachmentUrl = submission.AttachmentUrl,
@@ -708,6 +715,7 @@ namespace EnglishCenter.API.Controllers
                         StudentId = s.StudentId,
                         Content = s.Content,
                         AttachmentUrl = s.AttachmentUrl,
+                        OriginalFileName = s.OriginalFileName,
                         SubmittedAt = s.SubmittedAt,
                         UpdatedAt = s.UpdatedAt,
                         Status = s.Status,
@@ -738,6 +746,57 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
+        /// Gets the current student's submission for an assignment.
+        /// (Lấy bài nộp của học viên hiện tại cho một bài tập.)
+        /// </summary>
+        /// <param name="assignmentId">Assignment ID (ID bài tập)</param>
+        /// <param name="studentId">Student ID (ID học viên)</param>
+        /// <returns>Student's submission or 404 if not submitted (Bài nộp của học viên hoặc 404 nếu chưa nộp)</returns>
+        [HttpGet("{assignmentId}/my-submission")]
+        public async Task<ActionResult<AssignmentSubmissionDto>> GetMySubmission(int assignmentId, [FromQuery] int studentId)
+        {
+            try
+            {
+                var submission = await _context.AssignmentSubmissions
+                    .Include(s => s.Assignment)
+                    .Include(s => s.Student)
+                    .Include(s => s.Grader)
+                    .Where(s => s.AssignmentId == assignmentId && s.StudentId == studentId)
+                    .OrderByDescending(s => s.SubmittedAt)
+                    .Select(s => new AssignmentSubmissionDto
+                    {
+                        SubmissionId = s.SubmissionId,
+                        AssignmentId = s.AssignmentId,
+                        StudentId = s.StudentId,
+                        Content = s.Content,
+                        AttachmentUrl = s.AttachmentUrl,
+                        OriginalFileName = s.OriginalFileName,
+                        SubmittedAt = s.SubmittedAt,
+                        UpdatedAt = s.UpdatedAt,
+                        Status = s.Status,
+                        Score = s.Score,
+                        Feedback = s.Feedback,
+                        GradedAt = s.GradedAt,
+                        GradedBy = s.GradedBy,
+                        StudentName = s.Student != null ? s.Student.FullName : null,
+                        AssignmentTitle = s.Assignment != null ? s.Assignment.Title : null
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (submission == null)
+                {
+                    return NotFound(new { message = "No submission found for this assignment" });
+                }
+
+                return Ok(submission);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Gets all student results for a specific assignment, including those who haven't submitted yet.
         /// (Lấy tất cả kết quả của sinh viên cho một bài tập cụ thể, bao gồm cả những người chưa nộp.)
         /// </summary>
@@ -749,7 +808,7 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var assignment = await _context.Assignments
-                    .Include(a => a.Class)
+                    .Include(a => a.Class!)
                         .ThenInclude(c => c.Enrollments)
                             .ThenInclude(e => e.Student)
                     .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId);
@@ -777,7 +836,7 @@ namespace EnglishCenter.API.Controllers
                     
                     string status;
                     decimal? score = null;
-                    string note = null;
+                    string? note = null;
 
                     if (submission != null)
                     {
@@ -884,7 +943,7 @@ namespace EnglishCenter.API.Controllers
                     return NotFound(new { message = "Submission not found" });
                 }
 
-                if (gradeDto.Score > submission.Assignment.MaxScore)
+                if (gradeDto.Score > submission.Assignment!.MaxScore)
                 {
                     return BadRequest(new { message = $"Score cannot exceed maximum score of {submission.Assignment.MaxScore}" });
                 }
@@ -897,6 +956,58 @@ namespace EnglishCenter.API.Controllers
                 submission.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
+
+                // AUTO CREATE/UPDATE GRADE RECORD
+                // Check if assignment has skills
+                int? skillIdToUse = submission.Assignment.SkillId;
+                
+                // If no direct SkillId, check AssignmentSkills
+                if (!skillIdToUse.HasValue)
+                {
+                    var assignmentSkill = await _context.AssignmentSkills
+                        .Where(ask => ask.AssignmentId == submission.AssignmentId)
+                        .FirstOrDefaultAsync();
+                    skillIdToUse = assignmentSkill?.SkillId;
+                }
+
+                // Only create Grade if we have a skill
+                if (skillIdToUse.HasValue)
+                {
+                    // Check if grade already exists for this student-assignment-skill
+                    var existingGrade = await _context.Grades
+                        .Where(g => g.StudentId == submission.StudentId 
+                                 && g.AssignmentId == submission.AssignmentId
+                                 && g.SkillId == skillIdToUse.Value)
+                        .FirstOrDefaultAsync();
+
+                    if (existingGrade != null)
+                    {
+                        // Update existing grade
+                        existingGrade.Score = (decimal)gradeDto.Score;
+                        existingGrade.Comments = gradeDto.Feedback;
+                        existingGrade.GradedAt = DateTime.UtcNow;
+                        existingGrade.GradedBy = submission.GradedBy;
+                        existingGrade.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        // Create new grade
+                        var newGrade = new Grade
+                        {
+                            StudentId = submission.StudentId,
+                            AssignmentId = submission.AssignmentId,
+                            SkillId = skillIdToUse.Value,
+                            Score = (decimal)gradeDto.Score,
+                            MaxScore = submission.Assignment.MaxScore,
+                            Comments = gradeDto.Feedback,
+                            GradedAt = DateTime.UtcNow,
+                            GradedBy = submission.GradedBy,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _context.Grades.Add(newGrade);
+                    }
+                    await _context.SaveChangesAsync();
+                }
 
                 // Create notification for the student when graded
                 var notification = new Notification
@@ -934,7 +1045,7 @@ namespace EnglishCenter.API.Controllers
                     StudentId = submission.StudentId,
                     Action = "ASSIGNMENT_GRADED",
                     Title = "Bài tập đã được chấm",
-                    Description = $"Bài '{submission.Assignment.Title}' của bạn được chấm: {gradeDto.Score}/{submission.Assignment.MaxScore}",
+                    Description = $"Bài '{submission.Assignment!.Title}' của bạn được chấm: {gradeDto.Score}/{submission.Assignment.MaxScore}",
                     IconType = "grading",
                     Color = "warning",
                     TargetId = submission.SubmissionId,
@@ -959,8 +1070,8 @@ namespace EnglishCenter.API.Controllers
                     Feedback = submission.Feedback,
                     GradedAt = submission.GradedAt,
                     GradedBy = submission.GradedBy,
-                    StudentName = submission.Student.FullName,
-                    AssignmentTitle = submission.Assignment.Title
+                    StudentName = submission.Student != null ? submission.Student.FullName : string.Empty,
+                    AssignmentTitle = submission.Assignment != null ? submission.Assignment.Title : string.Empty
                 };
 
                 return Ok(submissionDto);
@@ -1585,6 +1696,65 @@ namespace EnglishCenter.API.Controllers
             {
                 return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Downloads a submission file.
+        /// (Tải xuống file bài nộp.)
+        /// </summary>
+        /// <param name="submissionId">Submission ID (ID bài nộp)</param>
+        /// <returns>File content (Nội dung file)</returns>
+        [HttpGet("submissions/{submissionId}/download")]
+        public async Task<IActionResult> DownloadSubmissionFile(int submissionId)
+        {
+            try
+            {
+                var submission = await _context.AssignmentSubmissions
+                    .FirstOrDefaultAsync(s => s.SubmissionId == submissionId);
+
+                if (submission == null || string.IsNullOrEmpty(submission.AttachmentUrl))
+                {
+                    return NotFound(new { message = "File not found" });
+                }
+
+                var filePath = Path.Combine(_environment.WebRootPath, submission.AttachmentUrl.TrimStart('/'));
+                
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound(new { message = "File not found on server" });
+                }
+
+                var mimeType = GetMimeType(filePath);
+                var fileName = submission.OriginalFileName ?? Path.GetFileName(filePath);
+
+                return PhysicalFile(filePath, mimeType, fileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error downloading file", error = ex.Message });
+            }
+        }
+
+        private string GetMimeType(string filePath)
+        {
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            return extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".xls" => "application/vnd.ms-excel",
+                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".ppt" => "application/vnd.ms-powerpoint",
+                ".pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                ".txt" => "text/plain",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".mp3" => "audio/mpeg",
+                ".mp4" => "video/mp4",
+                _ => "application/octet-stream"
+            };
         }
     }
 }

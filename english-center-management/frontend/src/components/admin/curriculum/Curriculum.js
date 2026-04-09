@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Container,
   Paper,
   Typography,
   Button,
@@ -12,12 +11,20 @@ import {
   Box,
   IconButton,
   Chip,
+  Avatar,
+  useTheme,
+  Tooltip,
+  Menu,
+  MenuItem,
+  Fade,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, Delete, Info, People } from '@mui/icons-material';
+import { Add, Edit, Delete, Info, People, MapOutlined, MoreVert } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
 import { curriculumAPI, coursesAPI, teachersAPI } from '../../../services/api';
 
 const Curriculum = () => {
+  const theme = useTheme();
   const [curriculums, setCurriculums] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showTeacherModal, setShowTeacherModal] = useState(false);
@@ -28,6 +35,9 @@ const Curriculum = () => {
   const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [rowCount, setRowCount] = useState(0);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedCurriculumForMenu, setSelectedCurriculumForMenu] = useState(null);
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
   const [formData, setFormData] = useState({
     curriculumName: '',
     courseId: '',
@@ -36,23 +46,66 @@ const Curriculum = () => {
     description: ''
   });
 
+  const statusStyle = useMemo(() => {
+    const active = theme.palette.success.main;
+    const activeTextLight = theme.palette.mode === 'light' ? theme.palette.success.dark : active;
+    const inactive = theme.palette.text.secondary;
+    return {
+      active: {
+        bg: alpha(active, theme.palette.mode === 'dark' ? 0.22 : 0.12),
+        text: activeTextLight,
+        border: alpha(active, theme.palette.mode === 'dark' ? 0.35 : 0.25),
+      },
+      inactive: {
+        bg: alpha(inactive, theme.palette.mode === 'dark' ? 0.16 : 0.08),
+        text: inactive,
+        border: alpha(inactive, theme.palette.mode === 'dark' ? 0.28 : 0.18),
+      },
+    };
+  }, [theme.palette.mode, theme.palette.success.dark, theme.palette.success.main, theme.palette.text.secondary]);
+
   useEffect(() => {
     loadCurriculums();
-    loadCourses();
-    loadTeachers();
-  }, [paginationModel]);
+  }, [paginationModel, selectedCourseFilter]);
+  
+  useEffect(() => {
+    // Reset pagination when filter changes
+    setPaginationModel(prev => ({ ...prev, page: 0 }));
+  }, [selectedCourseFilter]);
   
   const loadCurriculums = async () => {
     try {
-      const response = await curriculumAPI.getAll({
-        page: paginationModel.page + 1,
-        pageSize: paginationModel.pageSize,
-      });
-      console.log('Curriculums Response:', response.data);
-      const curriculumData = Array.isArray(response.data?.data) ? response.data.data : [];
-      console.log('Curriculum data after parsing:', curriculumData);
-      setCurriculums(curriculumData);
-      setRowCount(response.data?.totalCount || 0);
+      let params = {};
+      let allData = [];
+      
+      if (selectedCourseFilter !== 'all') {
+        // Load all data for filtering
+        params = { page: 1, pageSize: 1000 }; // Load many items
+        const response = await curriculumAPI.getAll(params);
+        allData = Array.isArray(response.data?.data) ? response.data.data : [];
+        allData = allData.filter(c => c.courseId === parseInt(selectedCourseFilter));
+        
+        // Apply pagination to filtered data
+        const startIndex = paginationModel.page * paginationModel.pageSize;
+        const endIndex = startIndex + paginationModel.pageSize;
+        const paginatedData = allData.slice(startIndex, endIndex);
+        
+        setCurriculums(paginatedData);
+        setRowCount(allData.length);
+      } else {
+        // Normal pagination without filter
+        params = {
+          page: paginationModel.page + 1,
+          pageSize: paginationModel.pageSize,
+        };
+        
+        const response = await curriculumAPI.getAll(params);
+        const curriculumData = Array.isArray(response.data?.data) ? response.data.data : [];
+        setCurriculums(curriculumData);
+        setRowCount(response.data?.totalCount || 0);
+      }
+      
+      console.log('Curriculums loaded:', selectedCourseFilter, curriculums.length);
     } catch (error) {
       console.error('Error loading curriculums:', error);
       console.error('Error details:', error.response?.data);
@@ -162,6 +215,16 @@ const Curriculum = () => {
     }
   };
 
+  const handleOpenMenu = (event, curriculum) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedCurriculumForMenu(curriculum);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+    setSelectedCurriculumForMenu(null);
+  };
+
   const openTeacherModal = (curriculum) => {
     setSelectedCurriculumForTeachers(curriculum);
     const teacherIds = curriculum.participantTeachers?.map(t => parseInt(t.teacherId)) || [];
@@ -237,78 +300,133 @@ const Curriculum = () => {
 
   const columns = [
     { field: 'curriculumId', headerName: 'ID', width: 70 },
-    { field: 'curriculumName', headerName: 'Tên chương trình', width: 200 },
-    { field: 'courseName', headerName: 'Khóa học', width: 200 },
     {
-      field: 'startDate',
-      headerName: 'Ngày bắt đầu',
-      width: 130,
-      valueFormatter: (params) => new Date(params.value).toLocaleDateString('vi-VN'),
+      field: 'curriculumName',
+      headerName: 'Chương trình / Khóa học',
+      flex: 1,
+      minWidth: 280,
+      sortable: false,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
+          <Avatar
+            sx={{
+              width: 28,
+              height: 28,
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(168, 85, 247, 0.18)' : 'rgba(168, 85, 247, 0.12)',
+              color: theme.palette.mode === 'dark' ? '#d8b4fe' : '#a855f7',
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'rgba(168, 85, 247, 0.25)' : 'rgba(168, 85, 247, 0.18)',
+              flexShrink: 0,
+              alignSelf: 'flex-start', // Căn trên để cân đối với text
+            }}
+          >
+            <MapOutlined fontSize="small" />
+          </Avatar>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
+            <Typography variant="body2" fontWeight={700} noWrap>
+              {params.row.curriculumName}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {params.row.courseName}
+            </Typography>
+          </Box>
+        </Box>
+      ),
     },
     {
-      field: 'endDate',
-      headerName: 'Ngày kết thúc',
-      width: 130,
-      valueFormatter: (params) => new Date(params.value).toLocaleDateString('vi-VN'),
+      field: 'timeRange',
+      headerName: 'Thời gian',
+      width: 180,
+      align: 'center',
+      headerAlign: 'center',
+      sortable: false,
+      renderCell: (params) => {
+        const startDate = new Date(params.row.startDate).toLocaleDateString('vi-VN');
+        const endDate = new Date(params.row.endDate).toLocaleDateString('vi-VN');
+        return (
+          <Typography variant="body2" fontWeight={600}>
+            {startDate} - {endDate}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: 'lessonCount',
+      headerName: 'Bài học',
+      width: 100,
+      align: 'center',
+      headerAlign: 'center',
+      sortable: false,
+      renderCell: (params) => {
+        // Count total lessons from curriculum structure
+        const totalLessons = params.row.curriculumDays?.reduce((dayTotal, day) => {
+          return dayTotal + (day.curriculumSessions?.reduce((sessionTotal, session) => {
+            return sessionTotal + (session.lessons?.length || 0);
+          }, 0) || 0);
+        }, 0) || 0;
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+            <Typography variant="body2" fontWeight={600} color="primary.main">
+              {totalLessons}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              bài
+            </Typography>
+          </Box>
+        );
+      },
     },
     {
       field: 'status',
       headerName: 'Trạng thái',
-      width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={params.value}
-          color={params.value === 'Active' ? 'success' : params.value === 'Draft' ? 'default' : 'error'}
-          size="small"
-        />
-      ),
+      width: 140,
+      align: 'center',
+      headerAlign: 'center',
+      sortable: false,
+      renderCell: (params) => {
+        const isActive = params.value === 'Active';
+        const s = isActive ? statusStyle.active : statusStyle.inactive;
+        return (
+          <Chip
+            label={params.value}
+            size="small"
+            sx={{
+              bgcolor: s.bg,
+              color: s.text,
+              border: '1px solid',
+              borderColor: s.border,
+              fontWeight: 800,
+              borderRadius: 1.5,
+              fontSize: '0.7rem',
+              height: 22,
+              minWidth: 88,
+            }}
+          />
+        );
+      },
     },
     {
       field: 'actions',
       headerName: 'Hành động',
-      width: 300,
+      width: 80,
+      align: 'center',
+      headerAlign: 'center',
       sortable: false,
       renderCell: (params) => (
-        <Box>
-          <IconButton
-            size="small"
-            color="info"
-            onClick={() => window.location.href = `/curriculum/${params.row.curriculumId}`}
-            title="Chi tiết"
-          >
-            <Info />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="success"
-            onClick={() => openTeacherModal(params.row)}
-            title="Quản lý giáo viên"
-          >
-            <People />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={() => handleEdit(params.row)}
-            title="Sửa"
-          >
-            <Edit />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="error"
-            onClick={() => handleDelete(params.row.curriculumId)}
-            title="Xóa"
-          >
-            <Delete />
-          </IconButton>
-        </Box>
+        <IconButton
+          size="small"
+          onClick={(e) => handleOpenMenu(e, params.row)}
+          sx={{ color: 'text.secondary' }}
+        >
+          <MoreVert fontSize="small" />
+        </IconButton>
       ),
     },
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ mt: 2, mb: 4, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" fontWeight="bold">
           Quản lý Chương trình học
@@ -325,7 +443,35 @@ const Curriculum = () => {
         </Button>
       </Box>
 
-      <Paper sx={{ height: 600, width: '100%' }}>
+      {/* Filter Section */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: 'text.secondary' }}>
+          Lọc theo Khóa học:
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Chip
+            label="Tất cả"
+            variant={selectedCourseFilter === 'all' ? 'filled' : 'outlined'}
+            color={selectedCourseFilter === 'all' ? 'primary' : 'default'}
+            size="small"
+            onClick={() => setSelectedCourseFilter('all')}
+            sx={{ fontWeight: 600 }}
+          />
+          {courses.slice(0, 8).map((course) => (
+            <Chip
+              key={course.courseId}
+              label={course.courseName}
+              variant={selectedCourseFilter === course.courseId.toString() ? 'filled' : 'outlined'}
+              color={selectedCourseFilter === course.courseId.toString() ? 'primary' : 'default'}
+              size="small"
+              onClick={() => setSelectedCourseFilter(course.courseId.toString())}
+              sx={{ fontWeight: 500 }}
+            />
+          ))}
+        </Box>
+      </Box>
+
+      <Paper sx={{ flex: 1, width: '100%', overflow: 'auto' }}>
         <DataGrid
           rows={curriculums}
           columns={columns}
@@ -339,6 +485,52 @@ const Curriculum = () => {
           disableSelectionOnClick
         />
       </Paper>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMenu}
+        TransitionComponent={Fade}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: 200,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+            border: '1px solid',
+            borderColor: 'divider',
+            mt: 1,
+          },
+        }}
+      >
+        <MenuItem onClick={() => {
+          window.location.href = `/curriculum/${selectedCurriculumForMenu?.curriculumId}`;
+          handleCloseMenu();
+        }}>
+          <Info fontSize="small" color="info" />
+          <Typography variant="body2" fontWeight={700} sx={{ ml: 1 }}>Chi tiết</Typography>
+        </MenuItem>
+        <MenuItem onClick={() => {
+          openTeacherModal(selectedCurriculumForMenu);
+          handleCloseMenu();
+        }}>
+          <People fontSize="small" color="success" />
+          <Typography variant="body2" fontWeight={700} sx={{ ml: 1 }}>Quản lý giáo viên</Typography>
+        </MenuItem>
+        <MenuItem onClick={() => {
+          handleEdit(selectedCurriculumForMenu);
+          handleCloseMenu();
+        }}>
+          <Edit fontSize="small" color="primary" />
+          <Typography variant="body2" fontWeight={700} sx={{ ml: 1 }}>Chỉnh sửa</Typography>
+        </MenuItem>
+        <MenuItem onClick={() => {
+          handleDelete(selectedCurriculumForMenu?.curriculumId);
+          handleCloseMenu();
+        }} sx={{ color: 'error.main' }}>
+          <Delete fontSize="small" />
+          <Typography variant="body2" fontWeight={700} sx={{ ml: 1 }}>Xóa</Typography>
+        </MenuItem>
+      </Menu>
 
       {showModal && (
         <div className="modal">
@@ -477,7 +669,6 @@ const Curriculum = () => {
           justify-content: center;
           align-items: center;
         }
-
         .modal-content {
           background-color: #fefefe;
           padding: 20px;
@@ -489,14 +680,12 @@ const Curriculum = () => {
           position: relative;
           z-index: 10000;
         }
-
         .modal-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 15px;
         }
-
         .close-btn {
           background: none;
           border: none;
@@ -504,17 +693,14 @@ const Curriculum = () => {
           font-weight: bold;
           cursor: pointer;
         }
-
         .form-group {
           margin-bottom: 15px;
         }
-
         .form-group label {
           display: block;
           margin-bottom: 5px;
           font-weight: 500;
         }
-
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -524,14 +710,12 @@ const Curriculum = () => {
           border-radius: 4px;
           box-sizing: border-box;
         }
-
         .modal-footer {
           display: flex;
           justify-content: flex-end;
           gap: 10px;
           margin-top: 20px;
         }
-
         .btn {
           padding: 8px 16px;
           border: none;
@@ -539,17 +723,14 @@ const Curriculum = () => {
           cursor: pointer;
           font-size: 14px;
         }
-
         .btn-primary {
           background-color: #007bff;
           color: white;
         }
-
         .btn-secondary {
           background-color: #6c757d;
           color: white;
         }
-
         .teacher-list {
           max-height: 400px;
           overflow-y: auto;
@@ -558,7 +739,6 @@ const Curriculum = () => {
           border-radius: 4px;
           background-color: #f9f9f9;
         }
-
         .teacher-checkbox-item {
           margin-bottom: 12px;
           padding: 10px;
@@ -566,31 +746,27 @@ const Curriculum = () => {
           border-radius: 4px;
           border-left: 3px solid #007bff;
         }
-
         .teacher-checkbox-item label {
           display: flex;
           align-items: center;
           margin: 0;
           cursor: pointer;
         }
-
         .teacher-checkbox-item input[type="checkbox"] {
           width: auto;
           margin-right: 10px;
           cursor: pointer;
         }
-
         .teacher-name {
           flex: 1;
         }
-
         .teacher-email {
           color: #666;
           font-size: 13px;
           margin-left: 5px;
         }
       `}</style>
-    </Container>
+    </Box>
   );
 };
 

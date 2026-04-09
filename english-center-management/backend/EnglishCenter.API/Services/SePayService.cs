@@ -123,7 +123,7 @@ namespace EnglishCenter.API.Services
             }
         }
 
-        public async Task<bool> VerifyWebhookAsync(string webhookData, string secretKey)
+        public Task<bool> VerifyWebhookAsync(string webhookData, string secretKey)
         {
             try
             {
@@ -135,19 +135,19 @@ namespace EnglishCenter.API.Services
                 if (webhookObj.TryGetProperty("code", out var codeElement))
                 {
                     var code = codeElement.GetString();
-                    return !string.IsNullOrEmpty(code);
+                    return Task.FromResult(!string.IsNullOrEmpty(code));
                 }
 
-                return false;
+                return Task.FromResult(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error verifying webhook");
-                return false;
+                return Task.FromResult(false);
             }
         }
 
-        public async Task<SePayWebhookDto?> ParseWebhookDataAsync(string webhookData)
+        public Task<SePayWebhookDto?> ParseWebhookDataAsync(string webhookData)
         {
             try
             {
@@ -156,12 +156,12 @@ namespace EnglishCenter.API.Services
                     PropertyNameCaseInsensitive = true
                 });
 
-                return webhookDto;
+                return Task.FromResult(webhookDto);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error parsing webhook data");
-                return null;
+                return Task.FromResult<SePayWebhookDto?>(null);
             }
         }
     }

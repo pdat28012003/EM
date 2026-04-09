@@ -174,26 +174,26 @@ const Documents = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const handleDownload = async (document) => {
+  const handleDownload = async (doc) => {
     try {
-      const response = await documentsAPI.download(document.documentId);
+      const response = await documentsAPI.download(doc.documentId);
       const blob = new Blob([response.data]);
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = window.document.createElement('a');
       link.href = url;
-      link.download = document.originalFileName;
-      document.body.appendChild(link);
+      link.download = doc.OriginalFileName || doc.Title || 'download';
+      window.document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      window.document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading document:', error);
     }
   };
 
-  const handleView = async (document) => {
+  const handleView = async (doc) => {
     try {
-      const response = await documentsAPI.download(document.documentId);
+      const response = await documentsAPI.download(doc.documentId);
       const blob = new Blob([response.data]);
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
@@ -285,7 +285,7 @@ const Documents = () => {
                   </Box>
                   <Box>
                     <Typography variant="h4" fontWeight="bold">
-                      {documents.reduce((sum, doc) => sum + doc.downloadCount, 0)}
+                      {documents.reduce((sum, doc) => sum + (doc.DownloadCount || 0), 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Lượt tải
@@ -450,39 +450,39 @@ const Documents = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      documents.map((document) => (
-                        <TableRow key={document.documentId} hover>
+                      documents.map((doc, index) => (
+                        <TableRow key={doc.DocumentId || index} hover>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              {getFileIcon(document.fileName.split('.').pop().toLowerCase())}
+                              {getFileIcon(doc.FileName?.split('.').pop().toLowerCase())}
                               <Box>
                                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                  {document.title}
+                                  {doc.Title}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                  {document.description}
+                                  {doc.Description}
                                 </Typography>
                               </Box>
                             </Box>
                           </TableCell>
                           <TableCell>
                             <Chip 
-                              label={getTypeLabel(document.type)} 
-                              color={getTypeColor(document.type)}
+                              label={getTypeLabel(doc.Type)} 
+                              color={getTypeColor(doc.Type)}
                               size="small"
                             />
                           </TableCell>
-                          <TableCell>{document.className}</TableCell>
-                          <TableCell>{document.teacherName}</TableCell>
-                          <TableCell>{formatFileSize(document.fileSize)}</TableCell>
-                          <TableCell>{document.uploadDate}</TableCell>
-                          <TableCell>{document.downloadCount}</TableCell>
+                          <TableCell>{doc.ClassName}</TableCell>
+                          <TableCell>{doc.TeacherName}</TableCell>
+                          <TableCell>{formatFileSize(doc.FileSize)}</TableCell>
+                          <TableCell>{doc.UploadDate}</TableCell>
+                          <TableCell>{doc.DownloadCount}</TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                               <Tooltip title="Xem">
                                 <IconButton
                                   size="small"
-                                  onClick={() => handleView(document)}
+                                  onClick={() => handleView(doc)}
                                   sx={{ color: '#1976d2' }}
                                 >
                                   <Visibility />
@@ -491,7 +491,7 @@ const Documents = () => {
                               <Tooltip title="Tải xuống">
                                 <IconButton
                                   size="small"
-                                  onClick={() => handleDownload(document)}
+                                  onClick={() => handleDownload(doc)}
                                   sx={{ color: '#4caf50' }}
                                 >
                                   <Download />
