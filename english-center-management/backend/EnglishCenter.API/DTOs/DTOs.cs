@@ -850,16 +850,18 @@ namespace EnglishCenter.API.DTOs
 
     public class SePayWebhookDto
     {
-        public string? id { get; set; }
+        public object? id { get; set; }
         public string? transactionDate { get; set; }
         public string? accountNumber { get; set; }
         public string? code { get; set; }
         public string? content { get; set; }
         public string? transferType { get; set; }
-        public string? amount { get; set; }
+        public object? amount { get; set; }
+        public object? transferAmount { get; set; } // Backup
         public string? referenceCode { get; set; }
-        public string? accumulated { get; set; }
+        public object? accumulated { get; set; }
         public string? subAccount { get; set; }
+        public string? gateway { get; set; }
     }
 
     public class SePayQRRequestDto

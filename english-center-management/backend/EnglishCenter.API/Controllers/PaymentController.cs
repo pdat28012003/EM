@@ -8,6 +8,7 @@ using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
 using EnglishCenter.API.Hubs;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -160,30 +161,43 @@ namespace EnglishCenter.API.Controllers
                 }
                 await _context.SaveChangesAsync();
 
-                // Generate QR code
+                // Generate QR code with timeout handling
                 _logger.LogInformation("Creating payment {PaymentId}. Requesting QR code from SePay Service...", payment.PaymentId);
-                var qrRequest = new SePayQRRequestDto
+                try
                 {
-                    accountNumber = _configuration["SePay:AccountNumber"] ?? "0399076806",
-                    accountName = _configuration["SePay:AccountName"] ?? "DOAN VU BINH DUONG",
-                    acqId = _configuration["SePay:AcqId"] ?? "970422",
-                    addInfo = $"EC-PAY-{payment.PaymentId}",
-                    amount = payment.Amount.ToString("0"),
-                    template = "compact"
-                };
+                    var qrRequest = new SePayQRRequestDto
+                    {
+                        accountNumber = _configuration["SePay:AccountNumber"] ?? "0399076806",
+                        accountName = _configuration["SePay:AccountName"] ?? "DOAN VU BINH DUONG",
+                        acqId = _configuration["SePay:AcqId"] ?? "970422",
+                        addInfo = $"EC-PAY-{payment.PaymentId}",
+                        amount = payment.Amount.ToString("0"),
+                        template = "compact"
+                    };
 
-                var qrResponse = await _sePayService.GenerateQRCodeAsync(qrRequest);
-                
-                if (qrResponse != null)
-                {
-                    _logger.LogInformation("Received QR code from SePay for Payment {PaymentId}", payment.PaymentId);
-                    payment.QRCodeUrl = qrResponse.img;
-                    payment.TransactionId = qrResponse.qrCode;
-                    await _context.SaveChangesAsync();
+                    var qrResponse = await _sePayService.GenerateQRCodeAsync(qrRequest);
+                    
+                    if (qrResponse != null)
+                    {
+                        _logger.LogInformation("Received QR code from SePay for Payment {PaymentId}", payment.PaymentId);
+                        payment.QRCodeUrl = qrResponse.img;
+                        payment.TransactionId = qrResponse.qrCode;
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed to generate QR code for Payment {PaymentId} - continuing without QR", payment.PaymentId);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogWarning("Failed to generate QR code for Payment {PaymentId}", payment.PaymentId);
+                    _logger.LogError(ex, "Exception while generating QR code for Payment {PaymentId} - continuing without QR", payment.PaymentId);
+                }
+
+                // Add note if fallback QR was used
+                if (string.IsNullOrEmpty(payment.QRCodeUrl))
+                {
+                    payment.Notes += " (QR code tự động tạo - vui lòng chuyển khoản thủ công)";
                 }
 
                 // Return payment DTO
@@ -275,52 +289,134 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
+        /// Poll payment status (fallback for when webhook doesn't work)
+        /// </summary>
+        [HttpGet("{id}/status")]
+        public async Task<ActionResult<object>> GetPaymentStatus(int id)
+        {
+            try
+            {
+                var payment = await _context.Payments.FindAsync(id);
+                if (payment == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(new
+                {
+                    paymentId = payment.PaymentId,
+                    status = payment.Status,
+                    completedDate = payment.PaymentCompletedDate,
+                    transactionId = payment.TransactionId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting payment status {PaymentId}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
         /// SePay webhook endpoint
         /// </summary>
+        [AllowAnonymous]
         [HttpPost("sepay/webhook")]
         public async Task<IActionResult> SePayWebhook([FromBody] SePayWebhookDto webhookData)
         {
             try
             {
-                _logger.LogInformation("Received SePay webhook: {@WebhookData}", webhookData);
+                // Verify API Key from headers (check both Authorization and Api-Key)
+                var authHeader = Request.Headers["Authorization"].ToString();
+                var customApiKeyHeader = Request.Headers["Api-Key"].ToString();
+                var configApiKey = _configuration["SePay:ApiKey"];
+                var webhookSecret = _configuration["SePay:WebhookSecret"];
+                
+                bool isAuthorized = (!string.IsNullOrEmpty(authHeader) && 
+                                     (authHeader.Contains(configApiKey!) || 
+                                      authHeader.Contains(webhookSecret!) || 
+                                      authHeader.Contains($"Bearer {configApiKey}") ||
+                                      authHeader.Contains($"Apikey {webhookSecret}"))) ||
+                                   (!string.IsNullOrEmpty(customApiKeyHeader) && 
+                                     (customApiKeyHeader.Contains(configApiKey!) || 
+                                      customApiKeyHeader.Contains(webhookSecret!)));
 
-                // Extract payment ID from content (format: "EC-PAY-{PaymentId}")
-                if (webhookData.content != null && webhookData.content.StartsWith("EC-PAY-"))
+                if (!isAuthorized)
                 {
-                    var paymentIdStr = webhookData.content.Replace("EC-PAY-", "");
-                    if (int.TryParse(paymentIdStr, out var paymentId))
+                    var allHeaders = string.Join("; ", Request.Headers.Select(h => $"{h.Key}={h.Value}"));
+                    _logger.LogWarning("Unauthorized SePay webhook attempt. All Headers: {Headers}", allHeaders);
+                    return Unauthorized("Invalid API Key");
+                }
+
+                // Check both content and code as some banks put addInfo in different places
+                string? searchContent = webhookData.content ?? webhookData.code;
+
+                if (!string.IsNullOrEmpty(searchContent))
+                {
+                    // Look for ECPAY or EC-PAY- (case insensitive)
+                    var upperContent = searchContent.ToUpper();
+                    int startIndex = -1;
+                    int prefixLength = 0;
+
+                    if (upperContent.Contains("EC-PAY-"))
                     {
-                        var payment = await _context.Payments.FindAsync(paymentId);
-                        if (payment != null && payment.Status == "Pending")
+                        startIndex = upperContent.IndexOf("EC-PAY-");
+                        prefixLength = 7;
+                    }
+                    else if (upperContent.Contains("ECPAY"))
+                    {
+                        startIndex = upperContent.IndexOf("ECPAY");
+                        prefixLength = 5;
+                    }
+
+                    if (startIndex != -1)
+                    {
+                        var paymentIdStr = "";
+                        for (int i = startIndex + prefixLength; i < searchContent.Length && char.IsDigit(searchContent[i]); i++)
                         {
-                            // Verify amount matches
-                            if (decimal.TryParse(webhookData.amount, out var receivedAmount))
+                            paymentIdStr += searchContent[i];
+                        }
+
+                        if (int.TryParse(paymentIdStr, out var paymentId))
+                        {
+                            var payment = await _context.Payments.FindAsync(paymentId);
+                            if (payment != null && payment.Status == "Pending")
                             {
-                                if (Math.Abs(receivedAmount - payment.Amount) < 0.01m)
+                                // Verify amount matches (try both amount and transferAmount)
+                                var rawAmount = webhookData.amount ?? webhookData.transferAmount;
+                                var amountStr = rawAmount?.ToString();
+                                
+                                if (decimal.TryParse(amountStr, out var receivedAmount))
                                 {
-                                    // Update payment status
-                                    payment.Status = "Completed";
-                                    payment.PaymentCompletedDate = DateTime.Now;
-                                    payment.Gateway = "SePay";
-                                    payment.TransactionId = webhookData.code;
-                                    
-                                    await _context.SaveChangesAsync();
+                                    if (Math.Abs(receivedAmount - payment.Amount) < 0.1m)
+                                    {
+                                        // Update payment status
+                                        payment.Status = "Completed";
+                                        payment.PaymentCompletedDate = DateTime.Now;
+                                        payment.Gateway = "SePay";
+                                        payment.TransactionId = webhookData.id?.ToString();
+                                        
+                                        await _context.SaveChangesAsync();
 
-                                    // Send real-time update via SignalR
-                                    await _hubContext.Clients.Group($"payment_{paymentId}")
-                                        .SendAsync("PaymentStatusChanged", new
-                                        {
-                                            paymentId = payment.PaymentId,
-                                            status = payment.Status,
-                                            completedDate = payment.PaymentCompletedDate
-                                        });
+                                        // Notify via SignalR specific group
+                                        await _hubContext.Clients.Group($"payment_{paymentId}")
+                                            .SendAsync("PaymentStatusChanged", new
+                                            {
+                                                paymentId = payment.PaymentId,
+                                                status = payment.Status,
+                                                completedDate = payment.PaymentCompletedDate
+                                            });
+                                        
+                                        // Also send a general event for broad compatibility
+                                        await _hubContext.Clients.All.SendAsync("ReceivePaymentStatus", new { paymentId, status = "Completed" });
 
-                                    _logger.LogInformation("Payment {PaymentId} marked as completed", paymentId);
-                                }
-                                else
-                                {
-                                    _logger.LogWarning("Amount mismatch for payment {PaymentId}: expected {Expected}, received {Received}", 
-                                        paymentId, payment.Amount, receivedAmount);
+                                        _logger.LogInformation("Payment {Id} marked as completed successfully", paymentId);
+                                    }
+                                    else
+                                    {
+                                        _logger.LogWarning("Amount mismatch for payment {Id}: expected {Exp}, received {Rec}", 
+                                            paymentId, payment.Amount, receivedAmount);
+                                    }
                                 }
                             }
                         }
