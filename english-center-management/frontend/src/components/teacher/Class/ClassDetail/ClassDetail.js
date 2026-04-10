@@ -162,7 +162,12 @@ export default function ClassDetail() {
           onChange={handleTabChange}
           variant="scrollable"
           scrollButtons="auto"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
+          sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider',
+            '& .MuiTabs-indicator': { backgroundColor: '#10b981' },
+            '& .MuiTab-root.Mui-selected': { color: '#10b981' }
+          }}
         >
           <Tab 
             icon={<People />} 

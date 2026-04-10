@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Add, 
   Edit, 
   Delete, 
   Close, 
-  Schedule, 
   School, 
   Person, 
   Room, 
   AccessTime,
   MenuBook,
   Group,
-  EventNote
+  EventNote,
+  ArrowBack,
+  EmojiEvents,
+  PictureAsPdf
 } from '@mui/icons-material';
 import { curriculumAPI, roomsAPI, teachersAPI } from '../../../services/api';
 
@@ -29,8 +31,10 @@ const CurriculumDetail = () => {
   const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
   const [isEditingSession, setIsEditingSession] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
-  const [selectedSession, setSelectedSession] = useState(null);
   const [dateRange, setDateRange] = useState([]);
+  const [showFullDesc, setShowFullDesc] = useState(false);
+  
+  const navigate = useNavigate();
   
   const [sessionForm, setSessionForm] = useState({
     curriculumSessionId: null,
@@ -59,6 +63,7 @@ const CurriculumDetail = () => {
     loadCurriculum();
     loadRooms();
     loadTeachers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curriculumId]);
 
   useEffect(() => {
@@ -66,6 +71,7 @@ const CurriculumDetail = () => {
       generateDateRange();
       setSelectedTeacherIds(curriculum.participantTeachers?.map(t => t.teacherId) || []);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curriculum]);
 
   const loadCurriculum = async () => {
@@ -141,6 +147,7 @@ const CurriculumDetail = () => {
     if (showSessionModal && sessionForm.startTime && sessionForm.endTime) {
       loadAvailableTeachers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionForm.startTime, sessionForm.endTime, sessionForm.searchDate, showSessionModal]);
 
   const loadAvailableTeachers = async () => {
@@ -315,7 +322,6 @@ const CurriculumDetail = () => {
   };
 
   const handleAddLesson = (session) => {
-    setSelectedSession(session);
     setLessonForm({
       curriculumSessionId: session.curriculumSessionId,
       lessonNumber: (session.lessons?.length || 0) + 1,
@@ -392,15 +398,45 @@ const CurriculumDetail = () => {
 
   return (
     <div className="curriculum-detail-container">
+      <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between' }}>
+        <button 
+          className="btn btn-secondary btn-sm" 
+          onClick={() => navigate(-1)}
+          style={{ background: '#6c757d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+        >
+          <ArrowBack fontSize="small" />
+          Quay lại
+        </button>
+      </div>
+
       <div className="curriculum-detail-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, paddingRight: '20px' }}>
             <h2>{curriculum.curriculumName}</h2>
-            <p>Khóa học: {curriculum.courseName} | {new Date(curriculum.startDate).toLocaleDateString()} - {new Date(curriculum.endDate).toLocaleDateString()}</p>
+            <p style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><School fontSize="small" color="primary" /> {curriculum.courseName}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><EventNote fontSize="small" color="action" /> {new Date(curriculum.startDate).toLocaleDateString()} - {new Date(curriculum.endDate).toLocaleDateString()}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', background: curriculum.status === 'Active' ? '#d4edda' : '#f8d7da', color: curriculum.status === 'Active' ? '#155724' : '#721c24', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
+                {curriculum.status === 'Active' ? 'Đang hoạt động' : curriculum.status}
+              </span>
+            </p>
+            {curriculum.description && (
+              <div style={{ marginTop: '12px', background: 'white', padding: '10px 15px', borderRadius: '4px', borderLeft: '3px solid #007bff' }}>
+                <p className={!showFullDesc ? 'truncate-text' : ''} style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                  {curriculum.description}
+                </p>
+                {(curriculum.description.length > 200) && (
+                  <button className="btn-link" onClick={() => setShowFullDesc(!showFullDesc)}>
+                    {showFullDesc ? 'Thu gọn' : 'Xem thêm'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <button 
             className="btn btn-success"
             onClick={() => setShowTeacherModal(true)}
+            style={{ flexShrink: 0 }}
           >
             <Group />
             Quản lý giáo viên
@@ -470,19 +506,52 @@ const CurriculumDetail = () => {
                             {session.lessons?.length > 0 ? (
                               <ul className="lessons-list">
                                 {session.lessons.map((lesson) => (
-                                  <li key={lesson.lessonId} className="lesson-item">
-                                    <div className="lesson-info">
-                                      <span className="lesson-num">Tiết {lesson.lessonNumber}</span>
-                                      <span className="lesson-title">{lesson.lessonTitle}</span>
-                                      <span className="lesson-duration">({lesson.duration})</span>
+                                  <li key={lesson.lessonId} className="lesson-item" style={{ display: 'block' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <div className="lesson-info">
+                                        {lesson.lessonTitle?.toLowerCase().includes('kiểm tra') || lesson.lessonTitle?.toLowerCase().includes('quiz') ? (
+                                          <EmojiEvents style={{ color: '#ffb300' }} fontSize="small" titleAccess="Bài kiểm tra" />
+                                        ) : lesson.lessonTitle?.toLowerCase().includes('thực hành') ? (
+                                          <Edit style={{ color: '#4caf50' }} fontSize="small" titleAccess="Bài thực hành" />
+                                        ) : (
+                                          <MenuBook style={{ color: '#007bff' }} fontSize="small" titleAccess="Bài lý thuyết" />
+                                        )}
+                                        <span className="lesson-num">{lesson.lessonNumber}</span>
+                                        <span className="lesson-title">{lesson.lessonTitle}</span>
+                                        
+                                        <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', gap: '15px' }}>
+                                          <span className="lesson-duration" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <AccessTime fontSize="small" />
+                                            {lesson.duration}
+                                          </span>
+                                          {lesson.resources && (
+                                            <a 
+                                              href={(lesson.resources.startsWith('http') || lesson.resources.startsWith('/')) ? lesson.resources : `/${lesson.resources}`} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer" 
+                                              className="lesson-attachment" 
+                                              title="Tài liệu đính kèm"
+                                              style={{ color: '#dc3545', display: 'flex', alignItems: 'center' }}
+                                            >
+                                              <PictureAsPdf fontSize="small" />
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <button 
+                                        className="btn btn-sm btn-danger"
+                                        onClick={() => handleDeleteLesson(lesson.lessonId)}
+                                        style={{ marginLeft: '10px' }}
+                                        title="Xóa tiết học"
+                                      >
+                                        <Delete fontSize="small" style={{ margin: 0 }} />
+                                      </button>
                                     </div>
-                                    <button 
-                                      className="btn btn-sm btn-danger"
-                                      onClick={() => handleDeleteLesson(lesson.lessonId)}
-                                    >
-                                      <Delete />
-                                      Xóa
-                                    </button>
+                                    {lesson.content && (
+                                      <div style={{ marginTop: '8px', paddingLeft: '52px', color: '#374151', fontSize: '13.5px', lineHeight: '1.6' }}>
+                                        {lesson.content}
+                                      </div>
+                                    )}
                                   </li>
                                 ))}
                               </ul>
@@ -791,15 +860,72 @@ const CurriculumDetail = () => {
       )}
 
       <style>{`
+        /* Global & Scope Scrollbar styles for cleaner UI */
         .curriculum-detail-container {
           padding: 20px;
+          height: 100%;
+          overflow-y: auto;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+        }
+
+        .curriculum-detail-container::-webkit-scrollbar,
+        .modal-content::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+
+        .curriculum-detail-container::-webkit-scrollbar-track,
+        .modal-content::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .curriculum-detail-container::-webkit-scrollbar-thumb,
+        .modal-content::-webkit-scrollbar-thumb {
+          background: rgba(148, 163, 184, 0.4);
+          border-radius: 10px;
+        }
+
+        .curriculum-detail-container::-webkit-scrollbar-thumb:hover,
+        .modal-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(100, 116, 139, 0.6);
+        }
+
+        .truncate-text {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .btn-link {
+          background: none;
+          border: none;
+          color: #007bff;
+          cursor: pointer;
+          padding: 0;
+          font-size: 13px;
+          margin-top: 5px;
+          font-weight: 500;
+        }
+
+        .btn-link:hover {
+          text-decoration: underline;
+        }
+        
+        .lesson-attachment:hover {
+          opacity: 0.8;
+          transform: scale(1.1);
+          transition: all 0.2s ease;
         }
 
         .curriculum-detail-header {
-          margin-bottom: 30px;
-          padding: 15px;
+          margin-bottom: 20px;
+          padding: 20px;
           background: #f8f9fa;
-          border-radius: 5px;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .curriculum-detail-header h2 {

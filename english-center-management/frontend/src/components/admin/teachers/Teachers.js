@@ -19,9 +19,10 @@ import {
   useTheme,
   Avatar,
   Stack,
-  Tooltip,
   Menu,
-  Divider
+  Divider,
+  Switch,
+  Tooltip
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { 
@@ -33,10 +34,8 @@ import {
   VisibilityOff, 
   Search,
   MoreVert,
-  FilterList,
   Mail,
   Phone,
-  ArrowForward,
   Clear
 } from '@mui/icons-material';
 import { teachersAPI } from '../../../services/api';
@@ -53,6 +52,7 @@ const Teachers = () => {
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [filters, setFilters] = useState({
     status: 'all', // 'all', 'active', 'inactive'
+    skill: 'all',
     search: ''
   });
   const [formData, setFormData] = useState({
@@ -71,6 +71,7 @@ const Teachers = () => {
 
   useEffect(() => {
     loadTeachers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel, filters]);
 
   const loadTeachers = async () => {
@@ -88,9 +89,9 @@ const Teachers = () => {
         params.isActive = false;
       }
       
-      // Add search filter
-      if (filters.search) {
-        params.search = filters.search;
+      // Add skill filter
+      if (filters.skill && filters.skill !== 'all') {
+        params.search = params.search ? `${params.search} ${filters.skill}` : filters.skill;
       }
       
       const response = await teachersAPI.getAll(params);
@@ -193,7 +194,7 @@ const Teachers = () => {
         await teachersAPI.create(submitData);
       }
       handleCloseDialog();
-      setFilters(prev => ({ ...prev, search: '', status: 'all' })); // Reset bộ lọc và tìm kiếm
+      setFilters(prev => ({ ...prev, search: '', status: 'all', skill: 'all' })); // Reset bộ lọc và tìm kiếm
       loadTeachers();
     } catch (error) {
       console.error('Error saving teacher:', error);
@@ -234,6 +235,17 @@ const Teachers = () => {
     setSelectedTeacherForMenu(null);
   };
 
+  const handleToggleStatus = async (teacher) => {
+    try {
+      const newStatus = !teacher.isActive;
+      await teachersAPI.update(teacher.teacherId, { ...teacher, isActive: newStatus });
+      loadTeachers();
+    } catch (error) {
+      console.error('Error toggling status:', error);
+      alert('Có lỗi xảy ra khi thay đổi trạng thái');
+    }
+  };
+
   const getAvatarStyle = (name) => {
     const colors = ['#e1f5fe', '#f3e5f5', '#e8f5e9', '#fff3e0', '#fce4ec'];
     const textColors = ['#0288d1', '#7b1fa2', '#2e7d32', '#e65100', '#c2185b'];
@@ -264,45 +276,88 @@ const Teachers = () => {
     { 
       field: 'fullName', 
       headerName: 'Họ và Tên', 
-      flex: 1.5,
-      minWidth: 200,
+      flex: 1.2,
+      minWidth: 180,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar sx={getAvatarStyle(params.value)}>
             {params.value ? params.value.charAt(0) : 'T'}
           </Avatar>
           <Box sx={{ overflow: 'hidden' }}>
-            <Typography variant="body2" fontWeight={700} noWrap>
+            <Typography variant="body2" fontWeight={800} noWrap>
               {params.value}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.7 }}>
-              <Mail size={12} sx={{ fontSize: 12 }} /> {params.row.email}
             </Typography>
           </Box>
         </Box>
       )
     },
+    {
+      field: 'contact',
+      headerName: 'Liên Hệ',
+      flex: 1.5,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box sx={{ overflow: 'hidden' }}>
+          <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600, display: 'flex', alignItems: 'center', mb: 0.5 }}>
+             <Mail sx={{ fontSize: 14, mr: 1, color: '#64748b' }} />
+             {params.row.email}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
+             <Phone sx={{ fontSize: 14, mr: 1, color: '#64748b' }} />
+             {params.row.phoneNumber || 'Không có sđt'}
+          </Typography>
+        </Box>
+      )
+    },
     { 
       field: 'specialization', 
-      headerName: 'Chuyên Môn', 
-      flex: 1,
-      minWidth: 150,
-      renderCell: (params) => (
-        <Tooltip title={params.value || ''}>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: 'text.primary',
-              maxWidth: '100%',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {params.value || 'N/A'}
-          </Typography>
-        </Tooltip>
-      )
+      headerName: 'Kỹ Năng', 
+      flex: 1.5,
+      minWidth: 200,
+      renderCell: (params) => {
+        if (!params.value) return <Typography variant="body2" color="text.secondary">N/A</Typography>;
+        // Split by comma or slash
+        const skills = params.value.split(/[,/]+/).map(s => s.trim()).filter(s => s);
+        const visibleSkills = skills.slice(0, 2);
+        const hiddenCount = skills.length - 2;
+
+        return (
+          <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap' }}>
+            {visibleSkills.map((skill, index) => (
+              <Chip 
+                key={index} 
+                label={skill} 
+                size="small" 
+                sx={{ 
+                  bgcolor: 'rgba(99, 102, 241, 0.1)', 
+                  color: '#4f46e5', 
+                  fontWeight: 600, 
+                  height: 24, 
+                  fontSize: '0.7rem',
+                  borderRadius: 1.5
+                }} 
+              />
+            ))}
+            {hiddenCount > 0 && (
+              <Tooltip title={skills.slice(2).join(', ')}>
+                <Chip 
+                  label={`+${hiddenCount}`} 
+                  size="small" 
+                  sx={{ 
+                    bgcolor: 'rgba(100, 116, 139, 0.1)', 
+                    color: '#64748b', 
+                    fontWeight: 700, 
+                    height: 24, 
+                    fontSize: '0.7rem',
+                    borderRadius: 1.5,
+                    cursor: 'pointer'
+                  }} 
+                />
+              </Tooltip>
+            )}
+          </Box>
+        );
+      }
     },
     {
       field: 'hourlyRate',
@@ -323,16 +378,11 @@ const Teachers = () => {
       headerAlign: 'center',
       align: 'center',
       renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Đang dạy' : 'Nghỉ'}
-          sx={{
-            bgcolor: params.value ? 'rgba(16, 185, 129, 0.1)' : 'rgba(100, 116, 139, 0.1)',
-            color: params.value ? '#10b981' : '#94a3b8',
-            fontWeight: 700,
-            fontSize: '0.65rem',
-            height: 24,
-            border: params.value ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(100, 116, 139, 0.2)',
-          }}
+        <Switch
+          checked={params.value}
+          onChange={() => handleToggleStatus(params.row)}
+          size="small"
+          color="success"
         />
       ),
     },
@@ -372,11 +422,13 @@ const Teachers = () => {
           startIcon={<Add />}
           onClick={() => handleOpenDialog()}
           sx={{ 
-            borderRadius: 3, 
+            borderRadius: 2, 
             px: 3, 
             py: 1,
             textTransform: 'none',
             fontWeight: 700,
+            bgcolor: 'primary.main',
+            '&:hover': { bgcolor: 'primary.dark' },
             boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
           }}
         >
@@ -407,8 +459,37 @@ const Teachers = () => {
             }}
           />
           <Stack direction="row" spacing={1}>
+            {['IELTS', 'TOEIC', 'Giao tiếp'].map((skill) => {
+              const isActive = filters.skill === skill;
+              return (
+                <Chip 
+                  key={skill} 
+                  label={skill} 
+                  onClick={() => setFilters({ ...filters, skill: isActive ? 'all' : skill })} 
+                  variant={isActive ? 'filled' : 'outlined'}
+                  color={isActive ? 'info' : 'default'}
+                  sx={{ 
+                    borderRadius: 2, 
+                    fontWeight: 600, 
+                    fontSize: '0.75rem',
+                    height: 36,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    bgcolor: isActive ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                    color: isActive ? '#4f46e5' : 'text.secondary',
+                    border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(226, 232, 240, 1)',
+                    '&:hover': { 
+                      bgcolor: isActive ? 'rgba(99, 102, 241, 0.25)' : 'rgba(241, 245, 249, 1)',
+                    }
+                  }}
+                />
+              );
+            })}
+          </Stack>
+
+          <Stack direction="row" spacing={1}>
             {['all', 'active', 'inactive'].map((status) => {
-              const labels = { all: 'Tất cả', active: 'Đang dạy', inactive: 'Nghỉ' };
+              const labels = { all: 'Tất cả trạng thái', active: 'Đang dạy', inactive: 'Nghỉ' };
               const isActive = filters.status === status;
               return (
                 <Chip 
@@ -481,6 +562,8 @@ const Teachers = () => {
             '& .MuiDataGrid-row': {
               transition: 'all 0.2s ease',
               borderBottom: '1px solid rgba(226, 232, 240, 0.05)',
+              minHeight: '75px !important', // Tăng khoảng cách dòng
+              maxHeight: '100px !important',
               '&:hover': {
                 bgcolor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.04)' : '#f8fafc',
                 '& .actions-icon': {
@@ -491,11 +574,27 @@ const Teachers = () => {
             },
             '& .MuiDataGrid-cell': {
               borderBottom: 'none',
-              py: 1.5,
+              py: 2, // Tăng padding
               display: 'flex',
               alignItems: 'center'
+            },
+            // Scrollbar (Thanh cuộn mỏng nhẹ)
+            '& ::-webkit-scrollbar': {
+              width: '6px',
+              height: '6px',
+            },
+            '& ::-webkit-scrollbar-track': {
+              background: 'transparent',
+            },
+            '& ::-webkit-scrollbar-thumb': {
+              background: 'rgba(148, 163, 184, 0.4)',
+              borderRadius: '10px',
+            },
+            '& ::-webkit-scrollbar-thumb:hover': {
+              background: 'rgba(100, 116, 139, 0.6)',
             }
           }}
+          rowHeight={80} // Tăng row height cho thoáng
         />
       </Paper>
 

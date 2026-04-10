@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Typography,
   Box,
@@ -15,13 +15,12 @@ import {
   Alert,
   Avatar,
   useTheme,
-  Tooltip,
   LinearProgress,
   Fade,
   Menu,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, People, PersonAdd, Delete, School, MoreVert, Info, Groups } from '@mui/icons-material';
+import { Add, Edit, PersonAdd, Delete, School, MoreVert } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import { classesAPI, coursesAPI, teachersAPI, enrollmentsAPI, studentsAPI, roomsAPI, curriculumAPI } from '../../../services/api';
 
@@ -58,6 +57,7 @@ const Classes = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel]);
 
   const loadData = async () => {
@@ -235,11 +235,11 @@ const Classes = () => {
       width: 280,
       sortable: false,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 1 }}>
-          <Typography variant="body2" fontWeight={700}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8, py: 1 }}>
+          <Typography variant="body2" fontWeight={800} sx={{ lineHeight: 1.2 }}>
             {params.row.courseName}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
             {params.row.curriculumName}
           </Typography>
         </Box>
@@ -312,20 +312,22 @@ const Classes = () => {
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
-        <Typography
-          component="span"
-          sx={{
-            color: theme.palette.primary.main,
-            cursor: 'pointer',
-            fontWeight: 600,
-            '&:hover': {
-              textDecoration: 'underline',
-            },
-          }}
-          title="Xem lịch phòng"
-        >
-          {params.value || '—'}
-        </Typography>
+        <Box sx={{ display: 'flex', width: '100%', justifyContent: 'center' }}>
+          <Typography
+            component="span"
+            sx={{
+              color: theme.palette.primary.main,
+              cursor: 'pointer',
+              fontWeight: 700,
+              '&:hover': {
+                textDecoration: 'underline',
+              },
+            }}
+            title="Xem lịch phòng"
+          >
+            {params.value || '—'}
+          </Typography>
+        </Box>
       ),
     },
     {
