@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useTheme } from '@mui/material/styles';
 import {
+  Avatar,
   Box,
   Typography,
   Table,
@@ -27,21 +29,17 @@ import {
   Tooltip,
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  Badge
+  AccordionDetails
 } from '@mui/material';
 import {
-  Assessment,
-  Assignment,
-  TrendingUp,
-  TrendingDown,
-  School,
   Add,
   Edit,
   Delete,
   ExpandMore,
-  Settings,
-  Visibility
+  GetApp,
+  BarChart,
+  Done,
+  Close
 } from '@mui/icons-material';
 import { classesAPI, assignmentsAPI, skillsAPI, gradesAPI, assignmentSkillsAPI } from '../../../../services/api';
 
@@ -55,9 +53,13 @@ export default function DynamicGradesTab({ classId, classInfo }) {
   const [addGradeDialogOpen, setAddGradeDialogOpen] = useState(false);
   const [editGradeDialogOpen, setEditGradeDialogOpen] = useState(false);
   const [viewStudentDetailDialogOpen, setViewStudentDetailDialogOpen] = useState(false);
-  const [viewingStudent, setViewingStudent] = useState(null);
+  const [viewingStudent] = useState(null);
   const [editStudentDialogOpen, setEditStudentDialogOpen] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(null);
+  const [editingGradeId, setEditingGradeId] = useState(null);
+  const [editingScore, setEditingScore] = useState('');
+  const [assignmentTypeFilter, setAssignmentTypeFilter] = useState('all');
+  const [distributionDialogOpen, setDistributionDialogOpen] = useState(false);
   const [newGrade, setNewGrade] = useState({
     studentId: '',
     assignmentId: '',
@@ -67,11 +69,9 @@ export default function DynamicGradesTab({ classId, classInfo }) {
     comments: ''
   });
 
-  useEffect(() => {
-    loadData();
-  }, [classId]);
+  const theme = useTheme();
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -98,7 +98,11 @@ export default function DynamicGradesTab({ classId, classInfo }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [classId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleAddGrade = async () => {
     try {
@@ -164,16 +168,41 @@ export default function DynamicGradesTab({ classId, classInfo }) {
 
 
   const getGradeColor = (score) => {
-    if (score >= 8.5) return "success";
-    if (score >= 7.0) return "warning";
-    if (score >= 5.0) return "info";
+    if (score >= 9.0) return "success";
+    if (score >= 5.0) return "warning";
     return "error";
   };
+
+  const getInitials = (name) => {
+    return name
+      ? name
+          .split(' ')
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0].toUpperCase())
+          .join('')
+      : 'HS';
+  };
+
+  const assignmentTypes = Array.from(
+    new Set(
+      assignments
+        .map((assignment) => (assignment.type || assignment.Type || '').trim())
+        .filter(Boolean)
+    )
+  );
+
+  const filteredGrades = assignmentTypeFilter === 'all'
+    ? grades
+    : grades.filter((grade) => {
+        const assignment = assignments.find((a) => a.assignmentId === grade.assignmentId || a.AssignmentId === grade.assignmentId);
+        return assignment && (assignment.type || assignment.Type || '').toLowerCase() === assignmentTypeFilter.toLowerCase();
+      });
 
 
 
   // Group grades by assignment
-  const gradesByAssignment = grades.reduce((acc, grade) => {
+  const gradesByAssignment = filteredGrades.reduce((acc, grade) => {
     if (!acc[grade.assignmentId]) {
       acc[grade.assignmentId] = {
         assignment: assignments.find(a => a.assignmentId === grade.assignmentId),
@@ -186,7 +215,7 @@ export default function DynamicGradesTab({ classId, classInfo }) {
 
   // Calculate statistics for each student
   const studentStats = students.map(student => {
-    const studentGrades = grades.filter(g => g.studentId === student.studentId);
+    const studentGrades = filteredGrades.filter(g => g.studentId === student.studentId);
     const averageScore = studentGrades.length > 0 
       ? studentGrades.reduce((sum, g) => sum + g.score, 0) / studentGrades.length 
       : 0;
@@ -211,6 +240,68 @@ export default function DynamicGradesTab({ classId, classInfo }) {
     };
   });
 
+  const gradeDistribution = [0, 0, 0, 0];
+  filteredGrades.forEach((grade) => {
+    const score = parseFloat(grade.score);
+    if (isNaN(score)) return;
+    if (score < 5) gradeDistribution[0] += 1;
+    else if (score < 7) gradeDistribution[1] += 1;
+    else if (score < 9) gradeDistribution[2] += 1;
+    else gradeDistribution[3] += 1;
+  });
+
+  const exportGradesCsv = () => {
+    const rows = [
+      ['Học viên', 'Mã học viên', 'Bài tập', 'Kỹ năng', 'Điểm', 'Điểm tối đa', 'Ghi chú']
+    ];
+    filteredGrades.forEach((grade) => {
+      rows.push([
+        grade.studentName || grade.StudentName || '',
+        grade.studentId || grade.StudentId || '',
+        grade.assignmentTitle || grade.AssignmentTitle || '',
+        grade.skillName || grade.SkillName || '',
+        grade.score,
+        grade.maxScore,
+        grade.comments || ''
+      ]);
+    });
+
+    const csvContent = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `BangDiem_${classInfo?.className || classId}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const handleStartInlineEdit = (grade) => {
+    setEditingGradeId(grade.gradeId);
+    setEditingScore(String(grade.score));
+  };
+
+  const handleCancelInlineEdit = () => {
+    setEditingGradeId(null);
+    setEditingScore('');
+  };
+
+  const handleSaveInlineGrade = async (grade) => {
+    try {
+      const value = parseFloat(editingScore);
+      if (isNaN(value)) {
+        alert('Điểm phải là số hợp lệ');
+        return;
+      }
+      await gradesAPI.update(grade.gradeId, { score: value });
+      setEditingGradeId(null);
+      setEditingScore('');
+      loadData();
+    } catch (err) {
+      console.error('Error saving inline grade:', err);
+      alert('Lỗi khi lưu điểm nhanh');
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
@@ -223,10 +314,30 @@ export default function DynamicGradesTab({ classId, classInfo }) {
   return (
     <Box>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h6" fontWeight="bold">
-          Bảng điểm động - {classInfo?.className}
-        </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={3}>
+        <Box>
+          <Typography variant="h6" fontWeight="bold">
+            Bảng điểm động - {classInfo?.className}
+          </Typography>
+          <Box display="flex" alignItems="center" gap={1} mt={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<GetApp />}
+              onClick={exportGradesCsv}
+            >
+              Xuất Excel
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<BarChart />}
+              onClick={() => setDistributionDialogOpen(true)}
+            >
+              Phổ điểm
+            </Button>
+          </Box>
+        </Box>
         <Button
           variant="contained"
           startIcon={<Add />}
@@ -235,7 +346,31 @@ export default function DynamicGradesTab({ classId, classInfo }) {
           Thêm điểm
         </Button>
       </Box>
-    
+
+      {assignmentTypes.length > 0 && (
+        <Box mb={3} display="flex" alignItems="center" flexWrap="wrap" gap={1}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Lọc theo loại bài tập:
+          </Typography>
+          <Chip
+            label="Tất cả"
+            clickable
+            color={assignmentTypeFilter === 'all' ? 'primary' : 'default'}
+            variant={assignmentTypeFilter === 'all' ? 'filled' : 'outlined'}
+            onClick={() => setAssignmentTypeFilter('all')}
+          />
+          {assignmentTypes.map((type) => (
+            <Chip
+              key={type}
+              label={type}
+              clickable
+              color={assignmentTypeFilter === type ? 'primary' : 'default'}
+              variant={assignmentTypeFilter === type ? 'filled' : 'outlined'}
+              onClick={() => setAssignmentTypeFilter(type)}
+            />
+          ))}
+        </Box>
+      )}
 
       {/* Student Statistics */}
       <Box mb={3}>
@@ -246,7 +381,16 @@ export default function DynamicGradesTab({ classId, classInfo }) {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell><strong>Họ tên</strong></TableCell>
+                <TableCell
+                  sx={{
+                    position: 'sticky',
+                    left: 0,
+                    background: theme.palette.background.paper,
+                    zIndex: 2,
+                    minWidth: 240,
+                    boxShadow: '2px 0 4px rgb(0 0 0 / 4%)'
+                  }}
+                ><strong>Họ tên</strong></TableCell>
                 <TableCell align="center"><strong>Điểm TB</strong></TableCell>
                 {skills.map((skill) => (
                   <TableCell align="center" key={skill.skillId}>
@@ -258,10 +402,29 @@ export default function DynamicGradesTab({ classId, classInfo }) {
             <TableBody>
               {studentStats.map((stat) => (
                 <TableRow key={stat.studentId} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
-                      {stat.studentName}
-                    </Typography>
+                  <TableCell
+                    sx={{
+                      position: 'sticky',
+                      left: 0,
+                      background: theme.palette.background.paper,
+                      zIndex: 1,
+                      minWidth: 240,
+                      boxShadow: '2px 0 4px rgb(0 0 0 / 4%)'
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Avatar sx={{ width: 32, height: 32, fontSize: 14 }}>
+                        {getInitials(stat.studentName)}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="body2" fontWeight="bold">
+                          {stat.studentName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          #{stat.studentId}
+                        </Typography>
+                      </Box>
+                    </Box>
                   </TableCell>
                   <TableCell align="center">
                     <Chip 
@@ -326,7 +489,16 @@ export default function DynamicGradesTab({ classId, classInfo }) {
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell><strong>Học viên</strong></TableCell>
+                        <TableCell
+                          sx={{
+                            position: 'sticky',
+                            left: 0,
+                            background: theme.palette.background.paper,
+                            zIndex: 2,
+                            minWidth: 240,
+                            boxShadow: '2px 0 4px rgb(0 0 0 / 4%)'
+                          }}
+                        ><strong>Học viên</strong></TableCell>
                         <TableCell><strong>Kỹ năng</strong></TableCell>
                         <TableCell align="center"><strong>Điểm</strong></TableCell>
                         <TableCell align="center"><strong>Max</strong></TableCell>
@@ -337,10 +509,29 @@ export default function DynamicGradesTab({ classId, classInfo }) {
                     <TableBody>
                       {assignmentGrades.map((grade) => (
                         <TableRow key={grade.gradeId} hover>
-                          <TableCell>
-                            <Typography variant="body2" fontWeight="medium">
-                              {grade.studentName}
-                            </Typography>
+                          <TableCell
+                            sx={{
+                              position: 'sticky',
+                              left: 0,
+                              background: theme.palette.background.paper,
+                              zIndex: 1,
+                              minWidth: 240,
+                              boxShadow: '2px 0 4px rgb(0 0 0 / 4%)'
+                            }}
+                          >
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Avatar sx={{ width: 32, height: 32, fontSize: 14 }}>
+                                {getInitials(grade.studentName)}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {grade.studentName}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  #{grade.studentId}
+                                </Typography>
+                              </Box>
+                            </Box>
                           </TableCell>
                           <TableCell>
                             <Chip 
@@ -351,11 +542,34 @@ export default function DynamicGradesTab({ classId, classInfo }) {
                             />
                           </TableCell>
                           <TableCell align="center">
-                            <Chip 
-                              label={grade.score}
-                              color={getGradeColor(grade.score)}
-                              size="small"
-                            />
+                            {editingGradeId === grade.gradeId ? (
+                              <Box display="flex" alignItems="center" gap={1} justifyContent="center">
+                                <TextField
+                                  value={editingScore}
+                                  onChange={(e) => setEditingScore(e.target.value)}
+                                  type="number"
+                                  size="small"
+                                  inputProps={{ min: 0, max: grade.maxScore || 10, step: 0.1 }}
+                                  sx={{ width: 90 }}
+                                />
+                                <IconButton size="small" color="success" onClick={() => handleSaveInlineGrade(grade)}>
+                                  <Done fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" color="inherit" onClick={handleCancelInlineEdit}>
+                                  <Close fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            ) : (
+                              <Tooltip title="Nhấp để sửa nhanh">
+                                <Chip
+                                  label={grade.score}
+                                  color={getGradeColor(grade.score)}
+                                  size="small"
+                                  onClick={() => handleStartInlineEdit(grade)}
+                                  sx={{ cursor: 'pointer' }}
+                                />
+                              </Tooltip>
+                            )}
                           </TableCell>
                           <TableCell align="center">
                             <Typography variant="body2">
@@ -566,6 +780,35 @@ export default function DynamicGradesTab({ classId, classInfo }) {
           <Button onClick={handleEditGrade} variant="contained">
             Lưu
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Phổ điểm Dialog */}
+      <Dialog open={distributionDialogOpen} onClose={() => setDistributionDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Phổ điểm lớp</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 1 }}>
+            {['0-4.9', '5.0-6.9', '7.0-8.9', '9.0-10'].map((label, index) => {
+              const count = gradeDistribution[index];
+              const total = gradeDistribution.reduce((sum, value) => sum + value, 0) || 1;
+              const percent = Math.round((count / total) * 100);
+              const colors = [theme.palette.error.main, theme.palette.warning.main, theme.palette.info.main, theme.palette.success.main];
+              return (
+                <Box key={label} sx={{ mb: 2 }}>
+                  <Box display="flex" justifyContent="space-between" mb={0.5}>
+                    <Typography>{label}</Typography>
+                    <Typography>{count} học viên</Typography>
+                  </Box>
+                  <Box sx={{ bgcolor: '#e0e0e0', borderRadius: 1, height: 14, overflow: 'hidden' }}>
+                    <Box sx={{ width: `${percent}%`, bgcolor: colors[index], height: '100%' }} />
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDistributionDialogOpen(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>
 

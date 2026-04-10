@@ -7,11 +7,9 @@ import {
   CardContent,
   Grid,
   Avatar,
-  Chip,
   LinearProgress,
   Paper,
   Button,
-  Badge,
   Stack
 } from '@mui/material';
 import {
@@ -20,11 +18,7 @@ import {
   Assessment,
   Book,
   Notifications,
-  People,
-  Class,
   AccessTime,
-  ArrowUpward,
-  ArrowDownward,
   School,
   Folder,
   CheckCircle,
@@ -37,7 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { classesAPI, gradesAPI, activityLogsAPI, studentsAPI, authAPI, assignmentsAPI } from '../../services/api';
+import { gradesAPI, activityLogsAPI, studentsAPI, authAPI, assignmentsAPI } from '../../services/api';
 
 // Safe text render - no highlighting
 const HighlightText = ({ text }) => {
@@ -159,6 +153,7 @@ const StudentDashboard = () => {
     };
 
     initDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadStudentDashboardData = async (studentId) => {
@@ -217,9 +212,7 @@ const StudentDashboard = () => {
         color: getActivityColor(a.iconType)
       })));
 
-      // 5. Load Assignments to count completed
       let completedCount = 0;
-      let totalAssignments = 0;
       try {
         for (const cls of enrollmentsData.slice(0, 5)) { // Limit to 5 classes for performance
           const classId = cls.classId;
@@ -227,7 +220,6 @@ const StudentDashboard = () => {
           const res = await assignmentsAPI.getAll({ classId, studentId, pageSize: 100 });
           const assignmentsData = res.data?.data || res.data || [];
           const classAssignments = Array.isArray(assignmentsData) ? assignmentsData : [];
-          totalAssignments += classAssignments.length;
           completedCount += classAssignments.filter(a => 
             a.studentStatus === 'Graded' || a.studentStatus === 'Submitted'
           ).length;
@@ -260,8 +252,7 @@ const StudentDashboard = () => {
     }
   };
 
-  const StatCard = ({ title, value, change, changeType, icon, color }) => {
-    const isPositive = changeType === 'increase';
+  const StatCard = ({ title, value, icon, color }) => {
     return (
       <Card
         sx={{
@@ -279,16 +270,6 @@ const StudentDashboard = () => {
             <Box sx={{ flex: 1 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>{title}</Typography>
               <Typography variant="h3" sx={{ fontWeight: 700, color: '#1e293b', mb: 1 }}>{value}</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{
-                  display: 'flex', alignItems: 'center', bgcolor: isPositive ? 'rgba(56, 142, 60, 0.1)' : 'rgba(211, 47, 47, 0.1)',
-                  color: isPositive ? '#388e3c' : '#d32f2f', px: 1, py: 0.5, borderRadius: 1, fontSize: '0.75rem', fontWeight: 600,
-                }}>
-                  {isPositive ? <ArrowUpward sx={{ fontSize: 14, mr: 0.3 }} /> : <ArrowDownward sx={{ fontSize: 14, mr: 0.3 }} />}
-                  {isPositive ? '+' : ''}{change}%
-                </Box>
-                <Typography variant="caption" color="text.secondary">vs tuần trước</Typography>
-              </Box>
             </Box>
             <Box sx={{ width: 44, height: 44, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: `${color}12`, color: color }}>
               {React.cloneElement(icon, { sx: { fontSize: 22 } })}
