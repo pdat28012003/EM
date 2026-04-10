@@ -26,14 +26,26 @@ namespace EnglishCenter.API.Controllers
         [HttpGet]
         public async Task<ActionResult<PagedResult<SkillDto>>> GetSkills(
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int pageSize = 10,
+            [FromQuery] bool? isActive = null,
+            [FromQuery] bool? showAll = null)
         {
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            var query = _context.Skills
-                .Where(s => s.IsActive)
-                .OrderBy(s => s.Name);
+            var query = _context.Skills.AsQueryable();
+            if (!showAll.GetValueOrDefault())
+            {
+                if (isActive.HasValue)
+                {
+                    query = query.Where(s => s.IsActive == isActive.Value);
+                }
+                else
+                {
+                    query = query.Where(s => s.IsActive);
+                }
+            }
+            query = query.OrderBy(s => s.Name);
 
             var totalCount = await query.CountAsync();
 
