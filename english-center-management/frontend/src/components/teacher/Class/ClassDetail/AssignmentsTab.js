@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -29,24 +29,20 @@ import {
   FormControl,
   InputLabel,
   Radio,
-  Checkbox,
-  FormControlLabel,
   Divider,
   Tabs,
   Tab,
   List,
-  ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   Menu,
-  ListItemIcon
+  ListItemIcon,
+  InputAdornment
 } from '@mui/material';
 import {
   Add,
   Visibility,
   Edit,
   Delete,
-  Assignment,
   Quiz as QuizIcon,
   AddCircle,
   RemoveCircle,
@@ -54,7 +50,8 @@ import {
   Replay,
   Lock,
   LockOpen,
-  MoreVert
+  MoreVert,
+  Search
 } from '@mui/icons-material';
 import { assignmentsAPI, skillsAPI } from '../../../../services/api';
 
@@ -63,7 +60,7 @@ export default function AssignmentsTab({ classId, classInfo }) {
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const rowsPerPage = 10;
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);
@@ -97,13 +94,10 @@ export default function AssignmentsTab({ classId, classInfo }) {
   const [assignmentToDelete, setAssignmentToDelete] = useState(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [menuAssignment, setMenuAssignment] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
-    loadAssignments();
-    loadSkills();
-  }, [classId, page, rowsPerPage]);
-
-  const loadAssignments = async () => {
+  const loadAssignments = useCallback(async () => {
     try {
       setLoading(true);
       const response = await assignmentsAPI.getAll({
@@ -120,16 +114,21 @@ export default function AssignmentsTab({ classId, classInfo }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [classId, page, rowsPerPage]);
 
-  const loadSkills = async () => {
+  const loadSkills = useCallback(async () => {
     try {
       const response = await skillsAPI.getAll();
       setSkills(response.data?.data || []);
     } catch (error) {
       console.error('Error loading skills:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadAssignments();
+    loadSkills();
+  }, [loadAssignments, loadSkills]);
 
   const loadQuizQuestions = async (assignmentId) => {
     try {
@@ -148,11 +147,6 @@ export default function AssignmentsTab({ classId, classInfo }) {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(1);
-  };
-
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'published': return 'success';
@@ -165,6 +159,44 @@ export default function AssignmentsTab({ classId, classInfo }) {
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('vi-VN');
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'published': return 'Đã phát hành';
+      case 'draft': return 'Nháp';
+      case 'closed': return 'Đã đóng';
+      default: return status || '-';
+    }
+  };
+
+  const filteredAssignments = assignments.filter((assignment) => {
+    const query = searchQuery.trim().toLowerCase();
+    const title = String(assignment.title || assignment.Title || '').toLowerCase();
+    const description = String(assignment.description || assignment.Description || '').toLowerCase();
+    const skill = String(assignment.skillName || assignment.SkillName || '').toLowerCase();
+    const matchesSearch = !query || title.includes(query) || description.includes(query) || skill.includes(query);
+    const status = String(assignment.status || assignment.Status || '').toLowerCase();
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'published' && status === 'published') ||
+      (statusFilter === 'draft' && status === 'draft') ||
+      (statusFilter === 'closed' && status === 'closed');
+    return matchesSearch && matchesStatus;
+  });
+
+  const assignmentCounts = assignments.reduce((counts, assignment) => {
+    const status = String(assignment.status || assignment.Status || '').toLowerCase();
+    if (status === 'published') counts.published += 1;
+    if (status === 'draft') counts.draft += 1;
+    if (status === 'closed') counts.closed += 1;
+    counts.all += 1;
+    return counts;
+  }, { all: 0, published: 0, draft: 0, closed: 0 });
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
   };
 
   const handleSaveAssignment = async () => {
@@ -525,13 +557,104 @@ export default function AssignmentsTab({ classId, classInfo }) {
         </Button>
       </Box>
 
+      <Box display="grid" gridTemplateColumns="repeat(auto-fit, minmax(180px, 1fr))" gap={2} mb={3}>
+        <Card sx={{ borderRadius: 3, p: 2, minHeight: 96 }}>
+          <CardContent>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Tổng bài tập
+            </Typography>
+            <Typography variant="h5" fontWeight="bold">
+              {assignmentCounts.all}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ borderRadius: 3, p: 2, minHeight: 96 }}>
+          <CardContent>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Đã phát hành
+            </Typography>
+            <Typography variant="h5" fontWeight="bold">
+              {assignmentCounts.published}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ borderRadius: 3, p: 2, minHeight: 96 }}>
+          <CardContent>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Nháp
+            </Typography>
+            <Typography variant="h5" fontWeight="bold">
+              {assignmentCounts.draft}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ borderRadius: 3, p: 2, minHeight: 96 }}>
+          <CardContent>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Đã đóng
+            </Typography>
+            <Typography variant="h5" fontWeight="bold">
+              {assignmentCounts.closed}
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
+
+      <Box mb={3}>
+        <Box display="flex" flexWrap="wrap" gap={2} mb={2}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Tìm kiếm tiêu đề, mô tả hoặc kỹ năng"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search fontSize="small" />
+                </InputAdornment>
+              )
+            }}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<Replay />}
+            onClick={handleClearFilters}
+            sx={{ minWidth: 120 }}
+          >
+            Xóa bộ lọc
+          </Button>
+        </Box>
+        <Box display="flex" flexWrap="wrap" gap={1}>
+          {[
+            { value: 'all', label: 'Tất cả' },
+            { value: 'published', label: 'Đã phát hành' },
+            { value: 'draft', label: 'Nháp' },
+            { value: 'closed', label: 'Đã đóng' }
+          ].map((filter) => (
+            <Chip
+              key={filter.value}
+              label={filter.label}
+              clickable
+              color={statusFilter === filter.value ? 'primary' : 'default'}
+              variant={statusFilter === filter.value ? 'filled' : 'outlined'}
+              onClick={() => setStatusFilter(filter.value)}
+            />
+          ))}
+        </Box>
+      </Box>
+
       {/* Assignments Table */}
       {assignments.length === 0 ? (
         <Alert severity="info">
           Chưa có bài tập nào trong lớp này
         </Alert>
+      ) : filteredAssignments.length === 0 ? (
+        <Alert severity="info">
+          Không tìm thấy bài tập phù hợp với bộ lọc hiện tại.
+        </Alert>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -545,26 +668,35 @@ export default function AssignmentsTab({ classId, classInfo }) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {assignments.map((assignment) => (
-                <TableRow key={assignment.assignmentId} hover>
+              {filteredAssignments.map((assignment) => (
+                <TableRow
+                  key={assignment.assignmentId}
+                  hover
+                  sx={{
+                    transition: 'background-color 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: '#f4f7ff'
+                    }
+                  }}
+                >
                   <TableCell>
                     <Box>
                       <Typography variant="body2" fontWeight="medium">
                         {assignment.title}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {assignment.description?.substring(0, 100)}
-                        {assignment.description?.length > 100 ? '...' : ''}
+                        {String(assignment.description || assignment.Description || '').substring(0, 120)}
+                        {(assignment.description || assignment.Description || '').length > 120 ? '...' : ''}
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={assignment.type} 
+                      label={assignment.type || assignment.Type}
                       size="small" 
                       variant="outlined"
-                      color={assignment.type === 'Quiz' ? 'primary' : 'default'}
-                      icon={assignment.type === 'Quiz' ? <QuizIcon fontSize="small" /> : null}
+                      color={(assignment.type || assignment.Type) === 'Quiz' ? 'primary' : 'default'}
+                      icon={(assignment.type || assignment.Type) === 'Quiz' ? <QuizIcon fontSize="small" /> : null}
                     />
                   </TableCell>
                   <TableCell align="center">
@@ -591,18 +723,21 @@ export default function AssignmentsTab({ classId, classInfo }) {
                   </TableCell>
                   <TableCell align="center">
                     <Chip
-                      label={assignment.status}
+                      label={getStatusLabel(assignment.status)}
                       color={getStatusColor(assignment.status)}
                       size="small"
+                      variant="outlined"
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, assignment)}
-                    >
-                      <MoreVert fontSize="small" />
-                    </IconButton>
+                    <Tooltip title="Thao tác">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleMenuOpen(e, assignment)}
+                      >
+                        <MoreVert fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}

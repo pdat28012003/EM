@@ -12,7 +12,6 @@ import {
   Paper,
   Button,
   Badge,
-  Divider,
   Stack
 } from '@mui/material';
 import {
@@ -25,8 +24,6 @@ import {
   People,
   Class,
   AccessTime,
-  ArrowUpward,
-  ArrowDownward,
   TrendingUp,
   School,
   Folder,
@@ -118,6 +115,7 @@ const TeacherDashboard = () => {
         loadTeacherData(parsedUser.teacherId || parsedUser.userId);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTeacherData = async (teacherId) => {
@@ -161,8 +159,7 @@ const TeacherDashboard = () => {
   };
 
   // Enhanced StatCard with icon background and sparkline
-  const StatCard = ({ title, value, change, changeType, icon, color }) => {
-    const isPositive = changeType === 'increase';
+  const StatCard = ({ title, value, icon, color }) => {
     
     return (
       <Card
@@ -190,27 +187,6 @@ const TeacherDashboard = () => {
                 {value}
               </Typography>
               
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    bgcolor: isPositive ? 'rgba(56, 142, 60, 0.1)' : 'rgba(211, 47, 47, 0.1)',
-                    color: isPositive ? '#388e3c' : '#d32f2f',
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  {isPositive ? <ArrowUpward sx={{ fontSize: 14, mr: 0.3 }} /> : <ArrowDownward sx={{ fontSize: 14, mr: 0.3 }} />}
-                  {isPositive ? '+' : ''}{change}%
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  vs tuần trước
-                </Typography>
-              </Box>
             </Box>
 
             <Box sx={{ textAlign: 'right' }}>
