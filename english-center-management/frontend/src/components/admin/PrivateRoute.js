@@ -1,6 +1,5 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { Box, CircularProgress } from '@mui/material';
 
 const PrivateRoute = ({ children, allowedRoles = [] }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';

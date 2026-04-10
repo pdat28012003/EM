@@ -15,7 +15,6 @@ import {
   Chip,
   Menu,
   InputAdornment,
-  CircularProgress,
   useTheme,
   Grid,
   Avatar,
@@ -32,9 +31,7 @@ import {
   School, 
   Payments, 
   AccessTime,
-  Close,
-  Label,
-  Info
+  Close
 } from '@mui/icons-material';
 import { coursesAPI } from '../../../services/api';
 import { alpha } from '@mui/material/styles';
@@ -67,6 +64,7 @@ const Courses = () => {
 
   useEffect(() => {
     loadCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel, filterLevel, searchTerm]);
 
   const loadCourses = async () => {

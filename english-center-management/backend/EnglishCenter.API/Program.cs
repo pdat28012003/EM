@@ -66,8 +66,11 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // Register CAPTCHA service
 builder.Services.AddHttpClient<ICaptchaService, CaptchaService>();
 
-// Register SePay service
-builder.Services.AddHttpClient<ISePayService, SePayService>();
+// Register SePay service with timeout
+builder.Services.AddHttpClient<ISePayService, SePayService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -126,7 +129,10 @@ app.UseStaticFiles();
 app.Logger.LogInformation("Swagger UI is available at: http://localhost:5000/swagger");
 app.Logger.LogInformation("Or: https://localhost:5001/swagger (if using HTTPS)");
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowAll");
 

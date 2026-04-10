@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Typography,
   Box,
@@ -15,13 +15,12 @@ import {
   Alert,
   Avatar,
   useTheme,
-  Tooltip,
   LinearProgress,
   Fade,
   Menu,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, People, PersonAdd, Delete, School, MoreVert, Info, Groups } from '@mui/icons-material';
+import { Add, Edit, PersonAdd, Delete, School, MoreVert } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import { classesAPI, coursesAPI, teachersAPI, enrollmentsAPI, studentsAPI, roomsAPI, curriculumAPI } from '../../../services/api';
 
@@ -58,6 +57,7 @@ const Classes = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel]);
 
   const loadData = async () => {

@@ -30,7 +30,6 @@ import {
   BarChart3, 
   CreditCard, 
   FileText,
-  UserCircle,
   LogOut,
   Menu as MenuIcon,
   Bell,

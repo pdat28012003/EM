@@ -24,7 +24,6 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { CheckCircle, Cancel, Schedule, Person } from '@mui/icons-material';
 import { curriculumAPI, attendanceAPI } from '../../../services/api';
 
 const Attendance = () => {
@@ -38,6 +37,7 @@ const Attendance = () => {
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedLesson, setSelectedLesson] = useState('');
   const [attendanceData, setAttendanceData] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
   const [openNotesDialog, setOpenNotesDialog] = useState(false);
   const [currentAttendance, setCurrentAttendance] = useState(null);
@@ -89,6 +89,7 @@ const Attendance = () => {
     if (selectedLesson) {
       loadAttendance();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLesson]);
 
   const handleStatusChange = async (attendanceId, newStatus, studentId) => {

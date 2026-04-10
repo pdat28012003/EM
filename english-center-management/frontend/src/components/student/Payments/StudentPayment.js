@@ -30,7 +30,7 @@ import {
   RadioButtonUnchecked,
   TaskAlt,
 } from '@mui/icons-material';
-import signalR from '../../../services/signalr';
+import signalRService from '../../../services/signalr';
 import { paymentAPI, authAPI } from '../../../services/api';
 
 const StudentPayment = () => {
@@ -87,7 +87,7 @@ const StudentPayment = () => {
   useEffect(() => {
     // Setup SignalR connection for real-time payment updates
     if (!connectionRef.current) {
-      connectionRef.current = signalR.createHubConnection();
+      connectionRef.current = signalRService.createHubConnection();
     }
 
     const startConnection = async () => {
@@ -95,10 +95,12 @@ const StudentPayment = () => {
         if (connectionRef.current.state === 'Disconnected') {
           await connectionRef.current.start();
           console.log('Connected to payment hub');
-          
-          if (currentPayment) {
-            await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
-          }
+        }
+
+        // Join group whenever we have a current payment and connection is connected
+        if (currentPayment && connectionRef.current.state === 'Connected') {
+          console.log('Joining payment group:', currentPayment.paymentId);
+          await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
         }
       } catch (err) {
         if (err.name !== 'AbortError') {
@@ -110,23 +112,32 @@ const StudentPayment = () => {
     startConnection();
 
     const handleStatusChange = (data) => {
-      if (currentPayment && data.paymentId === currentPayment.paymentId) {
-        setPaymentStatus(data.status);
-        if (data.status === 'Completed' || data.status === 'Complete') {
+      console.log('Received payment update:', data);
+      
+      // Support both event formats and data structures
+      const pId = data.paymentId || data.PaymentId;
+      const status = data.status || data.Status;
+
+      if (currentPayment && pId === currentPayment.paymentId) {
+        setPaymentStatus(status);
+        if (status === 'Completed' || status === 'Complete') {
+          // Trigger data reload after success
           setTimeout(() => {
             setQrDialog(false);
             loadEnrolledCourses();
             loadPaymentHistory();
-          }, 2000);
+          }, 3000);
         }
       }
     };
 
     connectionRef.current.on('PaymentStatusChanged', handleStatusChange);
+    connectionRef.current.on('ReceivePaymentStatus', handleStatusChange);
 
     return () => {
       if (connectionRef.current) {
         connectionRef.current.off('PaymentStatusChanged', handleStatusChange);
+        connectionRef.current.off('ReceivePaymentStatus', handleStatusChange);
       }
     };
   }, [currentPayment]);

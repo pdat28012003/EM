@@ -3,17 +3,11 @@ import {
   Paper,
   Typography,
   Button,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Box,
   IconButton,
   Chip,
   Avatar,
   useTheme,
-  Tooltip,
   Menu,
   MenuItem,
   Fade,
@@ -66,6 +60,7 @@ const Curriculum = () => {
 
   useEffect(() => {
     loadCurriculums();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel, selectedCourseFilter]);
   
   useEffect(() => {
