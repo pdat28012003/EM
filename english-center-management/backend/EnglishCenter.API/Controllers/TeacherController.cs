@@ -387,5 +387,121 @@ namespace EnglishCenter.API.Controllers
                 return StatusCode(500, new { message = "Error retrieving teacher schedule" });
             }
         }
+
+        /// <summary>
+        /// Gets all teachers with availability status for a specific time slot.
+        /// (Lấy danh sách giảng viên kèm trạng thái rảnh/bận trong khung giờ cụ thể.)
+        /// </summary>
+        /// <param name="date">Date to check (yyyy-MM-dd)</param>
+        /// <param name="startTime">Start time (HH:mm)</param>
+        /// <param name="endTime">End time (HH:mm)</param>
+        /// <param name="excludeSessionId">Optional session ID to exclude (for editing)</param>
+        /// <param name="roomId">Optional room ID to check availability</param>
+        /// <returns>List of teachers with isBusy flag and room availability info</returns>
+        [HttpGet("availability")]
+        public async Task<ActionResult<object>> GetTeachersWithAvailability(
+            [FromQuery] string date,
+            [FromQuery] string startTime,
+            [FromQuery] string endTime,
+            [FromQuery] int? excludeSessionId = null,
+            [FromQuery] int? roomId = null)
+        {
+            try
+            {
+                // Parse inputs
+                if (!DateTime.TryParseExact(date, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var checkDate))
+                {
+                    return BadRequest(new { message = "Invalid date format. Use yyyy-MM-dd" });
+                }
+
+                if (!TimeSpan.TryParseExact(startTime, @"hh\:mm", null, out var start) ||
+                    !TimeSpan.TryParseExact(endTime, @"hh\:mm", null, out var end))
+                {
+                    return BadRequest(new { message = "Invalid time format. Use HH:mm" });
+                }
+
+                if (start >= end)
+                {
+                    return BadRequest(new { message = "Start time must be before end time" });
+                }
+
+                // Check room availability if roomId provided
+                bool isRoomAvailable = true;
+                string roomConflictMessage = null;
+                if (roomId.HasValue)
+                {
+                    var roomConflict = await _context.CurriculumSessions
+                        .Include(cs => cs.CurriculumDay)
+                        .Where(cs => cs.RoomId == roomId.Value &&
+                                     cs.CurriculumDay.ScheduleDate.Date == checkDate.Date &&
+                                     (excludeSessionId == null || cs.CurriculumSessionId != excludeSessionId.Value) &&
+                                     (start < cs.EndTime && end > cs.StartTime)) // Time overlap check
+                        .FirstOrDefaultAsync();
+
+                    if (roomConflict != null)
+                    {
+                        isRoomAvailable = false;
+                        roomConflictMessage = $"Phòng học đã bị chiếm từ {roomConflict.StartTime:hh\\:mm} - {roomConflict.EndTime:hh\\:mm}";
+                    }
+                }
+
+                // Get all active teachers
+                var allTeachers = await _context.Teachers
+                    .Where(t => t.IsActive)
+                    .Select(t => new
+                    {
+                        t.TeacherId,
+                        t.FullName,
+                        t.Email,
+                        t.PhoneNumber,
+                        t.Specialization,
+                        t.Qualifications,
+                        t.HourlyRate
+                    })
+                    .ToListAsync();
+
+                // Find busy teachers (those with overlapping sessions on the same date)
+                var busyTeacherIds = await _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .Where(cs => cs.TeacherId.HasValue &&
+                                 cs.CurriculumDay.ScheduleDate.Date == checkDate.Date &&
+                                 (excludeSessionId == null || cs.CurriculumSessionId != excludeSessionId.Value) &&
+                                 (start < cs.EndTime && end > cs.StartTime)) // Time overlap check
+                    .Select(cs => cs.TeacherId.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                var busyIdSet = new HashSet<int>(busyTeacherIds);
+
+                // Build result with isBusy flag
+                var teachersWithStatus = allTeachers.Select(t => new
+                {
+                    t.TeacherId,
+                    t.FullName,
+                    t.Email,
+                    t.PhoneNumber,
+                    t.Specialization,
+                    t.Qualifications,
+                    t.HourlyRate,
+                    isBusy = busyIdSet.Contains(t.TeacherId),
+                    busyReason = busyIdSet.Contains(t.TeacherId) ? $"Giảng viên đang có lịch dạy từ {startTime} - {endTime}" : null
+                });
+
+                return Ok(new
+                {
+                    teachers = teachersWithStatus,
+                    roomInfo = roomId.HasValue ? new
+                    {
+                        roomId = roomId.Value,
+                        isAvailable = isRoomAvailable,
+                        conflictMessage = roomConflictMessage
+                    } : null
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error checking teacher availability", error = ex.Message });
+            }
+        }
     }
 }

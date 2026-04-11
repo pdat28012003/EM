@@ -195,8 +195,8 @@ const Curriculum = () => {
     setFormData({
       curriculumName: curriculum.curriculumName,
       courseId: curriculum.courseId,
-      startDate: curriculum.startDate.split('T')[0],
-      endDate: curriculum.endDate.split('T')[0],
+      startDate: curriculum.startDate ? curriculum.startDate.split('T')[0] : '',
+      endDate: curriculum.endDate ? curriculum.endDate.split('T')[0] : '',
       description: curriculum.description
     });
     setShowModal(true);

@@ -360,6 +360,7 @@ namespace EnglishCenter.API.Models
         public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<CurriculumDay> CurriculumDays { get; set; } = new List<CurriculumDay>();
         public ICollection<Teacher> ParticipantTeachers { get; set; } = new List<Teacher>();
+        public ICollection<Document> Documents { get; set; } = new List<Document>();
     }
 
     public class CurriculumDay
@@ -413,9 +414,14 @@ namespace EnglishCenter.API.Models
 
         public int? TeacherId { get; set; }
 
+        public int? DocumentId { get; set; }
+
         // Navigation properties
         [ForeignKey("CurriculumDayId")]
         public CurriculumDay CurriculumDay { get; set; } = null!;
+
+        [ForeignKey("DocumentId")]
+        public Document? Document { get; set; }
 
         [ForeignKey("RoomId")]
         public Room? AssignedRoom { get; set; }
@@ -633,17 +639,11 @@ namespace EnglishCenter.API.Models
         [Required]
         public int DownloadCount { get; set; } = 0;
 
-        [Required]
-        public int TeacherId { get; set; }
+        // Associate with Curriculum (optional - null means standalone)
+        public int? CurriculumId { get; set; }
 
-        public int? ClassId { get; set; }
-
-        // Navigation properties
-        [ForeignKey("TeacherId")]
-        public Teacher Teacher { get; set; } = null!;
-
-        [ForeignKey("ClassId")]
-        public Class? Class { get; set; }
+        [ForeignKey("CurriculumId")]
+        public Curriculum? Curriculum { get; set; }
     }
 
     /// <summary>

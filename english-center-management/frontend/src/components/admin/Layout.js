@@ -59,7 +59,7 @@ const menuItems = [
   { text: 'Chương Trình Học', icon: <FileText size={22} />, path: '/curriculum' },
   { text: 'Thanh Toán', icon: <CreditCard size={22} />, path: '/payments' },
   { text: 'Lịch Học', icon: <Calendar size={22} />, path: '/schedules' },
-  { text: 'Điểm Số', icon: <BarChart3 size={22} />, path: '/test-scores' },
+  { text: 'Điểm Số', icon: <BarChart3 size={22} />, path: '/grades' },
   { text: 'Tài Liệu', icon: <FileText size={22} />, path: '/documents' },
 ];
 

@@ -19,7 +19,7 @@ const DocumentEditDialog = ({
   onSave,
   documentForm,
   setDocumentForm,
-  classes,
+  curriculums,
   dialogTitle = 'Chỉnh sửa tài liệu'
 }) => {
   const handleInputChange = (field) => (e) => {
@@ -62,18 +62,18 @@ const DocumentEditDialog = ({
             </Select>
           </FormControl>
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Lớp học</InputLabel>
+            <InputLabel>Chương trình học</InputLabel>
             <Select
-              value={documentForm.classId || ''}
-              onChange={handleInputChange('classId')}
-              label="Lớp học"
+              value={documentForm.curriculumId || ''}
+              onChange={handleInputChange('curriculumId')}
+              label="Chương trình học"
             >
               <MenuItem value="">
-                <em>Chọn lớp học</em>
+                <em>Không chọn</em>
               </MenuItem>
-              {classes.map(cls => (
-                <MenuItem key={cls.classId} value={cls.classId}>
-                  {cls.className}
+              {curriculums.map(c => (
+                <MenuItem key={c.curriculumId} value={c.curriculumId}>
+                  {c.curriculumName}
                 </MenuItem>
               ))}
             </Select>

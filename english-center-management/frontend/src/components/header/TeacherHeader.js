@@ -187,7 +187,7 @@ const TeacherHeader = () => {
           >
             Lịch dạy
           </Button>
-          <Button 
+          {/* <Button 
             component={Link}
             to="/teacher/availability"
             sx={{ 
@@ -198,7 +198,7 @@ const TeacherHeader = () => {
             }}
           >
             Lịch rảnh
-          </Button>
+          </Button> */}
           <Button 
             component={Link}
             to="/teacher/documents"

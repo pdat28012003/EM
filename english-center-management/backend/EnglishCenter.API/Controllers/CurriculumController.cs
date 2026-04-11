@@ -583,7 +583,8 @@ namespace EnglishCenter.API.Controllers
                     SessionName = createCurriculumSessionDto.SessionName,
                     SessionDescription = createCurriculumSessionDto.SessionDescription,
                     RoomId = createCurriculumSessionDto.RoomId,
-                    TeacherId = createCurriculumSessionDto.TeacherId
+                    TeacherId = createCurriculumSessionDto.TeacherId,
+                    DocumentId = createCurriculumSessionDto.DocumentId
                 };
 
                 _context.CurriculumSessions.Add(curriculumSession);
@@ -618,6 +619,7 @@ namespace EnglishCenter.API.Controllers
                     .Include(cs => cs.Lessons)
                     .Include(cs => cs.AssignedRoom)
                     .Include(cs => cs.Teacher)
+                    .Include(cs => cs.Document)
                     .FirstOrDefaultAsync(cs => cs.CurriculumSessionId == id);
 
                 if (curriculumSession == null)
@@ -784,6 +786,7 @@ namespace EnglishCenter.API.Controllers
                 curriculumSession.SessionDescription = updateCurriculumSessionDto.SessionDescription;
                 curriculumSession.RoomId = updateCurriculumSessionDto.RoomId;
                 curriculumSession.TeacherId = updateCurriculumSessionDto.TeacherId;
+                curriculumSession.DocumentId = updateCurriculumSessionDto.DocumentId;
 
                 _context.CurriculumSessions.Update(curriculumSession);
                 await _context.SaveChangesAsync();
@@ -1016,6 +1019,8 @@ namespace EnglishCenter.API.Controllers
                 RoomName = curriculumSession.AssignedRoom?.RoomName ?? string.Empty,
                 TeacherId = curriculumSession.TeacherId,
                 TeacherName = curriculumSession.Teacher?.FullName ?? string.Empty,
+                DocumentId = curriculumSession.DocumentId,
+                DocumentTitle = curriculumSession.Document?.Title,
                 Lessons = curriculumSession.Lessons?.Select(l => MapLessonToDto(l)).ToList() ?? new List<LessonDto>()
             };
         }

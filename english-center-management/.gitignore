@@ -30,8 +30,8 @@ bld/
 [Bb]uild/
 [Oo]bj/
 
-# Entity Framework
-Migrations/
+# # Entity Framework
+# Migrations/
 
 # Frontend - React
 frontend/node_modules/
