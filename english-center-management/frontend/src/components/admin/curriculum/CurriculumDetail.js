@@ -170,8 +170,8 @@ const CurriculumDetail = () => {
       const date = selectedDay.scheduleDate.split('T')[0];
       const params = {
         date: date,
-        startTime: sessionForm.startTime,
-        endTime: sessionForm.endTime,
+        startTime: sessionForm.startTime?.substring(0, 5), // HH:mm format
+        endTime: sessionForm.endTime?.substring(0, 5),     // HH:mm format
         excludeSessionId: isEditingSession ? sessionForm.curriculumSessionId : undefined,
         roomId: sessionForm.roomId || undefined
       };

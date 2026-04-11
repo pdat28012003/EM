@@ -414,10 +414,17 @@ namespace EnglishCenter.API.Controllers
                     return BadRequest(new { message = "Invalid date format. Use yyyy-MM-dd" });
                 }
 
-                if (!TimeSpan.TryParseExact(startTime, @"hh\:mm", null, out var start) ||
-                    !TimeSpan.TryParseExact(endTime, @"hh\:mm", null, out var end))
+                // Parse time - accept both HH:mm and HH:mm:ss formats
+                TimeSpan start, end;
+                if (!TimeSpan.TryParseExact(startTime, @"hh\:mm", null, out start) &&
+                    !TimeSpan.TryParseExact(startTime, @"hh\:mm\:ss", null, out start))
                 {
-                    return BadRequest(new { message = "Invalid time format. Use HH:mm" });
+                    return BadRequest(new { message = "Invalid start time format. Use HH:mm or HH:mm:ss" });
+                }
+                if (!TimeSpan.TryParseExact(endTime, @"hh\:mm", null, out end) &&
+                    !TimeSpan.TryParseExact(endTime, @"hh\:mm\:ss", null, out end))
+                {
+                    return BadRequest(new { message = "Invalid end time format. Use HH:mm or HH:mm:ss" });
                 }
 
                 if (start >= end)
@@ -427,7 +434,7 @@ namespace EnglishCenter.API.Controllers
 
                 // Check room availability if roomId provided
                 bool isRoomAvailable = true;
-                string roomConflictMessage = null;
+                string? roomConflictMessage = null;
                 if (roomId.HasValue)
                 {
                     var roomConflict = await _context.CurriculumSessions
@@ -467,7 +474,7 @@ namespace EnglishCenter.API.Controllers
                                  cs.CurriculumDay.ScheduleDate.Date == checkDate.Date &&
                                  (excludeSessionId == null || cs.CurriculumSessionId != excludeSessionId.Value) &&
                                  (start < cs.EndTime && end > cs.StartTime)) // Time overlap check
-                    .Select(cs => cs.TeacherId.Value)
+                    .Select(cs => cs.TeacherId!.Value)
                     .Distinct()
                     .ToListAsync();
 
