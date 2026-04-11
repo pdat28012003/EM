@@ -182,7 +182,7 @@ const Students = () => {
         fullName: student.fullName || '',
         email: student.email || '',
         phoneNumber: student.phoneNumber || '',
-        dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth).toISOString().split('T')[0] : '',
+        dateOfBirth: toDateInputValue(student.dateOfBirth),
         address: student.address || '',
         level: student.level || 'Beginner',
         isActive: student.isActive

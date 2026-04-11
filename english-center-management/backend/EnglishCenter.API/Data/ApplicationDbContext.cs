@@ -251,18 +251,24 @@ namespace EnglishCenter.API.Data
                 .WithMany(t => t.ParticipatedCurriculums)
                 .UsingEntity(j => j.ToTable("CurriculumTeacher"));
 
-            // Configure Document relationships
+            // Configure Document-Curriculum relationship
             modelBuilder.Entity<Document>()
-                .HasOne(d => d.Teacher)
-                .WithMany(t => t.Documents)
-                .HasForeignKey(d => d.TeacherId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Document>()
-                .HasOne(d => d.Class)
+                .HasOne(d => d.Curriculum)
                 .WithMany(c => c.Documents)
-                .HasForeignKey(d => d.ClassId)
+                .HasForeignKey(d => d.CurriculumId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure Document-CurriculumSession relationship
+            modelBuilder.Entity<CurriculumSession>()
+                .HasOne(cs => cs.Document)
+                .WithMany()
+                .HasForeignKey(cs => cs.DocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure AssignmentSubmission Score precision to fix warning
+            modelBuilder.Entity<AssignmentSubmission>()
+                .Property(a => a.Score)
+                .HasPrecision(5, 2);
 
             // Seed initial data
             SeedData(modelBuilder);

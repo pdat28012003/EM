@@ -398,6 +398,8 @@ namespace EnglishCenter.API.DTOs
         public string RoomName { get; set; } = string.Empty;
         public int? TeacherId { get; set; }
         public string TeacherName { get; set; } = string.Empty;
+        public int? DocumentId { get; set; }
+        public string? DocumentTitle { get; set; }
         public List<LessonDto> Lessons { get; set; } = new List<LessonDto>();
     }
 
@@ -411,6 +413,7 @@ namespace EnglishCenter.API.DTOs
         public string SessionDescription { get; set; } = string.Empty;
         public int? RoomId { get; set; }
         public int? TeacherId { get; set; }
+        public int? DocumentId { get; set; }
     }
 
     public class UpdateCurriculumSessionDto
@@ -421,6 +424,7 @@ namespace EnglishCenter.API.DTOs
         public string SessionDescription { get; set; } = string.Empty;
         public int? RoomId { get; set; }
         public int? TeacherId { get; set; }
+        public int? DocumentId { get; set; }
     }
 
     public class LessonDto

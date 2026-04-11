@@ -103,7 +103,9 @@ export const teachersAPI = {
   update: (id, data) => api.put(`/teacher/${id}`, data),
   delete: (id) => api.delete(`/teacher/${id}`),
   getSchedule: (id, params) => api.get(`/teacher/${id}/schedule`, { params }),
-  // Teacher Availability
+  // Teacher Availability - NEW API with isBusy flag
+  getTeachersWithAvailability: (params) => api.get('/teacher/availability', { params }),
+  // Old availability APIs (deprecated)
   getAvailabilities: (teacherId) => api.get(`/teacheravailability/teacher/${teacherId}`),
   createAvailability: (data) => api.post('/teacheravailability', data),
   updateAvailability: (id, data) => api.put(`/teacheravailability/${id}`, data),
@@ -221,6 +223,9 @@ export const curriculumAPI = {
   updateLesson: (id, data) => api.put(`/curriculum/lesson/${id}`, data),
   deleteLesson: (id) => api.delete(`/curriculum/lesson/${id}`),
 };
+
+// Alias for Documents component
+export const curriculumsAPI = curriculumAPI;
 
 // Rooms API
 export const roomsAPI = {

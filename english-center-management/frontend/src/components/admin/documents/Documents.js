@@ -35,7 +35,7 @@ import {
   CloudUpload,
   Edit
 } from '@mui/icons-material';
-import { documentsAPI, teachersAPI, classesAPI } from '../../../services/api';
+import { documentsAPI, curriculumsAPI } from '../../../services/api';
 import DocumentEditDialog from '../../../hooks/DocumentEditDialog';
 
 const Documents = () => {
@@ -43,12 +43,10 @@ const Documents = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [loading, setLoading] = useState(true);
-  const [teachers, setTeachers] = useState([]);
-  const [classes, setClasses] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [filterTeacher, setFilterTeacher] = useState('all');
-  const [filterClass, setFilterClass] = useState('all');
+  const [filterCurriculum, setFilterCurriculum] = useState('all');
+  const [curriculums, setCurriculums] = useState([]);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -56,8 +54,7 @@ const Documents = () => {
     title: '',
     description: '',
     type: 'material',
-    classId: '',
-    teacherId: ''
+    curriculumId: ''
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -66,19 +63,27 @@ const Documents = () => {
     title: '',
     description: '',
     type: 'material',
-    classId: ''
+    curriculumId: ''
   });
   const [editingDocument, setEditingDocument] = useState(null);
 
   useEffect(() => {
     loadDocuments();
-    loadTeachers();
-    loadClasses();
+    loadCurriculums();
   }, []);
 
   useEffect(() => {
     loadDocuments();
-  }, [searchTerm, filterType, filterTeacher, filterClass, paginationModel.page, paginationModel.pageSize]);
+  }, [searchTerm, filterType, filterCurriculum, paginationModel.page, paginationModel.pageSize]);
+
+  const loadCurriculums = async () => {
+    try {
+      const response = await curriculumsAPI.getAll();
+      setCurriculums(response.data || []);
+    } catch (error) {
+      console.error('Error loading curriculums:', error);
+    }
+  };
 
   const loadDocuments = async () => {
     try {
@@ -86,8 +91,7 @@ const Documents = () => {
       const params = {
         search: searchTerm,
         type: filterType !== 'all' ? filterType : undefined,
-        teacherId: filterTeacher !== 'all' ? filterTeacher : undefined,
-        classId: filterClass !== 'all' ? filterClass : undefined,
+        curriculumId: filterCurriculum !== 'all' ? filterCurriculum : undefined,
         page: paginationModel.page + 1,
         pageSize: paginationModel.pageSize
       };
@@ -106,27 +110,6 @@ const Documents = () => {
     }
   };
 
-  const loadTeachers = async () => {
-    try {
-      const response = await teachersAPI.getAll({ isActive: true });
-      const teachersData = response.data?.data || response.data || [];
-      setTeachers(Array.isArray(teachersData) ? teachersData : []);
-    } catch (error) {
-      console.error('Error loading teachers:', error);
-      setTeachers([]);
-    }
-  };
-
-  const loadClasses = async () => {
-    try {
-      const response = await classesAPI.getAll();
-      const classesData = response.data?.data || response.data || [];
-      setClasses(Array.isArray(classesData) ? classesData : []);
-    } catch (error) {
-      console.error('Error loading classes:', error);
-      setClasses([]);
-    }
-  };
 
   const getFileIcon = (fileType) => {
     switch (fileType) {
@@ -252,7 +235,7 @@ const handleDownload = async (doc) => {
       title: document.title || '',
       description: document.description || '',
       type: document.type || 'material',
-      classId: document.classId || ''
+      curriculumId: document.curriculumId || ''
     });
     setEditDialogOpen(true);
   };
@@ -264,7 +247,7 @@ const handleDownload = async (doc) => {
       title: '',
       description: '',
       type: 'material',
-      classId: ''
+      curriculumId: ''
     });
   };
 
@@ -276,7 +259,7 @@ const handleDownload = async (doc) => {
         title: editFormData.title,
         description: editFormData.description,
         type: editFormData.type,
-        classId: editFormData.classId ? parseInt(editFormData.classId) : null
+        curriculumId: editFormData.curriculumId || null
       };
 
       await documentsAPI.update(editingDocument.documentId, updateData);
@@ -293,8 +276,7 @@ const handleDownload = async (doc) => {
   const handleClearFilters = () => {
     setSearchTerm('');
     setFilterType('all');
-    setFilterTeacher('all');
-    setFilterClass('all');
+    setFilterCurriculum('all');
     setPaginationModel(prev => ({ ...prev, page: 0 }));
   };
 
@@ -303,8 +285,7 @@ const handleDownload = async (doc) => {
       title: '',
       description: '',
       type: 'material',
-      classId: '',
-      teacherId: ''
+      curriculumId: ''
     });
     setSelectedFile(null);
     setUploadDialogOpen(true);
@@ -316,8 +297,7 @@ const handleDownload = async (doc) => {
       title: '',
       description: '',
       type: 'material',
-      classId: '',
-      teacherId: ''
+      curriculumId: ''
     });
     setSelectedFile(null);
   };
@@ -363,11 +343,9 @@ const handleDownload = async (doc) => {
       formData.append('title', uploadFormData.title);
       formData.append('description', uploadFormData.description);
       formData.append('type', uploadFormData.type);
-      formData.append('classId', uploadFormData.classId || '');
-      
-      // For admin, we'll let the backend handle teacherId assignment
-      // If teacherId is empty, backend will assign to admin or leave unassigned
-      
+      if (uploadFormData.curriculumId) {
+        formData.append('curriculumId', uploadFormData.curriculumId);
+      }
       await documentsAPI.upload(formData);
       handleCloseUploadDialog();
       loadDocuments();
@@ -423,26 +401,6 @@ const handleDownload = async (doc) => {
       ),
     },
     {
-      field: 'teacherName',
-      headerName: 'Giáo viên',
-      width: 140,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-          {params.row.teacherName || 'N/A'}
-        </Typography>
-      ),
-    },
-    {
-      field: 'className',
-      headerName: 'Lớp học',
-      width: 100,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-          {params.row.className || 'N/A'}
-        </Typography>
-      ),
-    },
-    {
       field: 'fileSize',
       headerName: 'Dung lượng',
       width: 100,
@@ -466,6 +424,16 @@ const handleDownload = async (doc) => {
             month: '2-digit',
             year: '2-digit'
           })}
+        </Typography>
+      ),
+    },
+    {
+      field: 'curriculumName',
+      headerName: 'Chương trình',
+      width: 150,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+          {params.row.curriculumName || '-'}
         </Typography>
       ),
     },
@@ -583,41 +551,24 @@ const handleDownload = async (doc) => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Giáo viên</InputLabel>
-              <Select
-                value={filterTeacher}
-                onChange={(e) => setFilterTeacher(e.target.value)}
-                label="Giáo viên"
-              >
-                <MenuItem value="all">Tất cả</MenuItem>
-                {teachers.map(teacher => (
-                  <MenuItem key={teacher.teacherId} value={teacher.teacherId}>
-                    {teacher.fullName}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Lớp học</InputLabel>
-              <Select
-                value={filterClass}
-                onChange={(e) => setFilterClass(e.target.value)}
-                label="Lớp học"
-              >
-                <MenuItem value="all">Tất cả</MenuItem>
-                {classes.map(cls => (
-                  <MenuItem key={cls.classId} value={cls.classId}>
-                    {cls.className}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
           <Grid item xs={12} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Chương trình</InputLabel>
+              <Select
+                value={filterCurriculum}
+                onChange={(e) => setFilterCurriculum(e.target.value)}
+                label="Chương trình"
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                {curriculums.map(c => (
+                  <MenuItem key={c.curriculumId} value={c.curriculumId}>
+                    {c.curriculumName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={4}>
             <Button
               variant="outlined"
               startIcon={<FilterList />}
@@ -769,22 +720,23 @@ const handleDownload = async (doc) => {
             
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
-                <InputLabel>Lớp học (tùy chọn)</InputLabel>
+                <InputLabel>Chương trình học</InputLabel>
                 <Select
-                  name="classId"
-                  value={uploadFormData.classId}
+                  name="curriculumId"
+                  value={uploadFormData.curriculumId}
                   onChange={handleUploadFormChange}
-                  label="Lớp học"
+                  label="Chương trình học"
                 >
-                  <MenuItem value="">Không gán lớp</MenuItem>
-                  {classes.map(cls => (
-                    <MenuItem key={cls.classId} value={cls.classId}>
-                      {cls.className}
+                  <MenuItem value="">Không chọn</MenuItem>
+                  {curriculums.map(c => (
+                    <MenuItem key={c.curriculumId} value={c.curriculumId}>
+                      {c.curriculumName}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
+            
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -827,7 +779,7 @@ const handleDownload = async (doc) => {
         onSave={handleEditSave}
         documentForm={editFormData}
         setDocumentForm={setEditFormData}
-        classes={classes}
+        curriculums={curriculums}
         dialogTitle="Chỉnh sửa tài liệu"
       />
     </Box>

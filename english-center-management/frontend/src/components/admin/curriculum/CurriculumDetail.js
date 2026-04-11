@@ -16,7 +16,7 @@ import {
   EmojiEvents,
   PictureAsPdf
 } from '@mui/icons-material';
-import { curriculumAPI, roomsAPI, teachersAPI } from '../../../services/api';
+import { curriculumAPI, roomsAPI, teachersAPI, curriculumsAPI, documentsAPI } from '../../../services/api';
 
 const CurriculumDetail = () => {
   const { curriculumId } = useParams();
@@ -25,12 +25,20 @@ const CurriculumDetail = () => {
   const [teachers, setTeachers] = useState([]);
   const [availableTeachers, setAvailableTeachers] = useState([]);
   const [loadingAvailableTeachers, setLoadingAvailableTeachers] = useState(false);
+  // New state for teachers with availability status from BE
+  const [teachersWithAvailability, setTeachersWithAvailability] = useState([]);
+  const [loadingTeachersAvailability, setLoadingTeachersAvailability] = useState(false);
+  const [roomInfo, setRoomInfo] = useState(null);
   const [showSessionModal, setShowSessionModal] = useState(false);
+  const [documents, setDocuments] = useState([]);
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
   const [isEditingSession, setIsEditingSession] = useState(false);
+  const [isEditingLesson, setIsEditingLesson] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [selectedLesson, setSelectedLesson] = useState(null);
   const [dateRange, setDateRange] = useState([]);
   const [showFullDesc, setShowFullDesc] = useState(false);
   
@@ -46,6 +54,7 @@ const CurriculumDetail = () => {
     sessionDescription: '',
     roomId: '',
     teacherId: '',
+    documentId: '',
     searchDate: '' // Date picker for finding available teachers
   });
 
@@ -63,7 +72,7 @@ const CurriculumDetail = () => {
     loadCurriculum();
     loadRooms();
     loadTeachers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadDocuments();
   }, [curriculumId]);
 
   useEffect(() => {
@@ -91,6 +100,17 @@ const CurriculumDetail = () => {
     } catch (error) {
       console.error('Error loading rooms:', error);
       setRooms([]);
+    }
+  };
+
+  const loadDocuments = async () => {
+    try {
+      const response = await documentsAPI.getAll({ pageSize: 1000 });
+      const docsData = response.data?.data || response.data || [];
+      setDocuments(Array.isArray(docsData) ? docsData : []);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      setDocuments([]);
     }
   };
 
@@ -143,53 +163,44 @@ const CurriculumDetail = () => {
     return new Date(year, month - 1, day);
   };
 
-  useEffect(() => {
-    if (showSessionModal && sessionForm.startTime && sessionForm.endTime) {
-      loadAvailableTeachers();
+  // Load teachers with availability status from backend (includes room check)
+  const loadTeachersWithAvailability = async () => {
+    if (!selectedDay || !sessionForm.startTime || !sessionForm.endTime) {
+      setTeachersWithAvailability([]);
+      setRoomInfo(null);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionForm.startTime, sessionForm.endTime, sessionForm.searchDate, showSessionModal]);
 
-  const loadAvailableTeachers = async () => {
-    if (!sessionForm.startTime || !sessionForm.endTime) return;
-    
     try {
-      setLoadingAvailableTeachers(true);
-      
-      // Determine date to search: use searchDate if selected, otherwise use selectedDay
-      let searchDate = sessionForm.searchDate;
-      let dayOfWeek;
-      
-      if (searchDate) {
-        // Use selected date from date picker
-        dayOfWeek = new Date(searchDate).getDay();
-      } else if (selectedDay) {
-        // Use selectedDay from curriculum
-        const scheduleDate = new Date(selectedDay.scheduleDate);
-        searchDate = formatDate(scheduleDate);
-        dayOfWeek = scheduleDate.getDay();
-      } else {
-        return; // No date available
-      }
-      
-      // Call API to get available teachers
+      setLoadingTeachersAvailability(true);
+      const date = selectedDay.scheduleDate.split('T')[0];
       const params = {
-        dayOfWeek: dayOfWeek,
-        startTime: sessionForm.startTime,
-        endTime: sessionForm.endTime,
-        specificDate: searchDate // Pass specific date to API
+        date: date,
+        startTime: sessionForm.startTime?.substring(0, 5), // HH:mm format
+        endTime: sessionForm.endTime?.substring(0, 5),     // HH:mm format
+        excludeSessionId: isEditingSession ? sessionForm.curriculumSessionId : undefined,
+        roomId: sessionForm.roomId || undefined
       };
-      
-      const response = await teachersAPI.getAvailableTeachers(params);
-      const availableData = response.data || [];
-      setAvailableTeachers(availableData);
+
+      const response = await teachersAPI.getTeachersWithAvailability(params);
+      const data = response.data || {};
+      setTeachersWithAvailability(data.teachers || []);
+      setRoomInfo(data.roomInfo || null);
     } catch (error) {
-      console.error('Error loading available teachers:', error);
-      setAvailableTeachers([]);
+      console.error('Error loading teachers availability:', error);
+      setTeachersWithAvailability([]);
+      setRoomInfo(null);
     } finally {
-      setLoadingAvailableTeachers(false);
+      setLoadingTeachersAvailability(false);
     }
   };
+
+  // Load availability when time/day/room changes
+  useEffect(() => {
+    if (showSessionModal && selectedDay) {
+      loadTeachersWithAvailability();
+    }
+  }, [sessionForm.startTime, sessionForm.endTime, sessionForm.roomId, selectedDay, showSessionModal]);
 
   const generateDateRange = () => {
     if (!curriculum) return;
@@ -264,6 +275,7 @@ const CurriculumDetail = () => {
       sessionDescription: '',
       roomId: '',
       teacherId: '',
+      documentId: '',
       searchDate: '' // Reset search date
     });
     setShowSessionModal(true);
@@ -282,6 +294,7 @@ const CurriculumDetail = () => {
       sessionDescription: session.sessionDescription,
       roomId: session.roomId || '',
       teacherId: session.teacherId || '',
+      documentId: session.documentId || '',
       searchDate: '' // Reset search date
     });
     setShowSessionModal(true);
@@ -303,7 +316,8 @@ const CurriculumDetail = () => {
       sessionName: sessionForm.sessionName,
       sessionDescription: sessionForm.sessionDescription,
       roomId: sessionForm.roomId ? parseInt(sessionForm.roomId) : null,
-      teacherId: sessionForm.teacherId ? parseInt(sessionForm.teacherId) : null
+      teacherId: sessionForm.teacherId ? parseInt(sessionForm.teacherId) : null,
+      documentId: sessionForm.documentId ? parseInt(sessionForm.documentId) : null
     };
 
     try {
@@ -322,6 +336,9 @@ const CurriculumDetail = () => {
   };
 
   const handleAddLesson = (session) => {
+    setSelectedSession(session);
+    setIsEditingLesson(false);
+    setSelectedLesson(null);
     setLessonForm({
       curriculumSessionId: session.curriculumSessionId,
       lessonNumber: (session.lessons?.length || 0) + 1,
@@ -329,7 +346,24 @@ const CurriculumDetail = () => {
       content: '',
       duration: '01:00',
       resources: '',
-      notes: ''
+      notes: '',
+      documentId: ''
+    });
+    setShowLessonModal(true);
+  };
+
+  const handleEditLesson = (lesson) => {
+    setIsEditingLesson(true);
+    setSelectedLesson(lesson);
+    setLessonForm({
+      curriculumSessionId: lesson.curriculumSessionId,
+      lessonNumber: lesson.lessonNumber,
+      lessonTitle: lesson.lessonTitle,
+      content: lesson.content,
+      duration: lesson.duration,
+      resources: lesson.resources || '',
+      notes: lesson.notes || '',
+      documentId: lesson.documentId || ''
     });
     setShowLessonModal(true);
   };
@@ -338,21 +372,35 @@ const CurriculumDetail = () => {
     e.preventDefault();
     
     try {
-      await curriculumAPI.createLesson({
-        curriculumSessionId: lessonForm.curriculumSessionId,
-        lessonNumber: lessonForm.lessonNumber,
-        lessonTitle: lessonForm.lessonTitle,
-        content: lessonForm.content,
-        duration: lessonForm.duration,
-        resources: lessonForm.resources,
-        notes: lessonForm.notes
-      });
+      if (isEditingLesson && selectedLesson) {
+        await curriculumAPI.updateLesson(selectedLesson.lessonId, {
+          lessonTitle: lessonForm.lessonTitle,
+          content: lessonForm.content,
+          duration: lessonForm.duration,
+          resources: lessonForm.resources,
+          notes: lessonForm.notes,
+          documentId: lessonForm.documentId ? parseInt(lessonForm.documentId) : null
+        });
+      } else {
+        await curriculumAPI.createLesson({
+          curriculumSessionId: lessonForm.curriculumSessionId,
+          lessonNumber: lessonForm.lessonNumber,
+          lessonTitle: lessonForm.lessonTitle,
+          content: lessonForm.content,
+          duration: lessonForm.duration,
+          resources: lessonForm.resources,
+          notes: lessonForm.notes,
+          documentId: lessonForm.documentId ? parseInt(lessonForm.documentId) : null
+        });
+      }
       
       loadCurriculum();
       setShowLessonModal(false);
+      setIsEditingLesson(false);
+      setSelectedLesson(null);
     } catch (error) {
-      console.error('Error creating lesson:', error);
-      alert('Error creating lesson');
+      console.error('Error saving lesson:', error);
+      alert(error.response?.data?.message || 'Error saving lesson');
     }
   };
 
@@ -489,6 +537,12 @@ const CurriculumDetail = () => {
                           Phòng: {session.roomName || 'Chưa xếp phòng'}</p>
                           <p className="teacher"><Person />
                           Giảng viên: {session.teacherName || 'Chưa phân công'}</p>
+                          {session.documentId && (
+                            <p className="document" style={{ color: '#2196f3', marginTop: '4px' }}>
+                              <span style={{ marginRight: '4px' }}>📄</span>
+                              Tài liệu: {session.documentTitle || 'Đang tải...'}
+                            </p>
+                          )}
                           
                           <div className="lessons">
                             <div className="lessons-header">
@@ -506,52 +560,28 @@ const CurriculumDetail = () => {
                             {session.lessons?.length > 0 ? (
                               <ul className="lessons-list">
                                 {session.lessons.map((lesson) => (
-                                  <li key={lesson.lessonId} className="lesson-item" style={{ display: 'block' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <div className="lesson-info">
-                                        {lesson.lessonTitle?.toLowerCase().includes('kiểm tra') || lesson.lessonTitle?.toLowerCase().includes('quiz') ? (
-                                          <EmojiEvents style={{ color: '#ffb300' }} fontSize="small" titleAccess="Bài kiểm tra" />
-                                        ) : lesson.lessonTitle?.toLowerCase().includes('thực hành') ? (
-                                          <Edit style={{ color: '#4caf50' }} fontSize="small" titleAccess="Bài thực hành" />
-                                        ) : (
-                                          <MenuBook style={{ color: '#007bff' }} fontSize="small" titleAccess="Bài lý thuyết" />
-                                        )}
-                                        <span className="lesson-num">{lesson.lessonNumber}</span>
-                                        <span className="lesson-title">{lesson.lessonTitle}</span>
-                                        
-                                        <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', gap: '15px' }}>
-                                          <span className="lesson-duration" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <AccessTime fontSize="small" />
-                                            {lesson.duration}
-                                          </span>
-                                          {lesson.resources && (
-                                            <a 
-                                              href={(lesson.resources.startsWith('http') || lesson.resources.startsWith('/')) ? lesson.resources : `/${lesson.resources}`} 
-                                              target="_blank" 
-                                              rel="noopener noreferrer" 
-                                              className="lesson-attachment" 
-                                              title="Tài liệu đính kèm"
-                                              style={{ color: '#dc3545', display: 'flex', alignItems: 'center' }}
-                                            >
-                                              <PictureAsPdf fontSize="small" />
-                                            </a>
-                                          )}
-                                        </div>
-                                      </div>
+                                  <li key={lesson.lessonId} className="lesson-item">
+                                    <div className="lesson-info">
+                                      <span className="lesson-num">Tiết {lesson.lessonNumber}</span>
+                                      <span className="lesson-title">{lesson.lessonTitle}</span>
+                                      <span className="lesson-duration">({lesson.duration})</span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '5px' }}>
+                                      <button 
+                                        className="btn btn-sm btn-info"
+                                        onClick={() => handleEditLesson(lesson)}
+                                      >
+                                        <Edit />
+                                        Sửa
+                                      </button>
                                       <button 
                                         className="btn btn-sm btn-danger"
                                         onClick={() => handleDeleteLesson(lesson.lessonId)}
-                                        style={{ marginLeft: '10px' }}
-                                        title="Xóa tiết học"
                                       >
-                                        <Delete fontSize="small" style={{ margin: 0 }} />
+                                        <Delete />
+                                        Xóa
                                       </button>
                                     </div>
-                                    {lesson.content && (
-                                      <div style={{ marginTop: '8px', paddingLeft: '52px', color: '#374151', fontSize: '13.5px', lineHeight: '1.6' }}>
-                                        {lesson.content}
-                                      </div>
-                                    )}
                                   </li>
                                 ))}
                               </ul>
@@ -721,47 +751,70 @@ const CurriculumDetail = () => {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Ngày tìm kiếm giáo viên rảnh</label>
-                <input
-                  type="date"
-                  value={sessionForm.searchDate}
-                  onChange={(e) => setSessionForm({...sessionForm, searchDate: e.target.value})}
-                  placeholder={selectedDay ? selectedDay.scheduleDate.split('T')[0] : ''}
-                />
-                <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
-                  {selectedDay ? `Mặc định: ${selectedDay.scheduleDate.split('T')[0]} (có thể chọn ngày khác để kiểm tra lịch rảnh)` : 'Chọn ngày để kiểm tra giáo viên rảnh'}
-                </small>
+                {roomInfo && !roomInfo.isAvailable && (
+                  <small style={{ color: '#dc3545', display: 'block', marginTop: '5px' }}>
+                    ⚠️ {roomInfo.conflictMessage}
+                  </small>
+                )}
               </div>
               <div className="form-group">
                 <label>Giảng viên</label>
-                {loadingAvailableTeachers ? (
-                  <p style={{ color: '#666', fontStyle: 'italic' }}>Đang tải danh sách giảng viên có lịch rảnh...</p>
+                {loadingTeachersAvailability ? (
+                  <p style={{ color: '#666', fontStyle: 'italic' }}>Đang tải...</p>
                 ) : (
                   <select
                     value={sessionForm.teacherId}
                     onChange={(e) => setSessionForm({...sessionForm, teacherId: e.target.value})}
                   >
                     <option value="">-- Chọn giảng viên --</option>
-                    {availableTeachers.length > 0 ? (
-                      availableTeachers.map(teacher => (
-                        <option key={teacher.teacherId} value={teacher.teacherId}>
-                          {teacher.fullName} ({teacher.specialization}) - Có lịch rảnh
+                    {teachersWithAvailability.length > 0 ? (
+                      teachersWithAvailability.map(teacher => (
+                        <option
+                          key={teacher.teacherId}
+                          value={teacher.teacherId}
+                          disabled={teacher.isBusy}
+                          style={teacher.isBusy ? { color: '#999' } : {}}
+                        >
+                          {teacher.fullName} ({teacher.specialization})
+                          {teacher.isBusy ? ' - Đang có lịch' : ''}
                         </option>
                       ))
                     ) : (
                       <option value="" disabled>
-                        Không có giảng viên nào có lịch rảnh trong khung giờ này
+                        Không có giảng viên nào
                       </option>
                     )}
                   </select>
                 )}
-                {availableTeachers.length === 0 && !loadingAvailableTeachers && (
-                  <p style={{ color: '#dc3545', fontSize: '13px', marginTop: '5px' }}>
-                    ⚠️ Không có giảng viên nào đăng ký lịch rảnh trong khung giờ {sessionForm.startTime} - {sessionForm.endTime}
-                  </p>
-                )}
+                {(() => {
+                  const busyCount = teachersWithAvailability.filter(t => t.isBusy).length;
+                  const availableCount = teachersWithAvailability.filter(t => !t.isBusy).length;
+                  return busyCount > 0 ? (
+                    <small style={{ color: '#dc3545', display: 'block', marginTop: '5px' }}>
+                      ⚠️ {busyCount} giảng viên đang bận, {availableCount} giảng viên có thể chọn
+                    </small>
+                  ) : null;
+                })()}
+              </div>
+              <div className="form-group">
+                <label>Tài liệu</label>
+                <select
+                  value={sessionForm.documentId}
+                  onChange={(e) => setSessionForm({...sessionForm, documentId: e.target.value})}
+                >
+                  <option value="">-- Không chọn tài liệu --</option>
+                  {documents.length > 0 ? (
+                    documents.map(doc => (
+                      <option key={doc.documentId} value={doc.documentId}>
+                        {doc.title} ({doc.type})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      Không có tài liệu nào
+                    </option>
+                  )}
+                </select>
               </div>
               <div className="form-group">
                 <label>Mô tả</label>
@@ -788,7 +841,7 @@ const CurriculumDetail = () => {
         <div className="modal">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>Thêm tiết học</h3>
+              <h3>{isEditingLesson ? 'Sửa tiết học' : 'Thêm tiết học'}</h3>
               <button className="close-btn" onClick={() => setShowLessonModal(false)}>
                 <Close />
               </button>
@@ -832,11 +885,23 @@ const CurriculumDetail = () => {
               </div>
               <div className="form-group">
                 <label>Tài liệu</label>
-                <input
-                  type="text"
-                  value={lessonForm.resources}
-                  onChange={(e) => setLessonForm({...lessonForm, resources: e.target.value})}
-                />
+                <select
+                  value={lessonForm.documentId}
+                  onChange={(e) => setLessonForm({...lessonForm, documentId: e.target.value})}
+                >
+                  <option value="">-- Không chọn tài liệu --</option>
+                  {documents.length > 0 ? (
+                    documents.map(doc => (
+                      <option key={doc.documentId} value={doc.documentId}>
+                        {doc.title} ({doc.type})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      Không có tài liệu nào
+                    </option>
+                  )}
+                </select>
               </div>
               <div className="form-group">
                 <label>Ghi chú</label>
@@ -851,7 +916,7 @@ const CurriculumDetail = () => {
                   Hủy
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Thêm
+                  {isEditingLesson ? 'Lưu thay đổi' : 'Thêm tiết'}
                 </button>
               </div>
             </form>

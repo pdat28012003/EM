@@ -22,6 +22,8 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Số lượng mỗi trang)</param>
+        /// <param name="isActive">Filter by active status (Lọc theo trạng thái hoạt động)</param>
+        /// <param name="showAll">Show all skills including inactive (Hiển thị tất cả kỹ năng)</param>
         /// <returns>Paged list of skills (Danh sách kỹ năng có phân trang)</returns>
         [HttpGet]
         public async Task<ActionResult<PagedResult<SkillDto>>> GetSkills(
