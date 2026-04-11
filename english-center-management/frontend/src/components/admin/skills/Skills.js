@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Typography,
   Box,
@@ -11,7 +11,6 @@ import {
   DialogActions,
   IconButton,
   Chip,
-  Alert,
   Menu,
   MenuItem,
   Fade,
@@ -52,19 +51,24 @@ const Skills = () => {
     description: '',
     isActive: true,
   });
+  const [filterStatus, setFilterStatus] = useState('all');
 
-  useEffect(() => {
-    console.log('Pagination changed:', paginationModel);
-    loadSkills();
-  }, [paginationModel.page, paginationModel.pageSize]);
-
-  const loadSkills = async () => {
+  const loadSkills = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await skillsAPI.getAll({
+      const requestParams = {
         page: paginationModel.page + 1,
         pageSize: paginationModel.pageSize,
-      });
+      };
+      if (filterStatus === 'active') {
+        requestParams.isActive = true;
+      } else if (filterStatus === 'inactive') {
+        requestParams.isActive = false;
+      } else {
+        requestParams.showAll = true;
+      }
+
+      const response = await skillsAPI.getAll(requestParams);
 
       setSkills(response.data.data || []);
       setRowCount(response.data.totalCount || 0);
@@ -73,7 +77,11 @@ const Skills = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [paginationModel.page, paginationModel.pageSize, filterStatus]);
+
+  useEffect(() => {
+    loadSkills();
+  }, [loadSkills]);
 
   const handleOpenDialog = (skill = null) => {
     if (skill) {
@@ -316,6 +324,33 @@ const Skills = () => {
         >
           Thêm Kỹ Năng Mới
         </Button>
+      </Box>
+
+      <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2} mb={2}>
+        <Box display="flex" alignItems="center" gap={1}>
+          {['all', 'active', 'inactive'].map((status) => {
+            const labels = { all: 'Tất cả', active: 'Active', inactive: 'Inactive' };
+            const isActive = filterStatus === status;
+            return (
+              <Button
+                key={status}
+                variant={isActive ? 'contained' : 'outlined'}
+                color={isActive ? 'primary' : 'inherit'}
+                size="small"
+                onClick={() => {
+                  setFilterStatus(status);
+                  setPaginationModel((prev) => ({ ...prev, page: 0 }));
+                }}
+                sx={{ textTransform: 'none' }}
+              >
+                {labels[status]}
+              </Button>
+            );
+          })}
+        </Box>
+        <Typography variant="body2" color="text.secondary">
+          Hiện {filterStatus === 'all' ? 'tất cả kỹ năng' : filterStatus === 'active' ? 'kỹ năng đang kích hoạt' : 'kỹ năng không kích hoạt'}
+        </Typography>
       </Box>
 
       <Paper sx={{ flex: 1, width: '100%', overflow: 'auto' }}>

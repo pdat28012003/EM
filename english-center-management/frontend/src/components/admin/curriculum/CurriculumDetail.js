@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Add, 
   Edit, 
   Delete, 
   Close, 
-  Schedule, 
   School, 
   Person, 
   Room, 
   AccessTime,
   MenuBook,
   Group,
-  EventNote
+  EventNote,
+  ArrowBack,
+  EmojiEvents,
+  PictureAsPdf
 } from '@mui/icons-material';
 import { curriculumAPI, roomsAPI, teachersAPI, curriculumsAPI, documentsAPI } from '../../../services/api';
 
@@ -38,6 +40,9 @@ const CurriculumDetail = () => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [dateRange, setDateRange] = useState([]);
+  const [showFullDesc, setShowFullDesc] = useState(false);
+  
+  const navigate = useNavigate();
   
   const [sessionForm, setSessionForm] = useState({
     curriculumSessionId: null,
@@ -75,6 +80,7 @@ const CurriculumDetail = () => {
       generateDateRange();
       setSelectedTeacherIds(curriculum.participantTeachers?.map(t => t.teacherId) || []);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curriculum]);
 
   const loadCurriculum = async () => {
@@ -440,15 +446,45 @@ const CurriculumDetail = () => {
 
   return (
     <div className="curriculum-detail-container">
+      <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between' }}>
+        <button 
+          className="btn btn-secondary btn-sm" 
+          onClick={() => navigate(-1)}
+          style={{ background: '#6c757d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+        >
+          <ArrowBack fontSize="small" />
+          Quay lại
+        </button>
+      </div>
+
       <div className="curriculum-detail-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, paddingRight: '20px' }}>
             <h2>{curriculum.curriculumName}</h2>
-            <p>Khóa học: {curriculum.courseName} | {new Date(curriculum.startDate).toLocaleDateString()} - {new Date(curriculum.endDate).toLocaleDateString()}</p>
+            <p style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><School fontSize="small" color="primary" /> {curriculum.courseName}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><EventNote fontSize="small" color="action" /> {new Date(curriculum.startDate).toLocaleDateString()} - {new Date(curriculum.endDate).toLocaleDateString()}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', background: curriculum.status === 'Active' ? '#d4edda' : '#f8d7da', color: curriculum.status === 'Active' ? '#155724' : '#721c24', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
+                {curriculum.status === 'Active' ? 'Đang hoạt động' : curriculum.status}
+              </span>
+            </p>
+            {curriculum.description && (
+              <div style={{ marginTop: '12px', background: 'white', padding: '10px 15px', borderRadius: '4px', borderLeft: '3px solid #007bff' }}>
+                <p className={!showFullDesc ? 'truncate-text' : ''} style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                  {curriculum.description}
+                </p>
+                {(curriculum.description.length > 200) && (
+                  <button className="btn-link" onClick={() => setShowFullDesc(!showFullDesc)}>
+                    {showFullDesc ? 'Thu gọn' : 'Xem thêm'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <button 
             className="btn btn-success"
             onClick={() => setShowTeacherModal(true)}
+            style={{ flexShrink: 0 }}
           >
             <Group />
             Quản lý giáo viên
@@ -889,15 +925,72 @@ const CurriculumDetail = () => {
       )}
 
       <style>{`
+        /* Global & Scope Scrollbar styles for cleaner UI */
         .curriculum-detail-container {
           padding: 20px;
+          height: 100%;
+          overflow-y: auto;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+        }
+
+        .curriculum-detail-container::-webkit-scrollbar,
+        .modal-content::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+
+        .curriculum-detail-container::-webkit-scrollbar-track,
+        .modal-content::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .curriculum-detail-container::-webkit-scrollbar-thumb,
+        .modal-content::-webkit-scrollbar-thumb {
+          background: rgba(148, 163, 184, 0.4);
+          border-radius: 10px;
+        }
+
+        .curriculum-detail-container::-webkit-scrollbar-thumb:hover,
+        .modal-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(100, 116, 139, 0.6);
+        }
+
+        .truncate-text {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .btn-link {
+          background: none;
+          border: none;
+          color: #007bff;
+          cursor: pointer;
+          padding: 0;
+          font-size: 13px;
+          margin-top: 5px;
+          font-weight: 500;
+        }
+
+        .btn-link:hover {
+          text-decoration: underline;
+        }
+        
+        .lesson-attachment:hover {
+          opacity: 0.8;
+          transform: scale(1.1);
+          transition: all 0.2s ease;
         }
 
         .curriculum-detail-header {
-          margin-bottom: 30px;
-          padding: 15px;
+          margin-bottom: 20px;
+          padding: 20px;
           background: #f8f9fa;
-          border-radius: 5px;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .curriculum-detail-header h2 {

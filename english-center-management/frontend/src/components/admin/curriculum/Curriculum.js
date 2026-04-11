@@ -1,25 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Paper,
   Typography,
   Button,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Box,
   IconButton,
   Chip,
   Avatar,
   useTheme,
-  Tooltip,
   Menu,
   MenuItem,
   Fade,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  CircularProgress,
+  InputAdornment,
+  Divider,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, Delete, Info, People, MapOutlined, MoreVert } from '@mui/icons-material';
+import { Add, Edit, Delete, Info, People, MapOutlined, MoreVert, Search, Close } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import { curriculumAPI, coursesAPI, teachersAPI } from '../../../services/api';
 
@@ -38,6 +40,7 @@ const Curriculum = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedCurriculumForMenu, setSelectedCurriculumForMenu] = useState(null);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
+  // Form state
   const [formData, setFormData] = useState({
     curriculumName: '',
     courseId: '',
@@ -45,6 +48,16 @@ const Curriculum = () => {
     endDate: '',
     description: ''
   });
+  const [dateError, setDateError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Searchable course dropdown state
+  const [courseSearch, setCourseSearch] = useState('');
+  const [courseDropdownOpen, setCourseDropdownOpen] = useState(false);
+  const courseDropdownRef = useRef(null);
+  const selectedCourseName = courses.find(c => c.courseId === parseInt(formData.courseId))?.courseName || '';
+  const filteredCourses = courses.filter(c =>
+    c.courseName.toLowerCase().includes(courseSearch.toLowerCase())
+  );
 
   const statusStyle = useMemo(() => {
     const active = theme.palette.success.main;
@@ -64,16 +77,7 @@ const Curriculum = () => {
     };
   }, [theme.palette.mode, theme.palette.success.dark, theme.palette.success.main, theme.palette.text.secondary]);
 
-  useEffect(() => {
-    loadCurriculums();
-  }, [paginationModel, selectedCourseFilter]);
-  
-  useEffect(() => {
-    // Reset pagination when filter changes
-    setPaginationModel(prev => ({ ...prev, page: 0 }));
-  }, [selectedCourseFilter]);
-  
-  const loadCurriculums = async () => {
+  const loadCurriculums = useCallback(async () => {
     try {
       let params = {};
       let allData = [];
@@ -93,7 +97,6 @@ const Curriculum = () => {
         setCurriculums(paginatedData);
         setRowCount(allData.length);
       } else {
-        // Normal pagination without filter
         params = {
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
@@ -105,12 +108,25 @@ const Curriculum = () => {
         setRowCount(response.data?.totalCount || 0);
       }
       
-      console.log('Curriculums loaded:', selectedCourseFilter, curriculums.length);
     } catch (error) {
       console.error('Error loading curriculums:', error);
       console.error('Error details:', error.response?.data);
     }
-  };
+  }, [paginationModel, selectedCourseFilter]);
+
+  useEffect(() => {
+    loadCurriculums();
+  }, [loadCurriculums]);
+  
+  useEffect(() => {
+    // Reset pagination when filter changes
+    setPaginationModel(prev => ({ ...prev, page: 0 }));
+  }, [selectedCourseFilter]);
+
+  useEffect(() => {
+    loadCourses();
+    loadTeachers();
+  }, []);
 
   const loadCourses = async () => {
     try {
@@ -137,27 +153,46 @@ const Curriculum = () => {
     }
   };
 
+  // Close course dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (courseDropdownRef.current && !courseDropdownRef.current.contains(event.target)) {
+        setCourseDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    const updated = { ...formData, [name]: value };
+    setFormData(updated);
+    // Realtime date validation
+    if (name === 'endDate' || name === 'startDate') {
+      const start = name === 'startDate' ? value : formData.startDate;
+      const end = name === 'endDate' ? value : formData.endDate;
+      if (start && end && new Date(end) <= new Date(start)) {
+        setDateError('Ngày kết thúc phải sau ngày bắt đầu.');
+      } else {
+        setDateError('');
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.curriculumName || !formData.courseId || !formData.startDate || !formData.endDate) {
-      alert('Please fill in all required fields');
       return;
     }
 
     if (new Date(formData.startDate) >= new Date(formData.endDate)) {
-      alert('Start date must be before end date');
+      setDateError('Ngày kết thúc phải sau ngày bắt đầu.');
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (editingCurriculum) {
         await curriculumAPI.update(editingCurriculum.curriculumId, {
@@ -185,8 +220,9 @@ const Curriculum = () => {
       setPaginationModel(prev => ({ ...prev, page: 0 }));
     } catch (error) {
       console.error('Error saving curriculum:', error);
-      console.error('Error details:', error.response?.data);
-      alert('Error saving curriculum: ' + (error.response?.data?.message || error.message));
+      alert('Lỗi khi lưu chương trình: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -296,6 +332,9 @@ const Curriculum = () => {
       description: ''
     });
     setEditingCurriculum(null);
+    setDateError('');
+    setCourseSearch('');
+    setCourseDropdownOpen(false);
   };
 
   const columns = [
@@ -532,240 +571,395 @@ const Curriculum = () => {
         </MenuItem>
       </Menu>
 
-      {showModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>{editingCurriculum ? 'Chỉnh sửa chương trình' : 'Tạo chương trình mới'}</h3>
-              <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Tên chương trình *</label>
-                <input
-                  type="text"
-                  name="curriculumName"
-                  value={formData.curriculumName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+      {/* ── CREATE / EDIT CURRICULUM MODAL ── */}
+      <Dialog
+        open={showModal}
+        onClose={() => { setShowModal(false); resetForm(); }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pb: 1,
+            pt: 2.5,
+            px: 3,
+          }}
+        >
+          <Typography variant="h6" fontWeight={700}>
+            {editingCurriculum ? 'Chỉnh sửa chương trình' : 'Tạo chương trình mới'}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => { setShowModal(false); resetForm(); }}
+            sx={{ color: 'text.secondary' }}
+          >
+            <Close fontSize="small" />
+          </IconButton>
+        </DialogTitle>
 
-              {!editingCurriculum && (
-                <div className="form-group">
-                  <label>Khóa học *</label>
-                  <select
-                    name="courseId"
-                    value={formData.courseId}
-                    onChange={handleInputChange}
-                    required
+        <Divider />
+
+        <DialogContent sx={{ px: 3, py: 2.5 }}>
+          <Box component="form" id="curriculum-form" onSubmit={handleSubmit} noValidate>
+            {/* Tên chương trình */}
+            <TextField
+              label="Tên chương trình"
+              name="curriculumName"
+              value={formData.curriculumName}
+              onChange={handleInputChange}
+              required
+              fullWidth
+              size="small"
+              sx={{ mb: 2.5 }}
+              inputProps={{ id: 'curriculum-name-input' }}
+            />
+
+            {/* Searchable Khóa học dropdown */}
+            {!editingCurriculum && (
+              <Box sx={{ mb: 2.5 }}>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+                  Khóa học <Typography component="span" color="error.main">*</Typography>
+                </Typography>
+                <Box ref={courseDropdownRef} sx={{ position: 'relative' }}>
+                  {/* Trigger box */}
+                  <Box
+                    id="course-select-trigger"
+                    onClick={() => setCourseDropdownOpen(prev => !prev)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      px: 1.5,
+                      py: '8.5px',
+                      border: '1px solid',
+                      borderColor: courseDropdownOpen ? 'primary.main' : 'divider',
+                      borderRadius: 1.5,
+                      cursor: 'pointer',
+                      bgcolor: 'background.paper',
+                      transition: 'border-color 0.15s',
+                      '&:hover': { borderColor: 'text.primary' },
+                      boxShadow: courseDropdownOpen ? theme => `0 0 0 2px ${alpha(theme.palette.primary.main, 0.15)}` : 'none',
+                    }}
                   >
-                    <option value="">Chọn khóa học</option>
-                    {courses.map((c) => (
-                      <option key={c.courseId} value={c.courseId}>
-                        {c.courseName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                    <Typography
+                      variant="body2"
+                      sx={{ color: selectedCourseName ? 'text.primary' : 'text.disabled' }}
+                    >
+                      {selectedCourseName || 'Chọn khóa học'}
+                    </Typography>
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: 10,
+                        color: 'text.secondary',
+                        transform: courseDropdownOpen ? 'rotate(180deg)' : 'none',
+                        transition: 'transform 0.2s',
+                        display: 'inline-block',
+                      }}
+                    >
+                      ▼
+                    </Box>
+                  </Box>
 
-              <div className="form-group">
-                <label>Ngày bắt đầu *</label>
+                  {/* Dropdown panel */}
+                  {courseDropdownOpen && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 'calc(100% + 4px)',
+                        left: 0,
+                        right: 0,
+                        zIndex: 1400,
+                        bgcolor: 'background.paper',
+                        border: '1px solid',
+                        borderColor: 'primary.main',
+                        borderRadius: 2,
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.16)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {/* Search input */}
+                      <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          placeholder="Tìm kiếm khóa học..."
+                          value={courseSearch}
+                          onChange={e => setCourseSearch(e.target.value)}
+                          autoFocus
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                              </InputAdornment>
+                            ),
+                          }}
+                          inputProps={{ id: 'course-search-input' }}
+                          sx={{ '& fieldset': { border: 'none' } }}
+                        />
+                      </Box>
+                      {/* Options list */}
+                      <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                        {filteredCourses.length === 0 ? (
+                          <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
+                            Không tìm thấy khóa học
+                          </Typography>
+                        ) : (
+                          filteredCourses.map(c => (
+                            <Box
+                              key={c.courseId}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, courseId: c.courseId.toString() }));
+                                setCourseDropdownOpen(false);
+                                setCourseSearch('');
+                              }}
+                              sx={{
+                                px: 2,
+                                py: 1,
+                                cursor: 'pointer',
+                                bgcolor: formData.courseId === c.courseId.toString()
+                                  ? theme => alpha(theme.palette.primary.main, 0.1)
+                                  : 'transparent',
+                                color: formData.courseId === c.courseId.toString() ? 'primary.main' : 'text.primary',
+                                fontWeight: formData.courseId === c.courseId.toString() ? 700 : 400,
+                                fontSize: '0.875rem',
+                                '&:hover': { bgcolor: theme => alpha(theme.palette.primary.main, 0.06) },
+                                transition: 'background-color 0.1s',
+                              }}
+                            >
+                              {c.courseName}
+                            </Box>
+                          ))
+                        )}
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+                {/* Hidden required input for native form validation */}
                 <input
-                  type="date"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleInputChange}
+                  tabIndex={-1}
                   required
+                  value={formData.courseId}
+                  onChange={() => {}}
+                  style={{ opacity: 0, height: 0, position: 'absolute', pointerEvents: 'none' }}
                 />
-              </div>
+              </Box>
+            )}
 
-              <div className="form-group">
-                <label>Ngày kết thúc *</label>
-                <input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+            {/* Ngày bắt đầu + Ngày kết thúc side by side */}
+            <Box sx={{ display: 'flex', gap: 2, mb: dateError ? 0.5 : 2.5 }}>
+              <TextField
+                label="Ngày bắt đầu"
+                name="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={handleInputChange}
+                required
+                fullWidth
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ id: 'start-date-input' }}
+                error={Boolean(dateError)}
+              />
+              <TextField
+                label="Ngày kết thúc"
+                name="endDate"
+                type="date"
+                value={formData.endDate}
+                onChange={handleInputChange}
+                required
+                fullWidth
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ id: 'end-date-input' }}
+                error={Boolean(dateError)}
+              />
+            </Box>
+            {dateError && (
+              <Typography variant="caption" color="error.main" sx={{ mb: 2, display: 'block', mt: 0.5 }}>
+                ⚠ {dateError}
+              </Typography>
+            )}
 
-              <div className="form-group">
-                <label>Mô tả</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows="4"
-                />
-              </div>
+            {/* Mô tả */}
+            <TextField
+              label="Mô tả"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              fullWidth
+              multiline
+              minRows={2}
+              maxRows={5}
+              size="small"
+              inputProps={{ id: 'description-input' }}
+              sx={{
+                '& .MuiInputBase-inputMultiline': {
+                  minHeight: 56,
+                  maxHeight: 120,
+                  overflowY: 'auto',
+                },
+              }}
+            />
+          </Box>
+        </DialogContent>
 
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  Hủy
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingCurriculum ? 'Cập nhật' : 'Tạo'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        <Divider />
 
-      {showTeacherModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Quản lý giáo viên - {selectedCurriculumForTeachers?.curriculumName}</h3>
-              <button className="close-btn" onClick={() => setShowTeacherModal(false)}>×</button>
-            </div>
-            <div className="teacher-list">
-              <p style={{ marginBottom: '15px', color: '#666' }}>Chọn các giáo viên tham gia chương trình này:</p>
-              {teachers.length > 0 ? (
-                teachers.map(teacher => (
-                  <div key={teacher.teacherId} className="teacher-checkbox-item">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={selectedTeacherIds.includes(parseInt(teacher.teacherId))}
-                        onChange={() => handleTeacherToggle(teacher.teacherId)}
-                      />
-                      <span className="teacher-name">
-                        <strong>{teacher.fullName}</strong>
-                        <span className="teacher-email"> ({teacher.email})</span>
-                      </span>
-                    </label>
-                  </div>
-                ))
-              ) : (
-                <p style={{ color: '#999' }}>Không có giáo viên nào</p>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowTeacherModal(false)}>
-                Hủy
-              </button>
-              <button type="button" className="btn btn-primary" onClick={handleSaveTeachers}>
-                Lưu
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button
+            id="cancel-curriculum-btn"
+            variant="outlined"
+            color="inherit"
+            onClick={() => { setShowModal(false); resetForm(); }}
+            disabled={isSubmitting}
+            sx={{ borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: 'text.secondary' } }}
+          >
+            Hủy
+          </Button>
+          <Button
+            id="submit-curriculum-btn"
+            type="submit"
+            form="curriculum-form"
+            variant="contained"
+            disabled={isSubmitting || Boolean(dateError)}
+            startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {isSubmitting ? 'Đang lưu...' : (editingCurriculum ? 'Cập nhật' : 'Tạo')}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      <style>{`
-        .modal {
-          display: flex;
-          position: fixed;
-          z-index: 9999;
-          left: 0;
-          top: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0,0,0,0.4);
-          justify-content: center;
-          align-items: center;
-        }
-        .modal-content {
-          background-color: #fefefe;
-          padding: 20px;
-          border: 1px solid #888;
-          border-radius: 5px;
-          width: 500px;
-          max-height: 90vh;
-          overflow-y: auto;
-          position: relative;
-          z-index: 10000;
-        }
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-        .close-btn {
-          background: none;
-          border: none;
-          font-size: 28px;
-          font-weight: bold;
-          cursor: pointer;
-        }
-        .form-group {
-          margin-bottom: 15px;
-        }
-        .form-group label {
-          display: block;
-          margin-bottom: 5px;
-          font-weight: 500;
-        }
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-          width: 100%;
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          box-sizing: border-box;
-        }
-        .modal-footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          margin-top: 20px;
-        }
-        .btn {
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-        .btn-primary {
-          background-color: #007bff;
-          color: white;
-        }
-        .btn-secondary {
-          background-color: #6c757d;
-          color: white;
-        }
-        .teacher-list {
-          max-height: 400px;
-          overflow-y: auto;
-          padding: 15px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          background-color: #f9f9f9;
-        }
-        .teacher-checkbox-item {
-          margin-bottom: 12px;
-          padding: 10px;
-          background-color: white;
-          border-radius: 4px;
-          border-left: 3px solid #007bff;
-        }
-        .teacher-checkbox-item label {
-          display: flex;
-          align-items: center;
-          margin: 0;
-          cursor: pointer;
-        }
-        .teacher-checkbox-item input[type="checkbox"] {
-          width: auto;
-          margin-right: 10px;
-          cursor: pointer;
-        }
-        .teacher-name {
-          flex: 1;
-        }
-        .teacher-email {
-          color: #666;
-          font-size: 13px;
-          margin-left: 5px;
-        }
-      `}</style>
+      {/* ── TEACHER MANAGEMENT MODAL ── */}
+      <Dialog
+        open={showTeacherModal}
+        onClose={() => setShowTeacherModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, boxShadow: '0 24px 64px rgba(0,0,0,0.18)' } }}
+      >
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pb: 1,
+            pt: 2.5,
+            px: 3,
+          }}
+        >
+          <Box>
+            <Typography variant="h6" fontWeight={700}>Quản lý giáo viên</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {selectedCurriculumForTeachers?.curriculumName}
+            </Typography>
+          </Box>
+          <IconButton size="small" onClick={() => setShowTeacherModal(false)} sx={{ color: 'text.secondary' }}>
+            <Close fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <Divider />
+
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Chọn các giáo viên tham gia chương trình này:
+          </Typography>
+          <Box
+            sx={{
+              maxHeight: 360,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              pr: 0.5,
+            }}
+          >
+            {teachers.length > 0 ? (
+              teachers.map(teacher => {
+                const checked = selectedTeacherIds.includes(parseInt(teacher.teacherId));
+                return (
+                  <Box
+                    key={teacher.teacherId}
+                    onClick={() => handleTeacherToggle(teacher.teacherId)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      p: 1.5,
+                      borderRadius: 2,
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: checked ? 'primary.main' : 'divider',
+                      bgcolor: checked
+                        ? theme => alpha(theme.palette.primary.main, 0.06)
+                        : 'background.paper',
+                      transition: 'all 0.15s',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        bgcolor: theme => alpha(theme.palette.primary.main, 0.04),
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 0.75,
+                        border: '2px solid',
+                        borderColor: checked ? 'primary.main' : 'divider',
+                        bgcolor: checked ? 'primary.main' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {checked && (
+                        <Typography sx={{ color: '#fff', fontSize: 11, lineHeight: 1, fontWeight: 900 }}>✓</Typography>
+                      )}
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>{teacher.fullName}</Typography>
+                      <Typography variant="caption" color="text.secondary">{teacher.email}</Typography>
+                    </Box>
+                  </Box>
+                );
+              })
+            ) : (
+              <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', py: 4 }}>
+                Không có giáo viên nào
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+
+        <Divider />
+
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => setShowTeacherModal(false)}
+            sx={{ borderColor: 'divider', color: 'text.secondary' }}
+          >
+            Hủy
+          </Button>
+          <Button variant="contained" onClick={handleSaveTeachers}>
+            Lưu thay đổi
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

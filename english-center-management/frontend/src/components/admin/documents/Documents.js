@@ -402,7 +402,7 @@ const handleDownload = async (doc) => {
     },
     {
       field: 'fileSize',
-      headerName: 'Kích thước',
+      headerName: 'Dung lượng',
       width: 100,
       align: 'right',
       renderCell: (params) => (
@@ -415,6 +415,8 @@ const handleDownload = async (doc) => {
       field: 'uploadDate',
       headerName: 'Ngày tải',
       width: 110,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
         <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
           {new Date(params.row.uploadDate).toLocaleDateString('vi-VN', {
@@ -458,7 +460,7 @@ const handleDownload = async (doc) => {
       align: 'center',
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-          <Tooltip title="Xem" arrow>
+          <Tooltip title="Xem trước" arrow>
             <IconButton
               size="small"
               onClick={() => handleView(params.row)}

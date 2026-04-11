@@ -123,9 +123,8 @@ export default function StudentsTab({ classId, classInfo }) {
         </Box>
         <Chip 
           label={`${totalCount} học viên`} 
-          color="primary" 
           size="small"
-          sx={{ fontWeight: 500 }}
+          sx={{ fontWeight: 600, bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}
         />
       </Box>
 
@@ -136,7 +135,14 @@ export default function StudentsTab({ classId, classInfo }) {
         placeholder="Tìm học viên..."
         value={searchKeyword}
         onChange={(e) => setSearchKeyword(e.target.value)}
-        sx={{ mb: 2 }}
+        sx={{ 
+          mb: 2, 
+          '& .MuiOutlinedInput-root': {
+            '&.Mui-focused fieldset': {
+              borderColor: '#10b981',
+            }
+          }
+        }}
       />
 
       {filteredStudents.length === 0 ? (
@@ -162,9 +168,10 @@ export default function StudentsTab({ classId, classInfo }) {
                   key={student.StudentId || student.studentId} 
                   hover
                   sx={{
-                    transition: '0.2s',
+                    transition: 'all 0.2s',
+                    '& td': { py: 1.75 },
                     '&:hover': {
-                      backgroundColor: '#f5f5f5'
+                      backgroundColor: 'rgba(16, 185, 129, 0.04) !important'
                     }
                   }}
                 >
@@ -216,9 +223,15 @@ export default function StudentsTab({ classId, classInfo }) {
             count={Math.ceil(totalCount / rowsPerPage)}
             page={page}
             onChange={handleChangePage}
-            color="primary"
             showFirstButton
             showLastButton
+            sx={{
+              '& .MuiPaginationItem-root.Mui-selected': {
+                bgcolor: '#10b981',
+                color: 'white',
+                '&:hover': { bgcolor: '#059669' }
+              }
+            }}
           />
         </Box>
       )}

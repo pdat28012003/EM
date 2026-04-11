@@ -22,18 +22,32 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Số lượng mỗi trang)</param>
+        /// <param name="isActive">Filter by active status (Lọc theo trạng thái hoạt động)</param>
+        /// <param name="showAll">Show all skills including inactive (Hiển thị tất cả kỹ năng)</param>
         /// <returns>Paged list of skills (Danh sách kỹ năng có phân trang)</returns>
         [HttpGet]
         public async Task<ActionResult<PagedResult<SkillDto>>> GetSkills(
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int pageSize = 10,
+            [FromQuery] bool? isActive = null,
+            [FromQuery] bool? showAll = null)
         {
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            var query = _context.Skills
-                .Where(s => s.IsActive)
-                .OrderBy(s => s.Name);
+            var query = _context.Skills.AsQueryable();
+            if (!showAll.GetValueOrDefault())
+            {
+                if (isActive.HasValue)
+                {
+                    query = query.Where(s => s.IsActive == isActive.Value);
+                }
+                else
+                {
+                    query = query.Where(s => s.IsActive);
+                }
+            }
+            query = query.OrderBy(s => s.Name);
 
             var totalCount = await query.CountAsync();
 

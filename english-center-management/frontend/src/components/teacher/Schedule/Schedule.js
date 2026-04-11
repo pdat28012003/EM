@@ -19,7 +19,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -34,7 +39,9 @@ import {
   ViewWeek,
   CalendarMonth,
   ArrowBack,
-  Add
+  Add,
+  CheckCircle,
+  VideoCameraFront
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { teachersAPI, classesAPI } from '../../../services/api';
@@ -47,6 +54,7 @@ const TeacherSchedule = () => {
   const [viewMode, setViewMode] = useState('week'); // 'day', 'week', 'month'
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -290,49 +298,69 @@ const TeacherSchedule = () => {
   const timeSlots = ['Sáng', 'Chiều', 'Tối'];
   const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
 
-  // Component for schedule cell
   const ScheduleCell = ({ schedules }) => {
     if (!schedules || schedules.length === 0) {
-      return <TableCell sx={{ border: '1px solid #e0e0e0', minHeight: 80 }}></TableCell>;
+      return (
+        <TableCell sx={{ border: '1px solid #e0e0e0', minHeight: 80, textAlign: 'center', verticalAlign: 'middle', p: 1 }}>
+          {/* Subtle empty slot */}
+          <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic', opacity: 0.5 }}>
+            Trống
+          </Typography>
+        </TableCell>
+      );
     }
 
     return (
-      <TableCell sx={{ border: '1px solid #e0e0e0', p: 1, verticalAlign: 'top' }}>
+      <TableCell sx={{ border: '1px solid #e0e0e0', p: 1, verticalAlign: 'top', position: 'relative' }}>
         {schedules.map((schedule, index) => (
           <Box
             key={schedule.id}
             sx={{
               mb: 1,
-              p: 1,
-              borderRadius: 1,
-              bgcolor: schedule.status === 'completed' ? '#e8f5e8' : 
-                       schedule.status === 'ongoing' ? '#fff3e0' : 
-                       schedule.status === 'cancelled' ? '#ffebee' : '#e3f2fd',
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: schedule.status === 'completed' ? '#f0fdf4' : 
+                       schedule.status === 'ongoing' ? '#fff7ed' : 
+                       schedule.status === 'cancelled' ? '#fef2f2' : '#f0f9ff',
               border: `1px solid ${
-                schedule.status === 'completed' ? '#4caf50' : 
-                schedule.status === 'ongoing' ? '#ff9800' : 
-                schedule.status === 'cancelled' ? '#f44336' : '#2196f3'
+                schedule.status === 'completed' ? '#86efac' : 
+                schedule.status === 'ongoing' ? '#fdba74' : 
+                schedule.status === 'cancelled' ? '#fca5a5' : '#7dd3fc'
               }`,
+              opacity: schedule.status === 'completed' ? 0.7 : 1,
+              boxShadow: schedule.status === 'ongoing' ? '0 0 12px rgba(251, 146, 60, 0.4)' : 'none',
               cursor: 'pointer',
               '&:hover': {
-                boxShadow: 1,
-                transform: 'scale(1.02)'
+                boxShadow: 2,
+                transform: 'translateY(-2px)'
               },
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative'
             }}
-            onClick={() => navigate(`/teacher/classes/${schedule.classId}`)}
+            onClick={() => setSelectedEvent(schedule)}
           >
-            <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
-              {schedule.className || `Lớp ${schedule.classId}`}
-            </Typography>
-            <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+            {schedule.status === 'ongoing' && (
+              <Box sx={{ position: 'absolute', top: -4, right: -4 }}>
+                <span className="flex h-3 w-3 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                </span>
+              </Box>
+            )}
+            
+            <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+              <Typography variant="caption" sx={{ fontWeight: 800, display: 'block', color: '#1e293b' }}>
+                {schedule.className || `Lớp ${schedule.classId}`}
+              </Typography>
+              {schedule.status === 'completed' && <CheckCircle sx={{ fontSize: 14, color: '#22c55e' }} />}
+            </Box>
+            
+            <Typography variant="caption" sx={{ display: 'block', color: '#64748b', mt: 0.5, fontWeight: 600 }}>
               {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
             </Typography>
-            <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-              Phòng: {schedule.room || 'Chưa phân công'}
-            </Typography>
-            <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-              {schedule.teacherName || teacher?.fullName}
+            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#64748b', mt: 0.5 }}>
+              <LocationOn sx={{ fontSize: 12 }} />
+              {schedule.room || 'Chưa phân công'}
             </Typography>
           </Box>
         ))}
@@ -539,78 +567,180 @@ const TeacherSchedule = () => {
               </Box>
             </Box>
             
-            <TableContainer>
-              <Table sx={{ minWidth: 800 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ border: '1px solid #e0e0e0', fontWeight: 'bold', bgcolor: '#f5f5f5' }}>
-                      Buổi
-                    </TableCell>
-                    {days.map(day => (
-                      <TableCell 
-                        key={day} 
-                        sx={{ 
-                          border: '1px solid #e0e0e0', 
-                          fontWeight: 'bold', 
-                          bgcolor: '#f5f5f5',
-                          textAlign: 'center'
-                        }}
-                      >
-                        {day}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {timeSlots.map(slot => (
-                    <TableRow key={slot}>
-                      <TableCell 
-                        sx={{ 
-                          border: '1px solid #e0e0e0', 
-                          fontWeight: 'bold', 
-                          bgcolor: '#f9f9f9',
-                          width: 80
-                        }}
-                      >
-                        {slot}
+            {schedules.length === 0 ? (
+              <Box sx={{ py: 10, textAlign: 'center' }}>
+                <Typography variant="h5" color="text.secondary" gutterBottom fontWeight={600}>
+                  Bạn không có lịch dạy vào thời gian này!
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Hãy tận dụng thời gian để nghỉ ngơi hoặc chuẩn bị tài liệu thật tốt nhé ☕
+                </Typography>
+              </Box>
+            ) : (
+              <TableContainer>
+                <Table sx={{ minWidth: 800 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ border: '1px solid #e0e0e0', fontWeight: 'bold', bgcolor: '#f1f5f9', color: '#475569' }}>
+                        Buổi
                       </TableCell>
                       {days.map(day => (
-                        <ScheduleCell 
-                          key={`${day}-${slot}`} 
-                          schedules={tableSchedules[day]?.[slot] || []} 
-                        />
+                        <TableCell 
+                          key={day} 
+                          sx={{ 
+                            border: '1px solid #e0e0e0', 
+                            fontWeight: 'bold', 
+                            bgcolor: '#f8fafc',
+                            color: '#334155',
+                            textAlign: 'center'
+                          }}
+                        >
+                          {day}
+                        </TableCell>
                       ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {timeSlots.map(slot => (
+                      <TableRow key={slot}>
+                        <TableCell 
+                          sx={{ 
+                            border: '1px solid #e0e0e0', 
+                            fontWeight: 'bold', 
+                            bgcolor: '#f8fafc',
+                            color: '#475569',
+                            width: 80
+                          }}
+                        >
+                          {slot}
+                        </TableCell>
+                        {days.map(day => (
+                          <ScheduleCell 
+                            key={`${day}-${slot}`} 
+                            schedules={tableSchedules[day]?.[slot] || []} 
+                          />
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
 
             {/* Legend */}
             <Box sx={{ mt: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#475569' }}>
                 Chú thích:
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ width: 20, height: 20, bgcolor: '#e3f2fd', border: '1px solid #2196f3', borderRadius: 1 }}></Box>
-                <Typography variant="caption">Đã lên lịch</Typography>
+                <Box sx={{ width: 16, height: 16, bgcolor: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: 0.5 }}></Box>
+                <Typography variant="caption" sx={{ color: '#475569', fontWeight: 500 }}>Đã lên lịch</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ width: 20, height: 20, bgcolor: '#fff3e0', border: '1px solid #ff9800', borderRadius: 1 }}></Box>
-                <Typography variant="caption">Đang diễn ra</Typography>
+                <Box sx={{ width: 16, height: 16, bgcolor: '#fff7ed', border: '1px solid #fdba74', borderRadius: 0.5, boxShadow: '0 0 8px rgba(251,146,60,0.5)' }}></Box>
+                <Typography variant="caption" sx={{ color: '#ea580c', fontWeight: 600 }}>Đang diễn ra</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ width: 20, height: 20, bgcolor: '#e8f5e8', border: '1px solid #4caf50', borderRadius: 1 }}></Box>
-                <Typography variant="caption">Đã hoàn thành</Typography>
+                <Box sx={{ width: 16, height: 16, bgcolor: '#f0fdf4', border: '1px solid #86efac', borderRadius: 0.5 }}></Box>
+                <Typography variant="caption" sx={{ color: '#16a34a', fontWeight: 500 }}>Đã hoàn thành</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ width: 20, height: 20, bgcolor: '#ffebee', border: '1px solid #f44336', borderRadius: 1 }}></Box>
-                <Typography variant="caption">Đã hủy</Typography>
+                <Box sx={{ width: 16, height: 16, bgcolor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 0.5 }}></Box>
+                <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 500 }}>Đã hủy</Typography>
               </Box>
             </Box>
           </Paper>
         </Grid>
       </Grid>
+      
+      {/* Quick View Event Dialog */}
+      <Dialog 
+        open={Boolean(selectedEvent)} 
+        onClose={() => setSelectedEvent(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, overflow: 'hidden' }
+        }}
+      >
+        {selectedEvent && (
+          <>
+            <Box sx={{ 
+              p: 3, 
+              bgcolor: selectedEvent.status === 'ongoing' ? '#fff7ed' : 
+                       selectedEvent.status === 'completed' ? '#f0fdf4' : '#f0f9ff',
+              borderBottom: '1px solid rgba(0,0,0,0.05)'
+            }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Chip 
+                  label={getStatusText(selectedEvent.status)} 
+                  size="small" 
+                  color={getStatusColor(selectedEvent.status)}
+                  sx={{ fontWeight: 'bold' }}
+                />
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                  {selectedEvent.date}
+                </Typography>
+              </Box>
+              <Typography variant="h5" fontWeight="bold" sx={{ color: '#1e293b' }}>
+                {selectedEvent.className}
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#475569', mt: 0.5 }}>
+                {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
+              </Typography>
+            </Box>
+            <DialogContent sx={{ p: 3 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Box display="flex" alignItems="center" gap={1.5} mb={1.5}>
+                    <LocationOn sx={{ color: '#10b981' }} />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">Phòng học</Typography>
+                      <Typography variant="body2" fontWeight={600}>{selectedEvent.room}</Typography>
+                    </Box>
+                  </Box>
+                  <Divider sx={{ my: 1.5 }} />
+                  <Box display="flex" alignItems="center" gap={1.5}>
+                    <ScheduleIcon sx={{ color: '#3b82f6' }} />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">Chủ đề bài giảng</Typography>
+                      <Typography variant="body2" fontWeight={600}>{selectedEvent.topic || 'Chưa cập nhật'}</Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ p: 2, pt: 0, justifyContent: 'space-between' }}>
+              <Button onClick={() => setSelectedEvent(null)} color="inherit">
+                Đóng
+              </Button>
+              <Box display="flex" gap={1}>
+                {selectedEvent.status === 'ongoing' && (
+                  <Button 
+                    variant="contained" 
+                    color="warning" 
+                    startIcon={<VideoCameraFront />}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Vào dạy Online
+                  </Button>
+                )}
+                <Button 
+                  variant="contained" 
+                  sx={{ 
+                    bgcolor: '#10b981', 
+                    '&:hover': { bgcolor: '#059669' },
+                    borderRadius: 2
+                  }}
+                  onClick={() => navigate(`/teacher/classes/${selectedEvent.classId}`)}
+                >
+                  Chi tiết lớp
+                </Button>
+              </Box>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Container>
     </LocalizationProvider>
   );
