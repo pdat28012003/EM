@@ -44,14 +44,6 @@ const StudentSchedule = ({
   onStartChange,
   onEndChange,
 }) => {
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('vi-VN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from 'react';
 import {
   Paper,
@@ -37,8 +38,7 @@ const Attendance = () => {
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedLesson, setSelectedLesson] = useState('');
   const [attendanceData, setAttendanceData] = useState([]);
-  // eslint-disable-next-line no-unused-vars
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [openNotesDialog, setOpenNotesDialog] = useState(false);
   const [currentAttendance, setCurrentAttendance] = useState(null);
   const [notes, setNotes] = useState('');
@@ -85,6 +85,7 @@ const Attendance = () => {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedLesson) {
       loadAttendance();

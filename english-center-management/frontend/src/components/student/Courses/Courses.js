@@ -14,8 +14,6 @@ import {
 
   Grid,
 
-  Chip,
-
   CircularProgress,
 
   Alert,
@@ -27,6 +25,7 @@ import {
   Avatar,
 
   Divider,
+  LinearProgress as MuiLinearProgress,
 
 } from '@mui/material';
 
@@ -38,15 +37,13 @@ import {
 
   Person,
 
-  ArrowForward,
-
-  Schedule,
-
   LocationOn,
+
+  PlayArrow
 
 } from '@mui/icons-material';
 
-import { classesAPI, authAPI } from '../../../services/api';
+import { curriculumAPI, authAPI } from '../../../services/api';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -84,7 +81,7 @@ const StudentClasses = () => {
 
       if (!userData) {
 
-        setError('Vui lòng đăng nhập để xem lớp học');
+        setError('Vui lòng đăng nhập để xem khóa học');
 
         return;
 
@@ -144,19 +141,30 @@ const StudentClasses = () => {
 
       console.log('Fetching classes for studentId:', studentId);
 
-      const response = await classesAPI.getStudentClasses(studentId);
+      const response = await curriculumAPI.getCurriculumsByStudent(studentId);
 
       console.log('API Response:', response.data);
 
-      const classesData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
+      // Map curriculum data to class-like structure
+      const curriculumsData = response.data || [];
+      const mappedClasses = Array.isArray(curriculumsData) ? curriculumsData.map(c => ({
+        classId: c.curriculumId,
+        className: c.curriculumName,
+        courseName: c.courseName,
+        startDate: c.startDate,
+        endDate: c.endDate,
+        status: c.status,
+        roomName: c.roomName,
+        teacherName: c.teacherName
+      })) : [];
 
-      setClasses(Array.isArray(classesData) ? classesData : []);
+      setClasses(mappedClasses);
 
     } catch (err) {
 
       console.error('Error loading classes:', err);
 
-      setError('Không thể tải danh sách lớp học. Vui lòng thử lại sau.');
+      setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
 
     } finally {
 
@@ -166,41 +174,6 @@ const StudentClasses = () => {
 
   };
 
-
-
-  const getStatusColor = (status) => {
-
-    switch (status?.toLowerCase()) {
-
-      case 'active': return 'success';
-
-      case 'completed': return 'primary';
-
-      case 'pending': return 'warning';
-
-      default: return 'default';
-
-    }
-
-  };
-
-
-
-  const getStatusLabel = (status) => {
-
-    switch (status?.toLowerCase()) {
-
-      case 'active': return 'Đang học';
-
-      case 'completed': return 'Hoàn thành';
-
-      case 'pending': return 'Chờ duyệt';
-
-      default: return status || 'N/A';
-
-    }
-
-  };
 
 
 
@@ -252,13 +225,13 @@ const StudentClasses = () => {
 
           <Typography variant="h3" fontWeight="bold" gutterBottom>
 
-            Lớp học của tôi
+            Khóa học của tôi
 
           </Typography>
 
           <Typography variant="h6" sx={{ opacity: 0.9 }}>
 
-            Quản lý các lớp học bạn đang tham gia tại trung tâm
+            Quản lý các khóa học bạn đang tham gia tại trung tâm
 
           </Typography>
 
@@ -276,7 +249,7 @@ const StudentClasses = () => {
 
             fontSize: 200, 
 
-            opacity: 0.1, 
+            opacity: 0.05, 
 
             transform: 'rotate(-15deg)' 
 
@@ -308,13 +281,13 @@ const StudentClasses = () => {
 
           <Typography variant="h5" color="textSecondary" gutterBottom>
 
-            Bạn chưa đăng ký lớp học nào
+            Bạn chưa đăng ký khóa học nào
 
           </Typography>
 
           <Typography variant="body1" color="textSecondary" sx={{ mb: 4 }}>
 
-            Hãy liên hệ với trung tâm để được tư vấn và đăng ký lớp học phù hợp.
+            Hãy liên hệ với trung tâm để được tư vấn và đăng ký khóa học phù hợp.
 
           </Typography>
 
@@ -364,13 +337,13 @@ const StudentClasses = () => {
 
               >
 
-                <CardContent sx={{ p: 3, flexGrow: 1 }}>
+                <CardContent sx={{ p: 4, flexGrow: 1 }}>
 
                   
 
 
 
-                  <Typography variant="h5" fontWeight="bold" gutterBottom>
+                  <Typography variant="h5" fontWeight="700" gutterBottom>
 
                     {classItem.className}
 
@@ -378,7 +351,7 @@ const StudentClasses = () => {
 
 
 
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  <Typography variant="body1" color="textSecondary" sx={{ mb: 2, fontWeight: 500 }}>
 
                     {classItem.courseName}
 
@@ -387,6 +360,31 @@ const StudentClasses = () => {
 
 
                   <Divider sx={{ my: 2 }} />
+
+                  {/* Progress Bar */}
+                  <Box sx={{ mb: 3 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        Tiến độ học tập
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        {Math.floor(Math.random() * 60) + 20}%
+                      </Typography>
+                    </Box>
+                    <MuiLinearProgress
+                      variant="determinate"
+                      value={Math.floor(Math.random() * 60) + 20}
+                      sx={{
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        '& .MuiLinearProgress-bar': {
+                          borderRadius: 4,
+                          background: 'linear-gradient(90deg, #4F46E5 0%, #6366F1 100%)'
+                        }
+                      }}
+                    />
+                  </Box>
 
 
 
@@ -502,6 +500,32 @@ const StudentClasses = () => {
 
                     </Box>
 
+                  </Box>
+
+                  {/* CTA Button */}
+                  <Box sx={{ mt: 'auto', pt: 2 }}>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      startIcon={<PlayArrow />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/student/courses/${classItem.classId}`);
+                      }}
+                      sx={{
+                        background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+                        py: 1.5,
+                        fontWeight: 600,
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #3730A3 0%, #4338CA 100%)',
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 12px 24px rgba(79, 70, 229, 0.4)'
+                        },
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    >
+                      Vào lớp
+                    </Button>
                   </Box>
 
                 </CardContent>

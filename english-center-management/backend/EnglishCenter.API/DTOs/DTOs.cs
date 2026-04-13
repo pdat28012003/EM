@@ -360,6 +360,17 @@ namespace EnglishCenter.API.DTOs
         public List<int> ParticipantTeacherIds { get; set; } = new List<int>();
     }
 
+    public class AddStudentToCurriculumDto
+    {
+        public int StudentId { get; set; }
+    }
+
+    public class AddStudentToSessionDto
+    {
+        public int StudentId { get; set; }
+        public string? Notes { get; set; }
+    }
+
     public class CurriculumDayDto
     {
         public int CurriculumDayId { get; set; }
@@ -398,7 +409,10 @@ namespace EnglishCenter.API.DTOs
         public string RoomName { get; set; } = string.Empty;
         public int? TeacherId { get; set; }
         public string TeacherName { get; set; } = string.Empty;
+        public int? DocumentId { get; set; }
+        public string? DocumentTitle { get; set; }
         public List<LessonDto> Lessons { get; set; } = new List<LessonDto>();
+        public int StudentCount { get; set; }
     }
 
     public class CreateCurriculumSessionDto
@@ -411,6 +425,7 @@ namespace EnglishCenter.API.DTOs
         public string SessionDescription { get; set; } = string.Empty;
         public int? RoomId { get; set; }
         public int? TeacherId { get; set; }
+        public int? DocumentId { get; set; }
     }
 
     public class UpdateCurriculumSessionDto
@@ -421,6 +436,7 @@ namespace EnglishCenter.API.DTOs
         public string SessionDescription { get; set; } = string.Empty;
         public int? RoomId { get; set; }
         public int? TeacherId { get; set; }
+        public int? DocumentId { get; set; }
     }
 
     public class LessonDto
@@ -511,122 +527,6 @@ namespace EnglishCenter.API.DTOs
         public int CurrentValue { get; set; }
         public int ChangeFromLastWeek { get; set; }
         public string ChangeType { get; set; } = "increase"; // "increase" or "decrease"
-    }
-
-    // Assignment DTOs
-    public class AssignmentDto
-    {
-        public int AssignmentId { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public int ClassId { get; set; }
-        public int TeacherId { get; set; }
-        public DateTime DueDate { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public string Status { get; set; } = string.Empty;
-        public int MaxScore { get; set; }
-        public string? AttachmentUrl { get; set; }
-        public int? SkillId { get; set; }
-        public string? SkillName { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-        public string? ClassName { get; set; }
-        public string? TeacherName { get; set; }
-        public int SubmissionsCount { get; set; }
-        public int GradedCount { get; set; }
-        public decimal? StudentScore { get; set; }
-        public string? StudentStatus { get; set; }
-        public int? TimeSpentSeconds { get; set; }
-    }
-
-    public class AssignmentSubmissionDto
-    {
-        public int SubmissionId { get; set; }
-        public int AssignmentId { get; set; }
-        public int StudentId { get; set; }
-        public string? Content { get; set; }
-        public string? AttachmentUrl { get; set; }
-        public string? OriginalFileName { get; set; }
-        public DateTime SubmittedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-        public string Status { get; set; } = string.Empty;
-        public decimal? Score { get; set; }
-        public string? Feedback { get; set; }
-        public DateTime? GradedAt { get; set; }
-        public int? GradedBy { get; set; }
-        public string? StudentName { get; set; }
-        public string? AssignmentTitle { get; set; }
-    }
-
-    public class StudentAssignmentResultDto
-    {
-        public int StudentId { get; set; }
-        public string? StudentName { get; set; }
-        public string? Email { get; set; }
-        public int? SubmissionId { get; set; }
-        public string Status { get; set; } = string.Empty;
-        public decimal? Score { get; set; }
-        public DateTime? SubmittedAt { get; set; }
-        public string? Note { get; set; }
-    }
-
-    public class CreateAssignmentDto
-    {
-        [Required]
-        [StringLength(200)]
-        public string Title { get; set; } = string.Empty;
-
-        [Required]
-        public string Description { get; set; } = string.Empty;
-
-        [Required]
-        [StringLength(50)]
-        public string Type { get; set; } = string.Empty;
-
-        [Required]
-        public int ClassId { get; set; }
-
-        [Required]
-        public DateTime DueDate { get; set; }
-
-        public string? AttachmentUrl { get; set; }
-
-        public int? SkillId { get; set; }
-
-        [Required]
-        [Range(1, 1000)]
-        public int MaxScore { get; set; } = 100;
-    }
-
-    public class UpdateAssignmentDto
-    {
-        [StringLength(200)]
-        public string? Title { get; set; }
-
-        public string? Description { get; set; }
-
-        [StringLength(50)]
-        public string? Type { get; set; }
-
-        public DateTime? DueDate { get; set; }
-
-        public string? AttachmentUrl { get; set; }
-
-        public int? SkillId { get; set; }
-
-        [Range(1, 1000)]
-        public int? MaxScore { get; set; }
-
-        public string? Status { get; set; }
-    }
-
-    public class GradeSubmissionDto
-    {
-        [Required]
-        [Range(0, 1000)]
-        public decimal Score { get; set; }
-
-        public string? Feedback { get; set; }
     }
 
     // Quiz DTOs

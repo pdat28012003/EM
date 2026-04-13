@@ -40,6 +40,8 @@ namespace EnglishCenter.API.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Document> Documents { get; set; }
         public DbSet<TeacherAvailability> TeacherAvailabilities { get; set; }
+        public DbSet<SessionStudent> SessionStudents { get; set; }
+public DbSet<SessionAttendance> SessionAttendances { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -111,15 +113,15 @@ namespace EnglishCenter.API.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Assignment>()
-                .HasOne(a => a.Class)
-                .WithMany(c => c.Assignments)
-                .HasForeignKey(a => a.ClassId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Assignment>()
                 .HasOne(a => a.Teacher)
                 .WithMany(t => t.Assignments)
                 .HasForeignKey(a => a.TeacherId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Assignment>()
+                .HasOne(a => a.Curriculum)
+                .WithMany()
+                .HasForeignKey(a => a.CurriculumId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<AssignmentSubmission>()
@@ -251,18 +253,64 @@ namespace EnglishCenter.API.Data
                 .WithMany(t => t.ParticipatedCurriculums)
                 .UsingEntity(j => j.ToTable("CurriculumTeacher"));
 
-            // Configure Document relationships
-            modelBuilder.Entity<Document>()
-                .HasOne(d => d.Teacher)
-                .WithMany(t => t.Documents)
-                .HasForeignKey(d => d.TeacherId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Configure many-to-many relationship between Student and Curriculum
+            modelBuilder.Entity<Curriculum>()
+                .HasMany(c => c.ParticipantStudents)
+                .WithMany(s => s.Curriculums)
+                .UsingEntity(j => j.ToTable("CurriculumStudent"));
 
+            // Configure SessionStudent relationship
+            modelBuilder.Entity<SessionStudent>()
+                .HasOne(ss => ss.CurriculumSession)
+                .WithMany(cs => cs.SessionStudents)
+                .HasForeignKey(ss => ss.CurriculumSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SessionStudent>()
+                .HasOne(ss => ss.Student)
+                .WithMany(s => s.SessionStudents)
+                .HasForeignKey(ss => ss.StudentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SessionStudent>()
+                .HasIndex(ss => new { ss.CurriculumSessionId, ss.StudentId })
+                .IsUnique();
+
+            // Configure SessionAttendance
+            modelBuilder.Entity<SessionAttendance>()
+                .HasOne(sa => sa.CurriculumSession)
+                .WithMany()
+                .HasForeignKey(sa => sa.CurriculumSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SessionAttendance>()
+                .HasOne(sa => sa.Student)
+                .WithMany()
+                .HasForeignKey(sa => sa.StudentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SessionAttendance>()
+                .HasIndex(sa => new { sa.CurriculumSessionId, sa.StudentId, sa.AttendanceDate })
+                .IsUnique();
+
+            // Configure Document-Curriculum relationship
             modelBuilder.Entity<Document>()
-                .HasOne(d => d.Class)
+                .HasOne(d => d.Curriculum)
                 .WithMany(c => c.Documents)
-                .HasForeignKey(d => d.ClassId)
+                .HasForeignKey(d => d.CurriculumId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure Document-CurriculumSession relationship
+            modelBuilder.Entity<CurriculumSession>()
+                .HasOne(cs => cs.Document)
+                .WithMany()
+                .HasForeignKey(cs => cs.DocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure AssignmentSubmission Score precision to fix warning
+            modelBuilder.Entity<AssignmentSubmission>()
+                .Property(a => a.Score)
+                .HasPrecision(5, 2);
 
             // Seed initial data
             SeedData(modelBuilder);

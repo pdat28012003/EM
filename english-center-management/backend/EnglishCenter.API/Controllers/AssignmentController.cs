@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
-using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
-using Microsoft.AspNetCore.Authorization;
-using System.Text.Json;
+using EnglishCenter.API.Models;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Hosting;
+using System.Text.Json;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -24,9 +25,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets assignments for a class with pagination. (Lấy danh sách bài tập của một lớp học với phân trang.)
+        /// Gets assignments for a curriculum with pagination. (Lấy danh sách bài tập của một khóa học với phân trang.)
         /// </summary>
-        /// <param name="classId">Class ID (ID lớp học)</param>
+        /// <param name="curriculumId">Curriculum ID (ID khóa học)</param>
         /// <param name="studentId">Student ID (ID học viên)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
@@ -34,7 +35,7 @@ namespace EnglishCenter.API.Controllers
         /// <returns>Paginated list of assignments (Danh sách bài tập phân trang)</returns>
         [HttpGet]
         public async Task<ActionResult<PagedResult<AssignmentDto>>> GetAssignments(
-            [FromQuery] int? classId = null,
+            [FromQuery] int? curriculumId = null,
             [FromQuery] int? studentId = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -46,14 +47,14 @@ namespace EnglishCenter.API.Controllers
                 if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
                 var query = _context.Assignments
-                    .Include(a => a.Class)
+                    .Include(a => a.Curriculum)
                     .Include(a => a.Teacher)
                     .Include(a => a.Skill)
                     .AsQueryable();
 
-                if (classId.HasValue)
+                if (curriculumId.HasValue)
                 {
-                    query = query.Where(a => a.ClassId == classId.Value);
+                    query = query.Where(a => a.CurriculumId == curriculumId.Value);
                 }
 
                 if (!string.IsNullOrEmpty(status))
@@ -72,7 +73,7 @@ namespace EnglishCenter.API.Controllers
                         Title = a.Title,
                         Description = a.Description,
                         Type = a.Type,
-                        ClassId = a.ClassId,
+                        CurriculumId = a.CurriculumId,
                         TeacherId = a.TeacherId,
                         DueDate = a.DueDate,
                         CreatedAt = a.CreatedAt,
@@ -82,7 +83,7 @@ namespace EnglishCenter.API.Controllers
                         SkillId = a.SkillId,
                         SkillName = a.Skill != null ? a.Skill.Name : null,
                         UpdatedAt = a.UpdatedAt,
-                        ClassName = a.Class != null ? a.Class.ClassName : null,
+                        CurriculumName = a.Curriculum != null ? a.Curriculum.CurriculumName : null,
                         TeacherName = a.Teacher != null ? a.Teacher.FullName : null,
                         SubmissionsCount = a.Submissions.Count,
                         GradedCount = a.Submissions.Count(s => s.Status == "Graded"),
@@ -144,7 +145,7 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var assignment = await _context.Assignments
-                    .Include(a => a.Class)
+                    .Include(a => a.Curriculum)
                     .Include(a => a.Teacher)
                     .Include(a => a.Skill)
                     .Where(a => a.AssignmentId == id)
@@ -154,7 +155,7 @@ namespace EnglishCenter.API.Controllers
                         Title = a.Title,
                         Description = a.Description,
                         Type = a.Type,
-                        ClassId = a.ClassId,
+                        CurriculumId = a.CurriculumId,
                         TeacherId = a.TeacherId,
                         DueDate = a.DueDate,
                         CreatedAt = a.CreatedAt,
@@ -164,7 +165,7 @@ namespace EnglishCenter.API.Controllers
                         SkillId = a.SkillId,
                         SkillName = a.Skill != null ? a.Skill.Name : null,
                         UpdatedAt = a.UpdatedAt,
-                        ClassName = a.Class != null ? a.Class.ClassName : null,
+                        CurriculumName = a.Curriculum != null ? a.Curriculum.CurriculumName : null,
                         TeacherName = a.Teacher != null ? a.Teacher.FullName : null,
                         SubmissionsCount = a.Submissions.Count,
                         GradedCount = a.Submissions.Count(s => s.Status == "Graded")
@@ -194,22 +195,27 @@ namespace EnglishCenter.API.Controllers
         {
             try
             {
-                var classExists = await _context.Classes.AnyAsync(c => c.ClassId == createDto.ClassId);
-                if (!classExists)
+                if (!createDto.CurriculumId.HasValue)
                 {
-                    return BadRequest(new { message = "Class not found" });
+                    return BadRequest(new { message = "Curriculum is required" });
+                }
+
+                var curriculum = await _context.Curriculums.FindAsync(createDto.CurriculumId);
+                if (curriculum == null)
+                {
+                    return BadRequest(new { message = "Curriculum not found" });
                 }
 
                 var assignment = new Assignment
                 {
                     Title = createDto.Title,
-                    Description = createDto.Description,
+                    Description = createDto.Description ?? string.Empty,
                     Type = createDto.Type,
-                    ClassId = createDto.ClassId,
-                    TeacherId = 1, // TODO: Get from authenticated user
-                    DueDate = createDto.DueDate,
+                    CurriculumId = createDto.CurriculumId,
+                    TeacherId = createDto.TeacherId > 0 ? createDto.TeacherId : 1,
+                    DueDate = createDto.DueDate.HasValue ? createDto.DueDate.Value : DateTime.UtcNow.AddDays(7),
                     Status = "Published",
-                    MaxScore = createDto.MaxScore,
+                    MaxScore = createDto.MaxScore.HasValue ? Convert.ToInt32(createDto.MaxScore.Value) : 100,
                     AttachmentUrl = createDto.AttachmentUrl,
                     SkillId = createDto.SkillId,
                     CreatedAt = DateTime.UtcNow
@@ -218,15 +224,13 @@ namespace EnglishCenter.API.Controllers
                 _context.Assignments.Add(assignment);
                 await _context.SaveChangesAsync();
 
-                // Create notifications for all students in the class
-                var studentsInClass = await _context.Enrollments
-                    .Include(e => e.Student)
-                    .Where(e => e.ClassId == createDto.ClassId && e.Status == "Active")
-                    .Select(e => e.Student)
+                // Create notifications for all students in the curriculum
+                var studentsInCurriculum = await _context.Curriculums
+                    .Where(c => c.CurriculumId == createDto.CurriculumId)
+                    .SelectMany(c => c.ParticipantStudents)
                     .ToListAsync();
 
-                var classEntity = await _context.Classes.FindAsync(createDto.ClassId);
-                foreach (var student in studentsInClass)
+                foreach (var student in studentsInCurriculum)
                 {
                     if (student.UserId.HasValue)
                     {
@@ -234,7 +238,7 @@ namespace EnglishCenter.API.Controllers
                         {
                             UserId = student.UserId.Value,
                             Title = "Bài tập mới",
-                            Message = $"Bạn có bài tập mới '{assignment.Title}' trong lớp {classEntity?.ClassName}",
+                            Message = $"Bạn có bài tập mới '{assignment.Title}' trong khóa {curriculum.CurriculumName}",
                             Type = "NewAssignment",
                             RelatedId = assignment.AssignmentId,
                             RelatedType = "Assignment",
@@ -246,13 +250,14 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 // Create notification for teacher (their own activity)
-                if (classEntity?.TeacherId != null)
+                var teacher = await _context.Teachers.FindAsync(assignment.TeacherId);
+                if (teacher?.UserId != null)
                 {
                     var teacherNotification = new Notification
                     {
-                        TeacherId = classEntity.TeacherId,
+                        UserId = teacher.UserId.Value,
                         Title = "Đã tạo bài tập mới",
-                        Message = $"Bạn đã tạo bài tập '{assignment.Title}' trong lớp {classEntity.ClassName}",
+                        Message = $"Bạn đã tạo bài tập '{assignment.Title}' trong khóa {curriculum.CurriculumName}",
                         Type = "TeacherCreatedAssignment",
                         RelatedId = assignment.AssignmentId,
                         RelatedType = "Assignment",
@@ -264,10 +269,10 @@ namespace EnglishCenter.API.Controllers
                     // CREATE ACTIVITY LOG for teacher
                     var activityLog = new ActivityLog
                     {
-                        TeacherId = classEntity.TeacherId,
+                        TeacherId = teacher.TeacherId,
                         Action = "CREATE_ASSIGNMENT",
                         Title = "Đã tạo bài tập mới",
-                        Description = $"Bạn đã tạo bài tập '{assignment.Title}' trong lớp {classEntity.ClassName}",
+                        Description = $"Bạn đã tạo bài tập '{assignment.Title}' trong khóa {curriculum.CurriculumName}",
                         IconType = "assignment",
                         Color = "success",
                         TargetId = assignment.AssignmentId,
@@ -285,7 +290,7 @@ namespace EnglishCenter.API.Controllers
                     Title = assignment.Title,
                     Description = assignment.Description,
                     Type = assignment.Type,
-                    ClassId = assignment.ClassId,
+                    CurriculumId = assignment.CurriculumId,
                     TeacherId = assignment.TeacherId,
                     DueDate = assignment.DueDate,
                     CreatedAt = assignment.CreatedAt,
@@ -334,7 +339,7 @@ namespace EnglishCenter.API.Controllers
                     assignment.DueDate = updateDto.DueDate.Value;
 
                 if (updateDto.MaxScore.HasValue)
-                    assignment.MaxScore = updateDto.MaxScore.Value;
+                    assignment.MaxScore = Convert.ToInt32(updateDto.MaxScore.Value);
 
                 if (!string.IsNullOrEmpty(updateDto.AttachmentUrl))
                     assignment.AttachmentUrl = updateDto.AttachmentUrl;
@@ -355,7 +360,7 @@ namespace EnglishCenter.API.Controllers
                     Title = assignment.Title,
                     Description = assignment.Description,
                     Type = assignment.Type,
-                    ClassId = assignment.ClassId,
+                    CurriculumId = assignment.CurriculumId,
                     TeacherId = assignment.TeacherId,
                     DueDate = assignment.DueDate,
                     CreatedAt = assignment.CreatedAt,
@@ -456,7 +461,7 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var assignment = await _context.Assignments
-                    .Include(a => a.Class)
+                    .Include(a => a.Curriculum)
                     .Include(a => a.Teacher)
                     .Include(a => a.Skill)
                     .FirstOrDefaultAsync(a => a.AssignmentId == id);
@@ -483,7 +488,7 @@ namespace EnglishCenter.API.Controllers
                     Title = assignment.Title,
                     Description = assignment.Description,
                     Type = assignment.Type,
-                    ClassId = assignment.ClassId,
+                    CurriculumId = assignment.CurriculumId,
                     TeacherId = assignment.TeacherId,
                     DueDate = assignment.DueDate,
                     CreatedAt = assignment.CreatedAt,
@@ -493,7 +498,7 @@ namespace EnglishCenter.API.Controllers
                     SkillId = assignment.SkillId,
                     SkillName = assignment.Skill != null ? assignment.Skill.Name : null,
                     UpdatedAt = assignment.UpdatedAt,
-                    ClassName = assignment.Class != null ? assignment.Class.ClassName : null,
+                    CurriculumName = assignment.Curriculum != null ? assignment.Curriculum.CurriculumName : null,
                     TeacherName = assignment.Teacher != null ? assignment.Teacher.FullName : null
                 };
 
@@ -516,7 +521,7 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var assignment = await _context.Assignments
-                    .Include(a => a.Class)
+                    .Include(a => a.Curriculum)
                     .Include(a => a.Teacher)
                     .Include(a => a.Skill)
                     .FirstOrDefaultAsync(a => a.AssignmentId == id);
@@ -543,7 +548,7 @@ namespace EnglishCenter.API.Controllers
                     Title = assignment.Title,
                     Description = assignment.Description,
                     Type = assignment.Type,
-                    ClassId = assignment.ClassId,
+                    CurriculumId = assignment.CurriculumId,
                     TeacherId = assignment.TeacherId,
                     DueDate = assignment.DueDate,
                     CreatedAt = assignment.CreatedAt,
@@ -553,7 +558,7 @@ namespace EnglishCenter.API.Controllers
                     SkillId = assignment.SkillId,
                     SkillName = assignment.Skill != null ? assignment.Skill.Name : null,
                     UpdatedAt = assignment.UpdatedAt,
-                    ClassName = assignment.Class != null ? assignment.Class.ClassName : null,
+                    CurriculumName = assignment.Curriculum != null ? assignment.Curriculum.CurriculumName : null,
                     TeacherName = assignment.Teacher != null ? assignment.Teacher.FullName : null
                 };
 
@@ -584,8 +589,8 @@ namespace EnglishCenter.API.Controllers
                 Console.WriteLine($"[DEBUG] dto.OriginalFileName={dto.OriginalFileName}");
                 
                 var assignment = await _context.Assignments
-                    .Include(a => a.Class)
-                    .ThenInclude(c => c!.Teacher)
+                    .Include(a => a.Curriculum)
+                    .ThenInclude(c => c!.CurriculumDays!.Where(cd => cd.CurriculumSessions.Any(cs => cs.TeacherId != null)).Take(1))
                     .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId);
 
                 if (assignment == null)
@@ -617,12 +622,12 @@ namespace EnglishCenter.API.Controllers
                 await _context.SaveChangesAsync();
 
                 // Create notification for the teacher to grade
-                if (assignment.Class?.TeacherId != null)
+                if (assignment.TeacherId > 0)
                 {
                     var student = await _context.Students.FindAsync(dto.StudentId);
                     var notification = new Notification
                     {
-                        TeacherId = assignment.Class.TeacherId,
+                        TeacherId = assignment.TeacherId,
                         Title = "Có bài tập cần chấm điểm",
                         Message = $"Học viên {student?.FullName} vừa nộp bài '{assignment.Title}'",
                         Type = "SubmissionPending",
@@ -808,9 +813,8 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var assignment = await _context.Assignments
-                    .Include(a => a.Class!)
-                        .ThenInclude(c => c.Enrollments)
-                            .ThenInclude(e => e.Student)
+                    .Include(a => a.Curriculum)
+                        .ThenInclude(c => c!.ParticipantStudents)
                     .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId);
 
                 if (assignment == null)
@@ -822,11 +826,7 @@ namespace EnglishCenter.API.Controllers
                     .Where(s => s.AssignmentId == assignmentId)
                     .ToDictionaryAsync(s => s.StudentId);
 
-                var activeStudents = assignment.Class?.Enrollments
-                    .Where(e => e.Status == "Active")
-                    .Select(e => e.Student)
-                    .Where(s => s != null)
-                    .ToList() ?? new List<Student>();
+                var activeStudents = assignment.Curriculum?.ParticipantStudents?.ToList() ?? new List<Student>();
 
                 var isOverdue = DateTime.UtcNow > assignment.DueDate;
 
@@ -1358,7 +1358,7 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var assignment = await _context.Assignments
-                    .Include(a => a.Class)
+                    .Include(a => a.Curriculum)
                     .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId);
 
                 if (assignment == null)
@@ -1371,9 +1371,11 @@ namespace EnglishCenter.API.Controllers
                 if (!studentExists)
                     return BadRequest(new { message = "Student not found" });
 
-                // Ensure student is enrolled in the class (basic guard)
-                var enrolled = await _context.Enrollments.AnyAsync(e =>
-                    e.StudentId == dto.StudentId && e.ClassId == assignment.ClassId && e.Status == "Active");
+                // Ensure student is enrolled in the curriculum (basic guard)
+                var enrolled = await _context.Curriculums
+                    .Where(c => c.CurriculumId == assignment.CurriculumId)
+                    .SelectMany(c => c.ParticipantStudents)
+                    .AnyAsync(s => s.StudentId == dto.StudentId);
                 if (!enrolled)
                     return Forbid();
 
@@ -1499,7 +1501,7 @@ namespace EnglishCenter.API.Controllers
                     Score = totalScore,
                     Feedback = dto.Note, // Store the reason/note here
                     GradedAt = DateTime.UtcNow,
-                    GradedBy = assignment.Class?.TeacherId
+                    GradedBy = assignment.TeacherId
                 };
                 _context.AssignmentSubmissions.Add(submission);
 

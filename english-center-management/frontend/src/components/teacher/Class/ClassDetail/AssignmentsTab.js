@@ -55,7 +55,7 @@ import {
 } from '@mui/icons-material';
 import { assignmentsAPI, skillsAPI } from '../../../../services/api';
 
-export default function AssignmentsTab({ classId, classInfo }) {
+export default function AssignmentsTab({ curriculumId, curriculumInfo }) {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
@@ -98,10 +98,10 @@ export default function AssignmentsTab({ classId, classInfo }) {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const loadAssignments = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await assignmentsAPI.getAll({
-        classId: classId,
+        curriculumId,
         page: page,
         pageSize: rowsPerPage
       });
@@ -114,7 +114,13 @@ export default function AssignmentsTab({ classId, classInfo }) {
     } finally {
       setLoading(false);
     }
-  }, [classId, page, rowsPerPage]);
+  }, [curriculumId, page, rowsPerPage]);
+
+  useEffect(() => {
+    if (curriculumId) {
+      loadAssignments();
+    }
+  }, [curriculumId, page, rowsPerPage]);
 
   const loadSkills = useCallback(async () => {
     try {
@@ -237,7 +243,7 @@ export default function AssignmentsTab({ classId, classInfo }) {
     try {
       const assignmentData = {
         ...formData,
-        classId: classId,
+        curriculumId,
         dueDate: new Date(formData.dueDate).toISOString()
       };
 
@@ -546,7 +552,7 @@ export default function AssignmentsTab({ classId, classInfo }) {
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h6" fontWeight="bold">
-          Bài tập - {classInfo?.className || `Lớp ${classId}`}
+          Bài tập - {curriculumInfo?.curriculumName || `Khóa học`}
         </Typography>
         <Button
           variant="contained"

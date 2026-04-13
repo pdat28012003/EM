@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI, uploadAPI } from '../../../services/api';
 
-const UPLOAD_URL = process.env.REACT_APP_API_URL?.replace('/api', '') + '/upload' || 'http://localhost:5000/upload';
 const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 export const useProfile = () => {
@@ -10,7 +9,8 @@ export const useProfile = () => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    phoneNumber: ''
+    phoneNumber: '',
+    address: ''
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -31,7 +31,8 @@ export const useProfile = () => {
         setFormData({
           fullName: apiData.fullName || '',
           email: apiData.email || '',
-          phoneNumber: apiData.phoneNumber || ''
+          phoneNumber: apiData.phoneNumber || '',
+          address: apiData.address || ''
         });
         setAvatarPreview(apiData.avatar || '');
         localStorage.setItem('user', JSON.stringify(apiData));
@@ -44,7 +45,8 @@ export const useProfile = () => {
           setFormData({
             fullName: parsedUser.fullName || '',
             email: parsedUser.email || '',
-            phoneNumber: parsedUser.phoneNumber || ''
+            phoneNumber: parsedUser.phoneNumber || '',
+            address: parsedUser.address || ''
           });
           setAvatarPreview(parsedUser.avatar || '');
         } else {

@@ -111,6 +111,11 @@ const TeacherHeader = () => {
     }
   };
 
+  const handleSettings = () => {
+    handleUserMenuClose();
+    navigate('/teacher/profile');
+  };
+
   return (
     <AppBar
       position="fixed"
@@ -173,7 +178,7 @@ const TeacherHeader = () => {
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
           >
-            Lớp học
+            Khóa học
           </Button>
           <Button 
             component={Link}
@@ -187,7 +192,7 @@ const TeacherHeader = () => {
           >
             Lịch dạy
           </Button>
-          <Button 
+          {/* <Button 
             component={Link}
             to="/teacher/availability"
             sx={{ 
@@ -198,7 +203,7 @@ const TeacherHeader = () => {
             }}
           >
             Lịch rảnh
-          </Button>
+          </Button> */}
           <Button 
             component={Link}
             to="/teacher/documents"
@@ -232,6 +237,7 @@ const TeacherHeader = () => {
                 onClose={handleUserMenuClose}
                 user={user}
                 onProfileClick={handleProfile}
+                onSettingsClick={handleSettings}
                 onLogout={handleLogout}
               />
             </>

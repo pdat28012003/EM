@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Typography,
   Box,
@@ -11,7 +11,6 @@ import {
   DialogActions,
   IconButton,
   Chip,
-  Alert,
   Menu,
   MenuItem,
   Fade,
@@ -52,19 +51,24 @@ const Skills = () => {
     description: '',
     isActive: true,
   });
+  const [filterStatus, setFilterStatus] = useState('all');
 
-  useEffect(() => {
-    console.log('Pagination changed:', paginationModel);
-    loadSkills();
-  }, [paginationModel.page, paginationModel.pageSize]);
-
-  const loadSkills = async () => {
+  const loadSkills = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await skillsAPI.getAll({
+      const requestParams = {
         page: paginationModel.page + 1,
         pageSize: paginationModel.pageSize,
-      });
+      };
+      if (filterStatus === 'active') {
+        requestParams.isActive = true;
+      } else if (filterStatus === 'inactive') {
+        requestParams.isActive = false;
+      } else {
+        requestParams.showAll = true;
+      }
+
+      const response = await skillsAPI.getAll(requestParams);
 
       setSkills(response.data.data || []);
       setRowCount(response.data.totalCount || 0);
@@ -73,7 +77,11 @@ const Skills = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [paginationModel.page, paginationModel.pageSize, filterStatus]);
+
+  useEffect(() => {
+    loadSkills();
+  }, [loadSkills]);
 
   const handleOpenDialog = (skill = null) => {
     if (skill) {
@@ -147,22 +155,19 @@ const Skills = () => {
   };
 
   const statusStyle = useMemo(() => {
-    const active = theme.palette.success.main;
-    const activeTextLight = theme.palette.mode === 'light' ? theme.palette.success.dark : active;
-    const inactive = theme.palette.text.secondary;
     return {
       active: {
-        bg: alpha(active, theme.palette.mode === 'dark' ? 0.22 : 0.12),
-        text: activeTextLight,
-        border: alpha(active, theme.palette.mode === 'dark' ? 0.35 : 0.25),
+        bg: alpha('#22c55e', 0.12),
+        text: '#15803d',
+        border: alpha('#22c55e', 0.25),
       },
       inactive: {
-        bg: alpha(inactive, theme.palette.mode === 'dark' ? 0.16 : 0.08),
-        text: inactive,
-        border: alpha(inactive, theme.palette.mode === 'dark' ? 0.28 : 0.18),
+        bg: alpha('#64748b', 0.08),
+        text: '#64748b',
+        border: alpha('#64748b', 0.18),
       },
     };
-  }, [theme.palette.mode, theme.palette.success.dark, theme.palette.success.main, theme.palette.text.secondary]);
+  }, []);
 
   const getSkillIcon = (name) => {
     const n = String(name || '').toLowerCase();
@@ -203,10 +208,10 @@ const Skills = () => {
             sx={{
               width: 28,
               height: 28,
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.18)' : 'rgba(59, 130, 246, 0.12)',
-              color: theme.palette.primary.main,
+              bgcolor: 'rgba(59, 130, 246, 0.12)',
+              color: '#3b82f6',
               border: '1px solid',
-              borderColor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.18)',
+              borderColor: 'rgba(59, 130, 246, 0.18)',
               flexShrink: 0,
             }}
           >
@@ -316,6 +321,33 @@ const Skills = () => {
         >
           Thêm Kỹ Năng Mới
         </Button>
+      </Box>
+
+      <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2} mb={2}>
+        <Box display="flex" alignItems="center" gap={1}>
+          {['all', 'active', 'inactive'].map((status) => {
+            const labels = { all: 'Tất cả', active: 'Active', inactive: 'Inactive' };
+            const isActive = filterStatus === status;
+            return (
+              <Button
+                key={status}
+                variant={isActive ? 'contained' : 'outlined'}
+                color={isActive ? 'primary' : 'inherit'}
+                size="small"
+                onClick={() => {
+                  setFilterStatus(status);
+                  setPaginationModel((prev) => ({ ...prev, page: 0 }));
+                }}
+                sx={{ textTransform: 'none' }}
+              >
+                {labels[status]}
+              </Button>
+            );
+          })}
+        </Box>
+        <Typography variant="body2" color="text.secondary">
+          Hiện {filterStatus === 'all' ? 'tất cả kỹ năng' : filterStatus === 'active' ? 'kỹ năng đang kích hoạt' : 'kỹ năng không kích hoạt'}
+        </Typography>
       </Box>
 
       <Paper sx={{ flex: 1, width: '100%', overflow: 'auto' }}>

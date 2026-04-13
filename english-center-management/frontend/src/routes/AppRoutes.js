@@ -18,7 +18,7 @@ import TeacherLayout from '../components/teacher/TeacherLayout';
 import TeacherClasses from '../components/teacher/Class/Class';
 import ClassDetail from '../components/teacher/Class/ClassDetail/ClassDetail';
 import TeacherSchedule from '../components/teacher/Schedule/Schedule';
-import TeacherAvailabilityManager from '../components/teacher/Availability/TeacherAvailabilityManager';
+// import TeacherAvailabilityManager from '../components/teacher/Availability/TeacherAvailabilityManager';
 import TeacherGrading from '../components/teacher/Grading/TeacherGrading';
 import Documents from '../components/teacher/Documents/Documents';
 import StudentDocuments from '../components/student/Documents/Documents';
@@ -38,6 +38,7 @@ import CurriculumDetail from '../components/admin/curriculum/CurriculumDetail';
 import Rooms from '../components/admin/rooms/Rooms';
 import Attendance from '../components/admin/attendance/Attendance';
 import Schedules from '../components/admin/schedules/Schedules';
+import AdminGrades from '../components/admin/grades/AdminGrades';
 
 const AppRoutes = () => {
   return (
@@ -133,11 +134,11 @@ const AppRoutes = () => {
         </PrivateRoute>
       } />
 
-      <Route path="/teacher/availability" element={
+      {/* <Route path="/teacher/availability" element={
         <PrivateRoute allowedRoles={['teacher']}>
           <TeacherLayout><TeacherAvailabilityManager /></TeacherLayout>
         </PrivateRoute>
-      } />
+      } /> */}
 
       <Route path="/teacher/documents" element={
         <PrivateRoute allowedRoles={['teacher']}>
@@ -206,6 +207,10 @@ const AppRoutes = () => {
 
       <Route path="/schedules" element={
         <PrivateRoute><Layout><Schedules /></Layout></PrivateRoute>
+      } />
+
+      <Route path="/grades" element={
+        <PrivateRoute><Layout><AdminGrades /></Layout></PrivateRoute>
       } />
 
       <Route path="/documents" element={

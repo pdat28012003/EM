@@ -63,9 +63,10 @@ const Classes = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('Loading courses with pageSize: 1000');
       const [classesRes, coursesRes, teachersRes, studentsRes, roomsRes, curriculumsRes] = await Promise.all([
         classesAPI.getAll({ page: paginationModel.page + 1, pageSize: paginationModel.pageSize }),
-        coursesAPI.getAll(),
+        coursesAPI.getAll({ pageSize: 100 }),
         teachersAPI.getAll({ pageSize: 1000 }),
         studentsAPI.getAll({ pageSize: 1000 }),
         roomsAPI.getAll({ pageSize: 1000 }),
@@ -78,7 +79,9 @@ const Classes = () => {
       setRowCount(classesRes.data?.data?.totalCount || classesRes.data?.totalCount || classesData.length);
 
       // Extract lookups
-      setCourses(coursesRes.data?.data?.data || coursesRes.data?.data || []);
+      const coursesData = coursesRes.data?.data?.data || coursesRes.data?.data || [];
+      console.log('Courses loaded:', coursesData.length, coursesData);
+      setCourses(coursesData);
       setTeachers(teachersRes.data?.data?.data || teachersRes.data?.data || []);
       setStudents(studentsRes.data?.data?.data || studentsRes.data?.data || []);
       setRooms(roomsRes.data?.data?.data || roomsRes.data?.data || []);
@@ -97,8 +100,8 @@ const Classes = () => {
         className: classItem.className,
         courseId: classItem.courseId,
         teacherId: classItem.teacherId,
-        startDate: classItem.startDate.split('T')[0],
-        endDate: classItem.endDate.split('T')[0],
+        startDate: classItem.startDate ? classItem.startDate.split('T')[0] : '',
+        endDate: classItem.endDate ? classItem.endDate.split('T')[0] : '',
         maxStudents: classItem.maxStudents,
         roomId: classItem.roomId || '',
         curriculumId: classItem.curriculumId || '',
@@ -169,14 +172,14 @@ const Classes = () => {
     const now = new Date();
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     if (now < start) return 'Sắp khai giảng';
     if (now > end) return 'Đã kết thúc';
     return 'Active';
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
+    switch (status) {
       case 'Sắp khai giảng': return 'warning';
       case 'Đã kết thúc': return 'default';
       case 'Active': return 'success';
@@ -196,9 +199,9 @@ const Classes = () => {
   };
 
   const columns = [
-    { 
-      field: 'classId', 
-      headerName: 'ID', 
+    {
+      field: 'classId',
+      headerName: 'ID',
       width: 70,
       pinned: 'left',
     },
@@ -269,7 +272,7 @@ const Classes = () => {
         const current = params.row.currentStudents || 0;
         const max = params.row.maxStudents || 20;
         const percentage = Math.round((current / max) * 100);
-        
+
         // Logic màu bar: xanh < 90%, cam 90-99%, đỏ >= 100%
         let barColor = theme.palette.success.main;
         if (percentage >= 100) {
@@ -277,7 +280,7 @@ const Classes = () => {
         } else if (percentage >= 90) {
           barColor = theme.palette.warning.main;
         }
-        
+
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, width: '100%', py: 0.5 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -396,12 +399,12 @@ const Classes = () => {
       loadData();
     } catch (error) {
       console.error('Error deleting class:', error);
-      
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.errors?.[0] || 
-                          error.message || 
-                          'Lỗi không xác định khi xóa lớp học';
-      
+
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.errors?.[0] ||
+        error.message ||
+        'Lỗi không xác định khi xóa lớp học';
+
       alert('Lỗi xóa: ' + errorMessage);
     }
   };
@@ -417,18 +420,18 @@ const Classes = () => {
         studentId: parseInt(selectedStudent),
         classId: selectedClass.classId,
       });
-      
+
       alert('Đăng ký học viên thành công!');
       setEnrollDialog(false);
       loadData(); // Reload data
     } catch (error) {
       console.error('Error enrolling student:', error);
-      
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.errors?.[0] || 
-                          error.message || 
-                          'Lỗi không xác định khi đăng ký học viên';
-      
+
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.errors?.[0] ||
+        error.message ||
+        'Lỗi không xác định khi đăng ký học viên';
+
       alert('Lỗi đăng ký: ' + errorMessage);
     }
   };
@@ -436,10 +439,10 @@ const Classes = () => {
   // Lọc học viên chưa đăng ký vào lớp đã chọn
   const getAvailableStudents = () => {
     if (!selectedClass || !students.length) return students;
-    
+
     // Lấy danh sách học viên đã đăng ký trong lớp này
     const enrolledStudentIds = selectedClass.enrollments?.map(e => e.studentId) || [];
-    
+
     // Trả về học viên chưa đăng ký
     return students.filter(student => !enrolledStudentIds.includes(student.studentId));
   };
@@ -540,6 +543,16 @@ const Classes = () => {
               onChange={handleInputChange}
               required
               fullWidth
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
             >
               {courses.map((course) => (
                 <MenuItem key={course.courseId} value={course.courseId}>
@@ -555,6 +568,16 @@ const Classes = () => {
               onChange={handleInputChange}
               required
               fullWidth
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
             >
               {teachers.map((teacher) => (
                 <MenuItem key={teacher.teacherId} value={teacher.teacherId}>
@@ -599,6 +622,16 @@ const Classes = () => {
               select
               required
               fullWidth
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
             >
               {rooms.map((room) => (
                 <MenuItem key={room.roomId} value={room.roomId}>
@@ -613,6 +646,16 @@ const Classes = () => {
               onChange={handleInputChange}
               select
               fullWidth
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
             >
               <MenuItem value="">
                 <em>-- Không chọn --</em>
@@ -647,9 +690,19 @@ const Classes = () => {
               onChange={(e) => setSelectedStudent(e.target.value)}
               fullWidth
               required
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
               helperText={
-                getAvailableStudents().length === 0 
-                  ? "Không có học viên nào chưa đăng ký vào lớp này" 
+                getAvailableStudents().length === 0
+                  ? "Không có học viên nào chưa đăng ký vào lớp này"
                   : `Có ${getAvailableStudents().length} học viên có thể đăng ký`
               }
             >
@@ -659,7 +712,7 @@ const Classes = () => {
                 </MenuItem>
               ))}
             </TextField>
-            
+
             {getAvailableStudents().length === 0 && (
               <Alert severity="info" sx={{ mt: 2 }}>
                 Tất cả học viên đã đăng ký vào lớp này. Không thể thêm học viên mới.
@@ -669,8 +722,8 @@ const Classes = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEnrollDialog(false)}>Hủy</Button>
-          <Button 
-            onClick={handleSaveEnrollment} 
+          <Button
+            onClick={handleSaveEnrollment}
             variant="contained"
             disabled={!selectedStudent || getAvailableStudents().length === 0}
           >
@@ -694,9 +747,9 @@ const Classes = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialog(false)}>Hủy</Button>
-          <Button 
-            onClick={confirmDeleteClass} 
-            variant="contained" 
+          <Button
+            onClick={confirmDeleteClass}
+            variant="contained"
             color="error"
           >
             Xóa

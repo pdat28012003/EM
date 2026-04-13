@@ -3,7 +3,6 @@ import {
   Container,
   Typography,
   Box,
-  Grid,
   Chip,
   CircularProgress,
   Alert,
@@ -15,6 +14,7 @@ import {
   ListItemIcon,
   Avatar,
   Tooltip,
+  Divider,
 } from '@mui/material';
 import {
   Assignment,
@@ -22,17 +22,17 @@ import {
   ErrorOutline,
   AccessTime,
   Launch,
+  Schedule,
+  CheckCircle,
 } from '@mui/icons-material';
 import { studentsAPI, assignmentsAPI, authAPI } from '../../../services/api';
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
 
 const StudentAssignments = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, completed
-  const navigate = useNavigate();
 
   useEffect(() => {
     loadAssignments();
@@ -51,7 +51,6 @@ const StudentAssignments = () => {
 
       const user = JSON.parse(userData);
       let studentId = user.studentId;
-      const email = user.email;
 
       // Fallback: If studentId is missing, fetch profile from server
       if (!studentId) {
@@ -112,6 +111,30 @@ const StudentAssignments = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getDeadlineInfo = (dueDate) => {
+    const now = dayjs();
+    const deadline = dayjs(dueDate);
+    const diffDays = deadline.diff(now, 'day');
+    const diffHours = deadline.diff(now, 'hour');
+    const diffMinutes = deadline.diff(now, 'minute');
+    
+    if (deadline.isBefore(now)) {
+      return { text: 'Đã hết hạn', color: 'error', urgent: true };
+    } else if (diffDays === 0) {
+      if (diffHours <= 2) {
+        return { text: `Còn ${diffMinutes} phút`, color: 'error', urgent: true };
+      } else {
+        return { text: `Còn ${diffHours} giờ`, color: 'warning', urgent: true };
+      }
+    } else if (diffDays === 1) {
+      return { text: 'Còn 1 ngày', color: 'warning', urgent: false };
+    } else if (diffDays <= 3) {
+      return { text: `Còn ${diffDays} ngày`, color: 'info', urgent: false };
+    } else {
+      return { text: `Còn ${diffDays} ngày`, color: 'success', urgent: false };
     }
   };
 
@@ -185,52 +208,91 @@ const StudentAssignments = () => {
         </Alert>
       )}
 
-      {/* Stats and Filters */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={8}>
-          <Box display="flex" gap={1}>
+      {/* Stats and Filters - Improved Layout */}
+      <Paper sx={{ p: 4, mb: 4, bgcolor: 'background.paper', boxShadow: 1 }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between" gap={3}>
+          {/* Left: Filter Buttons */}
+          <Box display="flex" gap={2} alignItems="center" sx={{ pl: 1 }}>
+            <Typography variant="body1" fontWeight={600} sx={{ mr: 1, color: 'text.secondary' }}>
+              Lọc theo:
+            </Typography>
             <Button
               variant={filter === 'all' ? 'contained' : 'outlined'}
               onClick={() => setFilter('all')}
-              sx={{ borderRadius: 10 }}
+              sx={{ 
+                borderRadius: 10,
+                background: filter === 'all' ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' : 'transparent',
+                borderColor: filter === 'all' ? 'transparent' : 'rgba(16, 185, 129, 0.3)',
+                color: filter === 'all' ? 'white' : 'text.secondary',
+                boxShadow: filter === 'all' ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none',
+                '&:hover': {
+                  background: filter === 'all' ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'rgba(16, 185, 129, 0.1)',
+                  borderColor: filter === 'all' ? 'transparent' : 'rgba(16, 185, 129, 0.5)',
+                  boxShadow: filter === 'all' ? '0 6px 16px rgba(16, 185, 129, 0.4)' : 'none',
+                }
+              }}
             >
               Tất cả ({assignments.length})
             </Button>
             <Button
               variant={filter === 'pending' ? 'contained' : 'outlined'}
-              color="primary"
               onClick={() => setFilter('pending')}
-              sx={{ borderRadius: 10 }}
+              sx={{ 
+                borderRadius: 10,
+                background: filter === 'pending' ? 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' : 'transparent',
+                borderColor: filter === 'pending' ? 'transparent' : 'rgba(59, 130, 246, 0.3)',
+                color: filter === 'pending' ? 'white' : 'text.secondary',
+                boxShadow: filter === 'pending' ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none',
+                '&:hover': {
+                  background: filter === 'pending' ? 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' : 'rgba(59, 130, 246, 0.1)',
+                  borderColor: filter === 'pending' ? 'transparent' : 'rgba(59, 130, 246, 0.5)',
+                  boxShadow: filter === 'pending' ? '0 6px 16px rgba(59, 130, 246, 0.4)' : 'none',
+                }
+              }}
             >
               Chờ nộp
             </Button>
             <Button
               variant={filter === 'overdue' ? 'contained' : 'outlined'}
-              color="error"
               onClick={() => setFilter('overdue')}
-              sx={{ borderRadius: 10 }}
+              sx={{ 
+                borderRadius: 10,
+                background: filter === 'overdue' ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' : 'transparent',
+                borderColor: filter === 'overdue' ? 'transparent' : 'rgba(239, 68, 68, 0.3)',
+                color: filter === 'overdue' ? 'white' : 'text.secondary',
+                boxShadow: filter === 'overdue' ? '0 4px 12px rgba(239, 68, 68, 0.3)' : 'none',
+                '&:hover': {
+                  background: filter === 'overdue' ? 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)' : 'rgba(239, 68, 68, 0.1)',
+                  borderColor: filter === 'overdue' ? 'transparent' : 'rgba(239, 68, 68, 0.5)',
+                  boxShadow: filter === 'overdue' ? '0 6px 16px rgba(239, 68, 68, 0.4)' : 'none',
+                }
+              }}
             >
               Quá hạn
             </Button>
           </Box>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, display: 'flex', justifyContent: 'space-around', boxShadow: 1 }}>
-            <Box textAlign="center">
-              <Typography variant="h6" fontWeight="bold" color="primary">{assignments.length}</Typography>
+          
+          {/* Right: Stats */}
+          <Box display="flex" gap={3} alignItems="center">
+            <Box textAlign="center" sx={{ px: 2 }}>
+              <Typography variant="h5" fontWeight="bold" color="#10B981">{assignments.length}</Typography>
               <Typography variant="caption" color="textSecondary">Tổng bài</Typography>
             </Box>
-            <Box textAlign="center">
-              <Typography variant="h6" fontWeight="bold" color="error">{assignments.filter(a => dayjs().isAfter(dayjs(a.dueDate))).length}</Typography>
+            <Divider orientation="vertical" flexItem />
+            <Box textAlign="center" sx={{ px: 2 }}>
+              <Typography variant="h5" fontWeight="bold" color="#EF4444">{assignments.filter(a => dayjs().isAfter(dayjs(a.dueDate))).length}</Typography>
               <Typography variant="caption" color="textSecondary">Quá hạn</Typography>
             </Box>
-            <Box textAlign="center">
-              <Typography variant="h6" fontWeight="bold" color="success">12</Typography>
+            <Divider orientation="vertical" flexItem />
+            <Box textAlign="center" sx={{ px: 2 }}>
+              <Typography variant="h5" fontWeight="bold" color="#10B981">
+                {assignments.filter(a => a.studentStatus === 'Graded' || a.studentStatus === 'Submitted').length || 0}
+              </Typography>
               <Typography variant="caption" color="textSecondary">Hoàn thành</Typography>
             </Box>
           </Box>
-        </Grid>
-      </Grid>
+        </Box>
+      </Paper>
 
       {filteredAssignments.length === 0 ? (
         <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 4, border: '2px dashed #e0e0e0' }}>
@@ -243,6 +305,9 @@ const StudentAssignments = () => {
         <List sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {filteredAssignments.map((assignment) => {
             const statusInfo = getStatusInfo(assignment);
+            const deadlineInfo = getDeadlineInfo(assignment.dueDate);
+            const isCompleted = assignment.studentStatus === 'Graded' || assignment.studentStatus === 'Submitted';
+            
             return (
               <ListItem
                 key={assignment.assignmentId}
@@ -251,39 +316,69 @@ const StudentAssignments = () => {
                 sx={{
                   borderRadius: 3,
                   p: 3,
-                  transition: '0.2s',
+                  transition: 'all 0.3s ease',
+                  border: deadlineInfo.urgent ? `2px solid rgba(239, 68, 68, 0.2)` : '1px solid rgba(0,0,0,0.08)',
                   '&:hover': {
-                    transform: 'scale(1.01)',
-                    boxShadow: 3
+                    transform: 'translateY(-2px)',
+                    boxShadow: 4,
+                    borderColor: deadlineInfo.urgent ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0,0,0,0.12)'
                   }
                 }}
               >
                 <ListItemIcon>
-                  <Avatar sx={{ bgcolor: assignment.type === 'Quiz' ? 'primary.light' : 'secondary.light', width: 50, height: 50 }}>
-                    <Assignment />
+                  <Avatar sx={{ 
+                    bgcolor: isCompleted ? '#10B981' : (assignment.type === 'Quiz' ? '#3B82F6' : '#8B5CF6'), 
+                    width: 56, 
+                    height: 56,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  }}>
+                    {isCompleted ? <CheckCircle /> : <Assignment />}
                   </Avatar>
                 </ListItemIcon>
                 <ListItemText
                   disableTypography
                   primary={
-                    <Box display="flex" alignItems="center" gap={2} mb={0.5}>
-                      <Typography variant="h6" fontWeight="bold">{assignment.title}</Typography>
-                      <Chip label={assignment.type} size="small" variant="outlined" />
+                    <Box display="flex" alignItems="center" gap={2} mb={1}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ flex: 1 }}>
+                        {assignment.title}
+                      </Typography>
+                      <Chip 
+                        label={assignment.type} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ 
+                          borderColor: 'rgba(0,0,0,0.1)',
+                          color: 'text.secondary',
+                          fontWeight: 500
+                        }} 
+                      />
+                      {isCompleted && assignment.studentScore !== null && (
+                        <Chip
+                          icon={<CheckCircle fontSize="small" />}
+                          label={`${assignment.studentScore}/${assignment.maxScore}`}
+                          color="success"
+                          variant="filled"
+                          size="small"
+                          sx={{ fontWeight: 600 }}
+                        />
+                      )}
                     </Box>
                   }
                   secondary={
                     <Box mt={1}>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                         Lớp:{' '}
-                        <Typography component="span" variant="body2" fontWeight="bold" color="text.primary">
+                        <Typography component="span" variant="body2" fontWeight="600" color="text.primary">
                           {assignment.className}
                         </Typography>
                       </Typography>
-                      <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
-                        <Box display="flex" alignItems="center" gap={0.5} sx={{ color: 'text.secondary' }}>
-                          <AccessTime fontSize="small" />
-                          <Typography variant="caption">
-                            Hạn nộp: {dayjs(assignment.dueDate).format('DD/MM/YYYY HH:mm')}
+                      
+                      {/* Deadline and Status Row */}
+                      <Box display="flex" alignItems="center" gap={2} flexWrap="wrap" sx={{ mb: 1.5 }}>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Schedule fontSize="small" sx={{ color: deadlineInfo.color }} />
+                          <Typography variant="body2" fontWeight={500} color={deadlineInfo.color}>
+                            {deadlineInfo.text}
                           </Typography>
                         </Box>
                         <Chip
@@ -291,35 +386,47 @@ const StudentAssignments = () => {
                           label={statusInfo.label}
                           color={statusInfo.color}
                           size="small"
+                          variant={statusInfo.color === 'success' ? 'filled' : 'outlined'}
+                          sx={{ fontWeight: 500 }}
                         />
-                        {assignment.studentScore !== null && (
-                          <Chip
-                            label={`Điểm: ${assignment.studentScore}/${assignment.maxScore}`}
-                            color="success"
-                            variant="outlined"
-                            size="small"
-                          />
-                        )}
                         {assignment.timeSpentSeconds && (
                           <Chip
                             icon={<AccessTime fontSize="small" />}
-                            label={`Thời gian: ${Math.floor(assignment.timeSpentSeconds / 60)}:${String(assignment.timeSpentSeconds % 60).padStart(2, '0')}`}
+                            label={`${Math.floor(assignment.timeSpentSeconds / 60)}:${String(assignment.timeSpentSeconds % 60).padStart(2, '0')}`}
                             variant="outlined"
                             size="small"
+                            sx={{ borderColor: 'rgba(0,0,0,0.1)' }}
                           />
                         )}
                       </Box>
+                      
+                      {/* Additional Info */}
+                      <Typography variant="caption" color="text.secondary">
+                        Hạn nộp: {dayjs(assignment.dueDate).format('DD/MM/YYYY [lúc] HH:mm')}
+                      </Typography>
                     </Box>
                   }
                 />
-                <Box>
-                  <Tooltip title="Vào làm bài">
+                <Box sx={{ ml: 2 }}>
+                  <Tooltip title={isCompleted ? "Xem chi tiết" : "Vào làm bài"}>
                     <Button
-                      variant="contained"
-                      endIcon={<Launch />}
-                      sx={{ borderRadius: 2 }}
+                      variant={isCompleted ? "outlined" : "contained"}
+                      endIcon={isCompleted ? <Launch /> : <Launch />}
+                      sx={{ 
+                        borderRadius: 2,
+                        background: isCompleted ? 'transparent' : 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                        borderColor: isCompleted ? '#10B981' : 'transparent',
+                        color: isCompleted ? '#10B981' : 'white',
+                        '&:hover': {
+                          background: isCompleted ? 'rgba(16, 185, 129, 0.1)' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                          borderColor: isCompleted ? '#059669' : 'transparent',
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                        },
+                        transition: 'all 0.3s ease'
+                      }}
                     >
-                      Làm bài
+                      {isCompleted ? "Xem lại" : "Làm bài"}
                     </Button>
                   </Tooltip>
                 </Box>

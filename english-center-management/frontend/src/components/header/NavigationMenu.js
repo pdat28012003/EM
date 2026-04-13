@@ -3,10 +3,8 @@ import { Link } from 'react-router-dom';
 import {
   Menu,
   MenuItem,
-  Box,
   ListItemIcon,
-  Typography,
-  Divider
+  Typography
 } from '@mui/material';
 import { Assignment, Dashboard, Class, Schedule, AccountCircle, Logout, Description } from '@mui/icons-material';
 import { useNavigation } from '../../hooks/useNavigation';
@@ -56,7 +54,7 @@ const NavigationMenu = ({
         <ListItemIcon>
           <Class fontSize="small" sx={{ color: '#7c3aed' }} />
         </ListItemIcon>
-        <Typography variant="body2">Lớp học</Typography>
+        <Typography variant="body2">Khóa học</Typography>
       </MenuItem>
 
       <MenuItem component={Link} to="/teacher/schedule" onClick={onClose}>

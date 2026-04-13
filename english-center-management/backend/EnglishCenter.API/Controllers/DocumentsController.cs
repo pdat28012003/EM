@@ -36,8 +36,7 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="search">Search term (Tìm kiếm)</param>
         /// <param name="type">Document type (Loại tài liệu)</param>
-        /// <param name="teacherId">Teacher ID (ID giáo viên)</param>
-        /// <param name="classId">Class ID (ID lớp học)</param>
+        /// <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
         /// <param name="date">Upload date (Ngày tải lên)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
@@ -46,16 +45,20 @@ namespace EnglishCenter.API.Controllers
         public async Task<ActionResult<PagedResult<DocumentDto>>> GetAllDocuments(
             [FromQuery] string? search = null,
             [FromQuery] string? type = null,
-            [FromQuery] int? teacherId = null,
-            [FromQuery] int? classId = null,
+            [FromQuery] int? curriculumId = null,
             [FromQuery] DateTime? date = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
             try
             {
-                // Check if user is admin
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                // Check if user is admin - try both JWT "nameid" and standard NameIdentifier claim
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("nameid");
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized(new { message = "Không xác định được người dùng" });
+                }
+
                 var currentUser = await _authService.GetCurrentUserAsync(userId);
                 if (currentUser == null || currentUser.Role?.ToLower() != "admin")
                 {
@@ -75,14 +78,9 @@ namespace EnglishCenter.API.Controllers
                     query = query.Where(d => d.Type == type);
                 }
 
-                if (teacherId.HasValue)
+                if (curriculumId.HasValue)
                 {
-                    query = query.Where(d => d.TeacherId == teacherId.Value);
-                }
-
-                if (classId.HasValue)
-                {
-                    query = query.Where(d => d.ClassId == classId.Value);
+                    query = query.Where(d => d.CurriculumId == curriculumId.Value);
                 }
 
                 if (date.HasValue)
@@ -93,8 +91,7 @@ namespace EnglishCenter.API.Controllers
                 var totalCount = await query.CountAsync();
 
                 var documents = await query
-                    .Include(d => d.Class)
-                    .Include(d => d.Teacher)
+                    .Include(d => d.Curriculum)
                     .OrderByDescending(d => d.UploadDate)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
@@ -110,10 +107,8 @@ namespace EnglishCenter.API.Controllers
                         FilePath = d.FilePath,
                         UploadDate = d.UploadDate,
                         DownloadCount = d.DownloadCount,
-                        TeacherId = d.TeacherId,
-                        ClassId = d.ClassId,
-                        ClassName = d.Class != null ? d.Class.ClassName : null,
-                        TeacherName = d.Teacher != null ? d.Teacher.FullName : null
+                        CurriculumId = d.CurriculumId,
+                        CurriculumName = d.Curriculum != null ? d.Curriculum.CurriculumName : null
                     })
                     .ToListAsync();
 
@@ -128,18 +123,18 @@ namespace EnglishCenter.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving all documents");
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi tải danh sách tài liệu" });
+                _logger.LogError(ex, "Error retrieving all documents: {Message}", ex.Message);
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi tải danh sách tài liệu", error = ex.Message, stackTrace = ex.StackTrace });
             }
         }
 
         /// <summary>
-        /// Gets all documents for a student. (Lấy tất cả tài liệu của sinh viên.)
+        /// Gets all documents for a student. (Lấy tất cả tài liệu cho sinh viên.)
+        /// Documents are now standalone resources.
         /// </summary>
         /// <param name="studentId">Student ID (ID sinh viên)</param>
         /// <param name="search">Search term (Tìm kiếm)</param>
         /// <param name="type">Document type (Loại tài liệu)</param>
-        /// <param name="classId">Class ID (ID lớp học)</param>
         /// <param name="date">Upload date (Ngày tải lên)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
@@ -149,35 +144,13 @@ namespace EnglishCenter.API.Controllers
             int studentId,
             [FromQuery] string? search = null,
             [FromQuery] string? type = null,
-            [FromQuery] int? classId = null,
             [FromQuery] DateTime? date = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
             try
             {
-                // Get active enrollments for this student
-                var activeEnrollments = await _context.Enrollments
-                    .Where(e => e.StudentId == studentId && e.Status == "Active")
-                    .Select(e => e.ClassId)
-                    .ToListAsync();
-
-                if (!activeEnrollments.Any())
-                {
-                    return Ok(new PagedResult<DocumentDto>
-                    {
-                        Data = new List<DocumentDto>(),
-                        TotalCount = 0,
-                        Page = page,
-                        PageSize = pageSize,
-                        TotalPages = 0
-                    });
-                }
-
-                var query = _context.Documents
-                    .Include(d => d.Class)
-                    .Include(d => d.Teacher)
-                    .Where(d => d.ClassId.HasValue && activeEnrollments.Contains(d.ClassId.Value));
+                var query = _context.Documents.AsQueryable();
 
                 // Apply filters
                 if (!string.IsNullOrEmpty(search))
@@ -188,11 +161,6 @@ namespace EnglishCenter.API.Controllers
                 if (!string.IsNullOrEmpty(type))
                 {
                     query = query.Where(d => d.Type == type);
-                }
-
-                if (classId.HasValue)
-                {
-                    query = query.Where(d => d.ClassId == classId.Value);
                 }
 
                 if (date.HasValue)
@@ -217,11 +185,7 @@ namespace EnglishCenter.API.Controllers
                         FileSize = d.FileSize,
                         FilePath = d.FilePath,
                         UploadDate = d.UploadDate,
-                        DownloadCount = d.DownloadCount,
-                        TeacherId = d.TeacherId,
-                        ClassId = d.ClassId,
-                        ClassName = d.Class != null ? d.Class.ClassName : null,
-                        TeacherName = d.Teacher != null ? d.Teacher.FullName : null
+                        DownloadCount = d.DownloadCount
                     })
                     .ToListAsync();
 
@@ -242,12 +206,12 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets all documents for a teacher. (Lấy tất cả tài liệu của giáo viên.)
+        /// Gets all documents for a teacher. (Lấy tất cả tài liệu cho giáo viên.)
+        /// Documents are now standalone resources.
         /// </summary>
         /// <param name="teacherId">Teacher ID (ID giáo viên)</param>
         /// <param name="search">Search term (Tìm kiếm)</param>
         /// <param name="type">Document type (Loại tài liệu)</param>
-        /// <param name="classId">Class ID (ID lớp học)</param>
         /// <param name="date">Upload date (Ngày tải lên)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
@@ -257,7 +221,6 @@ namespace EnglishCenter.API.Controllers
             int teacherId,
             [FromQuery] string? search = null,
             [FromQuery] string? type = null,
-            [FromQuery] int? classId = null,
             [FromQuery] DateTime? date = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
@@ -265,9 +228,6 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var query = _context.Documents.AsQueryable();
-
-                // Filter by teacher ID - assuming there's a TeacherId field in Document
-                query = query.Where(d => d.TeacherId == teacherId);
 
                 // Apply filters
                 if (!string.IsNullOrEmpty(search))
@@ -280,11 +240,6 @@ namespace EnglishCenter.API.Controllers
                     query = query.Where(d => d.Type == type);
                 }
 
-                if (classId.HasValue)
-                {
-                    query = query.Where(d => d.ClassId == classId.Value);
-                }
-
                 if (date.HasValue)
                 {
                     query = query.Where(d => d.UploadDate.Date == date.Value.Date);
@@ -293,7 +248,6 @@ namespace EnglishCenter.API.Controllers
                 var totalCount = await query.CountAsync();
 
                 var documents = await query
-                    .Include(d => d.Class)
                     .OrderByDescending(d => d.UploadDate)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
@@ -308,10 +262,7 @@ namespace EnglishCenter.API.Controllers
                         FileSize = d.FileSize,
                         FilePath = d.FilePath,
                         UploadDate = d.UploadDate,
-                        DownloadCount = d.DownloadCount,
-                        TeacherId = d.TeacherId,
-                        ClassId = d.ClassId,
-                        ClassName = d.Class != null ? d.Class.ClassName : null
+                        DownloadCount = d.DownloadCount
                     })
                     .ToListAsync();
 
@@ -338,8 +289,7 @@ namespace EnglishCenter.API.Controllers
         /// <param name="title">Document title (Tiêu đề tài liệu)</param>
         /// <param name="description">Document description (Mô tả tài liệu)</param>
         /// <param name="type">Document type (Loại tài liệu)</param>
-        /// <param name="classId">Class ID (ID lớp học)</param>
-        /// <param name="teacherId">Teacher ID (ID giáo viên - optional for admin)</param>
+        /// <param name="curriculumId">Curriculum ID (ID chương trình học - optional)</param>
         /// <returns>Uploaded document info (Thông tin tài liệu đã tải)</returns>
         [HttpPost("upload")]
         public async Task<ActionResult<DocumentDto>> UploadDocument(
@@ -347,8 +297,7 @@ namespace EnglishCenter.API.Controllers
             [FromForm] string title,
             [FromForm] string description,
             [FromForm] string type,
-            [FromForm] int? classId = null,
-            [FromForm] int? teacherId = null)
+            [FromForm] int? curriculumId = null)
         {
             try
             {
@@ -362,79 +311,26 @@ namespace EnglishCenter.API.Controllers
                     return BadRequest(new { message = "Tiêu đề tài liệu không được để trống" });
                 }
 
-                // Get current user from token
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                // Get current user from token (for audit purposes only)
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("nameid");
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized(new { message = "Không xác định được người dùng" });
+                }
+
                 var currentUser = await _authService.GetCurrentUserAsync(userId);
                 if (currentUser == null)
                 {
                     return Unauthorized(new { message = "Không xác định được người dùng" });
                 }
 
-                // Determine teacherId based on user role
-                int finalTeacherId;
-                if (currentUser.Role?.ToLower() == "admin")
+                // Validate curriculum if provided
+                if (curriculumId.HasValue)
                 {
-                    // Admin can upload for any teacher, or if not specified, assign to first teacher or leave null
-                    if (teacherId.HasValue)
+                    var curriculum = await _context.Curriculums.FindAsync(curriculumId.Value);
+                    if (curriculum == null)
                     {
-                        // Validate the specified teacher exists
-                        var teacher = await _context.Teachers.FindAsync(teacherId.Value);
-                        if (teacher == null)
-                        {
-                            return BadRequest(new { message = "Giáo viên không tồn tại" });
-                        }
-                        finalTeacherId = teacherId.Value;
-                    }
-                    else
-                    {
-                        // For admin uploads without teacherId, assign to a default teacher or leave null
-                        // Let's assign to the first active teacher, or if none exists, return error
-                        var firstTeacher = await _context.Teachers.FirstOrDefaultAsync(t => t.IsActive);
-                        if (firstTeacher == null)
-                        {
-                            return BadRequest(new { message = "Không có giáo viên nào trong hệ thống để gán tài liệu" });
-                        }
-                        finalTeacherId = firstTeacher.TeacherId;
-                    }
-                }
-                else
-                {
-                    // Non-admin users can only upload for themselves
-                    if (teacherId.HasValue && teacherId.Value != currentUser.UserId)
-                    {
-                        return Forbid("Bạn chỉ có thể upload tài liệu cho chính mình");
-                    }
-                    
-                    // Use teacherId from form if provided and valid, otherwise look up by UserId
-                    if (teacherId.HasValue)
-                    {
-                        // Validate the specified teacher exists
-                        var teacher = await _context.Teachers.FindAsync(teacherId.Value);
-                        if (teacher == null)
-                        {
-                            return BadRequest(new { message = "Giáo viên không tồn tại" });
-                        }
-                        finalTeacherId = teacherId.Value;
-                    }
-                    else
-                    {
-                        // Get teacher record for this user
-                        var userTeacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == currentUser.UserId);
-                        if (userTeacher == null)
-                        {
-                            return BadRequest(new { message = "Không tìm thấy thông tin giáo viên cho người dùng này" });
-                        }
-                        finalTeacherId = userTeacher.TeacherId;
-                    }
-                }
-
-                // Validate class exists if provided
-                if (classId.HasValue)
-                {
-                    var cls = await _context.Classes.FindAsync(classId.Value);
-                    if (cls == null)
-                    {
-                        return BadRequest(new { message = "Lớp học không tồn tại" });
+                        return BadRequest(new { message = "Chương trình học không tồn tại" });
                     }
                 }
 
@@ -480,7 +376,7 @@ namespace EnglishCenter.API.Controllers
                     await file.CopyToAsync(stream);
                 }
 
-                // Create document record
+                // Create document record with optional curriculum association
                 var document = new Document
                 {
                     Title = title,
@@ -492,14 +388,13 @@ namespace EnglishCenter.API.Controllers
                     FilePath = $"/uploads/documents/{uniqueFileName}",
                     UploadDate = DateTime.Now,
                     DownloadCount = 0,
-                    TeacherId = finalTeacherId,
-                    ClassId = classId
+                    CurriculumId = curriculumId
                 };
 
                 _context.Documents.Add(document);
                 await _context.SaveChangesAsync();
 
-                // Return document info
+                // Return document info with curriculum
                 var documentDto = new DocumentDto
                 {
                     DocumentId = document.DocumentId,
@@ -512,11 +407,10 @@ namespace EnglishCenter.API.Controllers
                     FilePath = document.FilePath,
                     UploadDate = document.UploadDate,
                     DownloadCount = document.DownloadCount,
-                    TeacherId = document.TeacherId,
-                    ClassId = document.ClassId
+                    CurriculumId = document.CurriculumId
                 };
 
-                _logger.LogInformation($"Document uploaded successfully: {document.DocumentId} - {document.Title} by User {currentUser.UserId} for Teacher {finalTeacherId}");
+                _logger.LogInformation($"Document uploaded successfully: {document.DocumentId} - {document.Title} by User {currentUser.UserId}");
 
                 return Ok(documentDto);
             }
@@ -592,21 +486,22 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 // Get current user from token
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("nameid");
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized(new { message = "Không xác định được người dùng" });
+                }
+
                 var currentUser = await _authService.GetCurrentUserAsync(userId);
                 if (currentUser == null)
                 {
                     return Unauthorized(new { message = "Không xác định được người dùng" });
                 }
 
-                // Check permission: only admin or the owner teacher can update
-                if (currentUser.Role?.ToLower() != "admin" && document.TeacherId != currentUser.UserId)
+                // Check permission: only admin can update documents
+                if (currentUser.Role?.ToLower() != "admin")
                 {
-                    var userTeacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == currentUser.UserId);
-                    if (userTeacher == null || document.TeacherId != userTeacher.TeacherId)
-                    {
-                        return Forbid("Bạn không có quyền cập nhật tài liệu này");
-                    }
+                    return Forbid("Chỉ admin mới có quyền cập nhật tài liệu");
                 }
 
                 // Update fields
@@ -625,15 +520,15 @@ namespace EnglishCenter.API.Controllers
                     document.Type = request.Type;
                 }
 
-                if (request.ClassId.HasValue)
+                if (request.CurriculumId.HasValue)
                 {
-                    // Validate class exists
-                    var cls = await _context.Classes.FindAsync(request.ClassId.Value);
-                    if (cls == null)
+                    // Validate curriculum exists
+                    var curriculum = await _context.Curriculums.FindAsync(request.CurriculumId.Value);
+                    if (curriculum == null)
                     {
-                        return BadRequest(new { message = "Lớp học không tồn tại" });
+                        return BadRequest(new { message = "Chương trình học không tồn tại" });
                     }
-                    document.ClassId = request.ClassId.Value;
+                    document.CurriculumId = request.CurriculumId.Value;
                 }
 
                 await _context.SaveChangesAsync();
@@ -651,8 +546,7 @@ namespace EnglishCenter.API.Controllers
                     FilePath = document.FilePath,
                     UploadDate = document.UploadDate,
                     DownloadCount = document.DownloadCount,
-                    TeacherId = document.TeacherId,
-                    ClassId = document.ClassId
+                    CurriculumId = document.CurriculumId
                 };
 
                 _logger.LogInformation($"Document updated successfully: {document.DocumentId} - {document.Title}");

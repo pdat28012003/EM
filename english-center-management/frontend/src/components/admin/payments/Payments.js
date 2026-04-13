@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Paper,
@@ -75,6 +76,7 @@ const Payments = () => {
 
   const paymentMethods = ['Cash', 'Card', 'Transfer'];
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadData();
   }, [paginationModel, selectedStatusFilter, selectedMethodFilter, dateFrom, dateTo]);

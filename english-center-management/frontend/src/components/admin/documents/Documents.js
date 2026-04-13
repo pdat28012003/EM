@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import {
   Paper,
@@ -70,12 +71,14 @@ const Documents = () => {
   });
   const [editingDocument, setEditingDocument] = useState(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadDocuments();
     loadTeachers();
     loadClasses();
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadDocuments();
   }, [searchTerm, filterType, filterTeacher, filterClass, paginationModel.page, paginationModel.pageSize]);

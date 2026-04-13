@@ -27,7 +27,11 @@ import {
   ChevronRight,
   PlayArrow,
   Star,
-  Payment
+  Payment,
+  TrendingUp,
+  NewReleases,
+  Announcement,
+  Grade
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -49,6 +53,7 @@ const StudentDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState([]);
+  const [gradeHistory, setGradeHistory] = useState([]);
   const navigate = useNavigate();
   const hasLoaded = React.useRef(false);
 
@@ -70,16 +75,18 @@ const StudentDashboard = () => {
 
   const getActivityIcon = (iconType) => {
     switch (iconType?.toLowerCase()) {
-      case 'assignment': return <Assignment />;
-      case 'assignment_turned_in': return <CheckCircle />;
-      case 'grading': return <Assessment />;
-      case 'menu_book': return <Book />;
-      case 'quiz': return <Assessment />;
-      case 'check_circle': return <CheckCircle />;
-      case 'payment': return <Star />;
-      case 'warning': return <Warning />;
-      case 'schedule': return <CalendarToday />;
-      default: return <Notifications />;
+      case 'assignment': return <Assignment sx={{ color: '#ff9800' }} />;
+      case 'assignment_turned_in': return <CheckCircle sx={{ color: '#4caf50' }} />;
+      case 'grading': return <Assessment sx={{ color: '#9c27b0' }} />;
+      case 'menu_book': return <Book sx={{ color: '#2196f3' }} />;
+      case 'quiz': return <Assessment sx={{ color: '#ff5722' }} />;
+      case 'check_circle': return <CheckCircle sx={{ color: '#4caf50' }} />;
+      case 'payment': return <Star sx={{ color: '#ffc107' }} />;
+      case 'warning': return <Warning sx={{ color: '#ff5722' }} />;
+      case 'schedule': return <CalendarToday sx={{ color: '#3f51b5' }} />;
+      case 'announcement': return <Announcement sx={{ color: '#00bcd4' }} />;
+      case 'new_releases': return <NewReleases sx={{ color: '#ff9800' }} />;
+      default: return <Notifications sx={{ color: '#757575' }} />;
     }
   };
 
@@ -212,6 +219,19 @@ const StudentDashboard = () => {
         color: getActivityColor(a.iconType)
       })));
 
+      // 5. Removed unused next class logic
+
+      // 6. Load grade history for chart
+      const gradeHistoryData = gradesData
+        .sort((a, b) => new Date(a.createdAt || a.CreatedAt) - new Date(b.createdAt || b.CreatedAt))
+        .slice(-10)
+        .map(g => ({
+          date: dayjs(g.createdAt || g.CreatedAt).format('DD/MM'),
+          score: g.score,
+          subject: g.assignmentName || g.AssignmentName || 'Bài tập'
+        }));
+      setGradeHistory(gradeHistoryData);
+
       let completedCount = 0;
       try {
         for (const cls of enrollmentsData.slice(0, 5)) { // Limit to 5 classes for performance
@@ -250,6 +270,109 @@ const StudentDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Grade Progress Chart Component
+  const GradeProgressChart = () => {
+    if (gradeHistory.length === 0) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Grade sx={{ fontSize: 48, color: '#ccc', mb: 2 }} />
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Chưa có dữ liệu điểm số để hiển thị biểu đồ
+          </Typography>
+          <Button 
+            variant="contained" 
+            startIcon={<Assignment />}
+            onClick={() => navigate('/student/assignments')}
+            sx={{
+              background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4338CA 0%, #4F46E5 100%)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 20px rgba(79, 70, 229, 0.3)'
+              },
+              transition: 'all 0.3s ease',
+              px: 3,
+              py: 1
+            }}
+          >
+            Làm bài tập ngay
+          </Button>
+        </Box>
+      );
+    }
+
+    const maxScore = Math.max(...gradeHistory.map(g => g.score), 10);
+    const minScore = Math.min(...gradeHistory.map(g => g.score), 0);
+    const range = maxScore - minScore || 1;
+
+    return (
+      <Box sx={{ p: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <TrendingUp sx={{ color: '#4F46E5' }} />
+          <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>
+            Tiến bộ điểm số
+          </Typography>
+        </Box>
+        
+        {/* Simple Line Chart */}
+        <Box sx={{ height: 200, position: 'relative', bgcolor: 'rgba(79, 70, 229, 0.02)', borderRadius: 2, p: 2 }}>
+          <svg width="100%" height="100%" viewBox="0 0 400 160">
+            {/* Grid lines */}
+            {[0, 1, 2, 3, 4].map(i => (
+              <line
+                key={i}
+                x1="40"
+                y1={20 + i * 30}
+                x2="380"
+                y2={20 + i * 30}
+                stroke="#e0e0e0"
+                strokeWidth="1"
+              />
+            ))}
+            
+            {/* Progress line */}
+            <polyline
+              fill="none"
+              stroke="#4F46E5"
+              strokeWidth="3"
+              points={gradeHistory.map((grade, index) => {
+                const x = 40 + (index * (340 / Math.max(gradeHistory.length - 1, 1)));
+                const y = 140 - ((grade.score - minScore) / range) * 120;
+                return `${x},${y}`;
+              }).join(' ')}
+            />
+            
+            {/* Data points */}
+            {gradeHistory.map((grade, index) => {
+              const x = 40 + (index * (340 / Math.max(gradeHistory.length - 1, 1)));
+              const y = 140 - ((grade.score - minScore) / range) * 120;
+              return (
+                <g key={index}>
+                  <circle cx={x} cy={y} r="5" fill="#4F46E5" />
+                  <text x={x} y={y - 10} textAnchor="middle" fontSize="12" fill="#4F46E5" fontWeight="bold">
+                    {grade.score}
+                  </text>
+                  <text x={x} y={155} textAnchor="middle" fontSize="10" fill="#666">
+                    {grade.date}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </Box>
+        
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Điểm trung bình: {(gradeHistory.reduce((acc, g) => acc + g.score, 0) / gradeHistory.length).toFixed(1)}/10
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Xu hướng: {gradeHistory.length > 1 && gradeHistory[gradeHistory.length - 1].score > gradeHistory[0].score ? '📈 Tăng' : '📉 Giảm'}
+          </Typography>
+        </Box>
+      </Box>
+    );
   };
 
   const StatCard = ({ title, value, icon, color }) => {
@@ -312,7 +435,7 @@ const StudentDashboard = () => {
 
   const menuItems = [
     { icon: <Book />, title: 'Khóa học', subtitle: 'Học tập & Tài liệu', path: '/student/courses', color: '#4F46E5' },
-    { icon: <Schedule />, title: 'Lịch học', subtitle: 'Thời khóa biểu cá nhân', path: '/student/schedule', color: '#4F46E5' },
+    { icon: <Schedule />, title: 'Thời khóa biểu', subtitle: 'Lịch học cá nhân', path: '/student/schedule', color: '#4F46E5' },
     { icon: <Assessment />, title: 'Kết quả', subtitle: 'Bảng điểm & Nhận xét', path: '/student/grades', color: '#4F46E5' },
     { icon: <Folder />, title: 'Tài liệu', subtitle: 'Kho tài liệu bài tập', path: '/student/documents', color: '#4F46E5' },
     { icon: <Payment />, title: 'Thanh toán', subtitle: 'Học phí & Lịch sử', path: '/student/payments', color: '#4F46E5' },
@@ -331,7 +454,7 @@ const StudentDashboard = () => {
       <Box sx={{ mb: 4 }}>
         <Paper
           sx={{
-            p: 0, borderRadius: 3, background: '#4F46E5', color: 'white', overflow: 'hidden', position: 'relative',
+            p: 0, borderRadius: 3, background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #8B5CF6 100%)', color: 'white', overflow: 'hidden', position: 'relative',
             boxShadow: '0 8px 24px rgba(79, 70, 229, 0.25)',
           }}
         >
@@ -352,7 +475,7 @@ const StudentDashboard = () => {
                   <Box>
                     <Typography variant="overline" sx={{ opacity: 0.9, letterSpacing: 1 }}>HỌC VIÊN</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>{student?.fullName || student?.name || 'Học viên'}</Typography>
-                    <Typography variant="body1" sx={{ opacity: 0.85 }}>
+                    <Typography variant="body1" sx={{ opacity: 0.95, fontWeight: 600 }}>
                       Cấp độ: {student?.level || 'Beginner'} • {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </Typography>
                   </Box>
@@ -385,6 +508,7 @@ const StudentDashboard = () => {
         </Paper>
       </Box>
 
+
       {/* Stats Section */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {statsCards.map((stat, index) => (
@@ -406,15 +530,15 @@ const StudentDashboard = () => {
         </Grid>
       </Box>
 
-      {/* Bottom Grid: Recent Classes & Activity */}
+      {/* Bottom Grid: Recent Classes, Activity & Grade Progress */}
       <Grid container spacing={3}>
         {/* Recent Classes */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, height: '100%', borderRadius: 3, border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <School sx={{ color: '#4F46E5' }} />
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>Khóa học của tôi</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>Chương trình học</Typography>
               </Box>
               <Button size="small" endIcon={<ChevronRight />} onClick={() => navigate('/student/courses')} sx={{ textTransform: 'none', fontWeight: 600 }}>Xem tất cả</Button>
             </Box>
@@ -457,14 +581,14 @@ const StudentDashboard = () => {
                   </CardContent>
                 </Card>
               )) : (
-                <Typography variant="body2" color="text.secondary">Bạn chưa đăng ký khóa học nào.</Typography>
+                <Typography variant="body2" color="text.secondary">Bạn chưa đăng ký chương trình học nào.</Typography>
               )}
             </Stack>
           </Paper>
         </Grid>
 
         {/* Learning Activity */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -498,6 +622,13 @@ const StudentDashboard = () => {
                 </Stack>
               </Box>
             </Box>
+          </Paper>
+        </Grid>
+
+        {/* Grade Progress Chart */}
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, height: '100%', borderRadius: 3, border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+            <GradeProgressChart />
           </Paper>
         </Grid>
       </Grid>

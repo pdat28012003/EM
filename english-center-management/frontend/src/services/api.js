@@ -103,7 +103,9 @@ export const teachersAPI = {
   update: (id, data) => api.put(`/teacher/${id}`, data),
   delete: (id) => api.delete(`/teacher/${id}`),
   getSchedule: (id, params) => api.get(`/teacher/${id}/schedule`, { params }),
-  // Teacher Availability
+  // Teacher Availability - NEW API with isBusy flag
+  getTeachersWithAvailability: (params) => api.get('/teacher/availability', { params }),
+  // Old availability APIs (deprecated)
   getAvailabilities: (teacherId) => api.get(`/teacheravailability/teacher/${teacherId}`),
   createAvailability: (data) => api.post('/teacheravailability', data),
   updateAvailability: (id, data) => api.put(`/teacheravailability/${id}`, data),
@@ -220,6 +222,29 @@ export const curriculumAPI = {
   createLesson: (data) => api.post('/curriculum/lesson', data),
   updateLesson: (id, data) => api.put(`/curriculum/lesson/${id}`, data),
   deleteLesson: (id) => api.delete(`/curriculum/lesson/${id}`),
+  // Curriculum Students
+  getStudents: (curriculumId) => api.get(`/curriculum/${curriculumId}/students`),
+  addStudent: (curriculumId, studentId) => api.post(`/curriculum/${curriculumId}/students`, { studentId }),
+  removeStudent: (curriculumId, studentId) => api.delete(`/curriculum/${curriculumId}/students/${studentId}`),
+  // Session Students
+  getSessionStudents: (sessionId) => api.get(`/curriculum/session/${sessionId}/students`),
+  addStudentToSession: (sessionId, studentId, notes) => api.post(`/curriculum/session/${sessionId}/students`, { studentId, notes }),
+  removeStudentFromSession: (sessionId, studentId) => api.delete(`/curriculum/session/${sessionId}/students/${studentId}`),
+  getAvailableStudentsForSession: (sessionId) => api.get(`/curriculum/session/${sessionId}/available-students`),
+  getCurriculumsByStudent: (studentId) => api.get(`/curriculum/student/${studentId}`),
+  getCurriculumsByTeacher: (teacherId) => api.get(`/curriculum/teacher/${teacherId}`),
+  getStudentsByTeacherSessions: (teacherId) => api.get(`/curriculum/teacher/${teacherId}/students`),
+};
+
+// Alias for Documents component
+export const curriculumsAPI = curriculumAPI;
+
+// Session Attendance API
+export const sessionAttendanceAPI = {
+  getAll: (params) => api.get('/sessionattendance', { params }),
+  create: (data) => api.post('/sessionattendance', data),
+  update: (id, data) => api.put(`/sessionattendance/${id}`, data),
+  delete: (id) => api.delete(`/sessionattendance/${id}`),
 };
 
 // Rooms API

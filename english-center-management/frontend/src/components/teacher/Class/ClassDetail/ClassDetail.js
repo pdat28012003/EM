@@ -1,5 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -15,7 +16,7 @@ import {
   Assignment,
   Grading
 } from '@mui/icons-material';
-import { classesAPI } from '../../../../services/api';
+import { curriculumAPI } from '../../../../services/api';
 
 // Import tabs
 import StudentsTab from './StudentsTab';
@@ -39,7 +40,6 @@ function TabPanel({ children, value, index, ...other }) {
 
 export default function ClassDetail() {
   const { classId } = useParams();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [classInfo, setClassInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export default function ClassDetail() {
   const loadClassInfo = async () => {
     try {
       // Load class info from API
-      const response = await classesAPI.getById(classId);
+      const response = await curriculumAPI.getById(classId);
       setClassInfo(response.data);
     } catch (error) {
       console.error('Error loading class info:', error);
@@ -83,9 +83,6 @@ export default function ClassDetail() {
     setActiveTab(newValue);
   };
 
-  const handleBack = () => {
-    navigate('/teacher/classes');
-  };
 
   if (loading) {
     return (
@@ -205,7 +202,7 @@ export default function ClassDetail() {
         </TabPanel>
         
         <TabPanel value={activeTab} index={2}>
-          <AssignmentsTab classId={classId} classInfo={classInfo} />
+          <AssignmentsTab curriculumId={classId} curriculumInfo={classInfo} />
         </TabPanel>
         
         <TabPanel value={activeTab} index={3}>

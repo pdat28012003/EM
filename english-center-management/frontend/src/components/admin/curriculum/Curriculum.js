@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Paper,
   Typography,
@@ -58,17 +58,7 @@ const Curriculum = () => {
     };
   }, [theme.palette.mode, theme.palette.success.dark, theme.palette.success.main, theme.palette.text.secondary]);
 
-  useEffect(() => {
-    loadCurriculums();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paginationModel, selectedCourseFilter]);
-  
-  useEffect(() => {
-    // Reset pagination when filter changes
-    setPaginationModel(prev => ({ ...prev, page: 0 }));
-  }, [selectedCourseFilter]);
-  
-  const loadCurriculums = async () => {
+  const loadCurriculums = useCallback(async () => {
     try {
       let params = {};
       let allData = [];
@@ -88,7 +78,6 @@ const Curriculum = () => {
         setCurriculums(paginatedData);
         setRowCount(allData.length);
       } else {
-        // Normal pagination without filter
         params = {
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
@@ -105,7 +94,21 @@ const Curriculum = () => {
       console.error('Error loading curriculums:', error);
       console.error('Error details:', error.response?.data);
     }
-  };
+  }, [paginationModel, selectedCourseFilter, curriculums.length]);
+
+  useEffect(() => {
+    loadCurriculums();
+  }, [loadCurriculums]);
+  
+  useEffect(() => {
+    // Reset pagination when filter changes
+    setPaginationModel(prev => ({ ...prev, page: 0 }));
+  }, [selectedCourseFilter]);
+
+  useEffect(() => {
+    loadCourses();
+    loadTeachers();
+  }, []);
 
   const loadCourses = async () => {
     try {

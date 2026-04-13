@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -11,17 +12,13 @@ import {
   Paper,
   Avatar,
   IconButton,
-  Tooltip,
-  LinearProgress,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   Divider
@@ -33,13 +30,11 @@ import {
   Schedule as ScheduleIcon,
   LocationOn,
   People,
-  AccessTime,
   Event,
   Today,
   ViewWeek,
   CalendarMonth,
   ArrowBack,
-  Add,
   CheckCircle,
   VideoCameraFront
 } from '@mui/icons-material';
@@ -123,22 +118,6 @@ const TeacherSchedule = () => {
     }
   };
 
-  // Helper function to get next date for a given day of week
-  const getNextDateForDay = (dayOfWeek) => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const today = new Date();
-    const todayDay = today.getDay();
-    const targetDay = days.indexOf(dayOfWeek);
-    
-    let daysUntilTarget = targetDay - todayDay;
-    if (daysUntilTarget <= 0) {
-      daysUntilTarget += 7; // Get next week's day if today or already passed
-    }
-    
-    const nextDate = new Date(today);
-    nextDate.setDate(today.getDate() + daysUntilTarget);
-    return nextDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
-  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -174,26 +153,7 @@ const TeacherSchedule = () => {
     return time ? time.substring(0, 5) : '';
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
-  const formatDateShort = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
 
   const isToday = (dateString) => {
     const today = new Date();
@@ -207,16 +167,6 @@ const TeacherSchedule = () => {
     return scheduleDateTime > now;
   };
 
-  const groupSchedulesByDate = (scheduleList) => {
-    const grouped = {};
-    scheduleList.forEach(schedule => {
-      if (!grouped[schedule.date]) {
-        grouped[schedule.date] = [];
-      }
-      grouped[schedule.date].push(schedule);
-    });
-    return grouped;
-  };
 
   // Helper functions for table format
   const getTimeSlot = (time) => {
@@ -294,7 +244,6 @@ const TeacherSchedule = () => {
     );
   }
 
-  const groupedSchedules = groupSchedulesByDate(schedules);
   const tableSchedules = organizeScheduleForTable(schedules);
   const timeSlots = ['Sáng', 'Chiều', 'Tối'];
   const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
