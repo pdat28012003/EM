@@ -32,7 +32,7 @@ namespace EnglishCenter.API.Controllers
         {
             var result = await _authService.RegisterAsync(request);
             if (!result) return ResponseHelper.BadRequest("Email đã tồn tại hoặc Role không hợp lệ.", "Email already exists or Role is invalid.");
-            return ResponseHelper.Success("Đăng ký thành công. Tài khoản đã được tạo và kích hoạt.", "Registration successful. Account created and activated.");
+            return ResponseHelper.Success<string>("Đăng ký thành công. Tài khoản đã được tạo và kích hoạt.", "Registration successful. Account created and activated.");
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace EnglishCenter.API.Controllers
         {
             var result = await _authService.ResendOtpAsync(email, type);
             if (!result) return ResponseHelper.BadRequest("Không thể gửi lại mã OTP.", "Could not resend OTP.");
-            return ResponseHelper.Success("Mã OTP mới đã được gửi.", "New OTP code has been sent.");
+            return ResponseHelper.Success<string>("Mã OTP mới đã được gửi.", "New OTP code has been sent.");
         }
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace EnglishCenter.API.Controllers
         {
             var result = await _authService.ForgotPasswordAsync(request);
             if (!result) return ResponseHelper.BadRequest("Email không tồn tại trong hệ thống.", "Email does not exist in the system.");
-            return ResponseHelper.Success("Mã OTP khôi phục mật khẩu đã được gửi qua email.", "Password recovery OTP has been sent via email.");
+            return ResponseHelper.Success<string>("Mã OTP khôi phục mật khẩu đã được gửi qua email.", "Password recovery OTP has been sent via email.");
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace EnglishCenter.API.Controllers
         {
             var result = await _authService.ResetPasswordAsync(request);
             if (!result) return ResponseHelper.BadRequest("Mã OTP không hợp lệ hoặc đã hết hạn.", "Invalid or expired OTP.");
-            return ResponseHelper.Success("Mật khẩu đã được đặt lại thành công.", "Password has been reset successfully.");
+            return ResponseHelper.Success<string>("Mật khẩu đã được đặt lại thành công.", "Password has been reset successfully.");
         }
 
         /// <summary>
@@ -187,6 +187,19 @@ namespace EnglishCenter.API.Controllers
             // Return updated user data
             var updatedUser = await _authService.GetCurrentUserAsync(userId);
             return ResponseHelper.Success("Cập nhật thông tin thành công.", updatedUser, "Profile updated successfully.");
+        }
+
+        /// <summary>
+        /// Creates the first admin account (no authorization required - only use once).
+        /// (Tạo tài khoản admin đầu tiên - chỉ sử dụng một lần)
+        /// </summary>
+        [HttpPost("create-first-admin")]
+        public async Task<IActionResult> CreateFirstAdmin([FromBody] RegisterRequest request)
+        {
+            request.Role = "Admin";
+            var result = await _authService.RegisterAsync(request);
+            if (!result) return ResponseHelper.BadRequest("Không thể tạo admin hoặc admin đã tồn tại.", "Could not create admin or admin already exists.");
+            return ResponseHelper.Success<string>("Admin account được tạo thành công.", "Admin account created successfully.");
         }
     }
 }
