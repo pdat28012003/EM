@@ -1,5 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -39,7 +40,6 @@ function TabPanel({ children, value, index, ...other }) {
 
 export default function ClassDetail() {
   const { classId } = useParams();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [classInfo, setClassInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -83,9 +83,6 @@ export default function ClassDetail() {
     setActiveTab(newValue);
   };
 
-  const handleBack = () => {
-    navigate('/teacher/classes');
-  };
 
   if (loading) {
     return (

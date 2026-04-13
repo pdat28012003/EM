@@ -111,6 +111,11 @@ const TeacherHeader = () => {
     }
   };
 
+  const handleSettings = () => {
+    handleUserMenuClose();
+    navigate('/teacher/profile');
+  };
+
   return (
     <AppBar
       position="fixed"
@@ -232,6 +237,7 @@ const TeacherHeader = () => {
                 onClose={handleUserMenuClose}
                 user={user}
                 onProfileClick={handleProfile}
+                onSettingsClick={handleSettings}
                 onLogout={handleLogout}
               />
             </>

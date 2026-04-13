@@ -1,8 +1,8 @@
 import React from 'react';
 import { Box, Grid, TextField, Button, CircularProgress, Typography, Paper } from '@mui/material';
-import { Save, Cancel, PersonOutline, Email, Phone } from '@mui/icons-material';
+import { Save, Cancel, PersonOutline, Email, Phone, Home, CheckCircle } from '@mui/icons-material';
 
-const ProfileField = ({ label, value, icon, editMode, name, onChange, disabled = false }) => {
+const ProfileField = ({ label, value, icon, editMode, name, onChange, disabled = false, verified = false }) => {
   if (editMode) {
     return (
       <TextField
@@ -17,6 +17,14 @@ const ProfileField = ({ label, value, icon, editMode, name, onChange, disabled =
           startAdornment: icon && (
             <Box sx={{ color: 'text.secondary', mr: 1, display: 'flex', alignItems: 'center' }}>
               {icon}
+            </Box>
+          ),
+          endAdornment: verified && (
+            <Box sx={{ display: 'flex', alignItems: 'center', color: 'success.main', ml: 1 }}>
+              <CheckCircle fontSize="small" />
+              <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 500 }}>
+                Đã xác thực
+              </Typography>
             </Box>
           ),
         }}
@@ -41,10 +49,20 @@ const ProfileField = ({ label, value, icon, editMode, name, onChange, disabled =
         border: '1px solid rgba(0,0,0,0.08)'
       }}
     >
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-        {icon}
-        {label}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+          {icon}
+          {label}
+        </Typography>
+        {verified && (
+          <Box sx={{ display: 'flex', alignItems: 'center', color: 'success.main' }}>
+            <CheckCircle fontSize="small" />
+            <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 500 }}>
+              Đã xác thực
+            </Typography>
+          </Box>
+        )}
+      </Box>
       <Typography variant="body1" fontWeight={500}>
         {value || <span style={{ color: '#999', fontStyle: 'italic' }}>Chưa cập nhật</span>}
       </Typography>
@@ -82,6 +100,7 @@ const ProfileForm = ({
             name="email"
             onChange={onInputChange}
             disabled
+            verified
           />
         </Grid>
         <Grid item xs={12}>
@@ -91,6 +110,16 @@ const ProfileForm = ({
             icon={<Phone fontSize="small" />}
             editMode={editMode}
             name="phoneNumber"
+            onChange={onInputChange}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <ProfileField
+            label="Địa chỉ"
+            value={formData.address}
+            icon={<Home fontSize="small" />}
+            editMode={editMode}
+            name="address"
             onChange={onInputChange}
           />
         </Grid>

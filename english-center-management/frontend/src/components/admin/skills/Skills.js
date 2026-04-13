@@ -155,22 +155,19 @@ const Skills = () => {
   };
 
   const statusStyle = useMemo(() => {
-    const active = theme.palette.success.main;
-    const activeTextLight = theme.palette.mode === 'light' ? theme.palette.success.dark : active;
-    const inactive = theme.palette.text.secondary;
     return {
       active: {
-        bg: alpha(active, theme.palette.mode === 'dark' ? 0.22 : 0.12),
-        text: activeTextLight,
-        border: alpha(active, theme.palette.mode === 'dark' ? 0.35 : 0.25),
+        bg: alpha('#22c55e', 0.12),
+        text: '#15803d',
+        border: alpha('#22c55e', 0.25),
       },
       inactive: {
-        bg: alpha(inactive, theme.palette.mode === 'dark' ? 0.16 : 0.08),
-        text: inactive,
-        border: alpha(inactive, theme.palette.mode === 'dark' ? 0.28 : 0.18),
+        bg: alpha('#64748b', 0.08),
+        text: '#64748b',
+        border: alpha('#64748b', 0.18),
       },
     };
-  }, [theme.palette.mode, theme.palette.success.dark, theme.palette.success.main, theme.palette.text.secondary]);
+  }, []);
 
   const getSkillIcon = (name) => {
     const n = String(name || '').toLowerCase();
@@ -211,10 +208,10 @@ const Skills = () => {
             sx={{
               width: 28,
               height: 28,
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.18)' : 'rgba(59, 130, 246, 0.12)',
-              color: theme.palette.primary.main,
+              bgcolor: 'rgba(59, 130, 246, 0.12)',
+              color: '#3b82f6',
               border: '1px solid',
-              borderColor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.18)',
+              borderColor: 'rgba(59, 130, 246, 0.18)',
               flexShrink: 0,
             }}
           >

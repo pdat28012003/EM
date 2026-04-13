@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -13,7 +14,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
   Chip,
   CircularProgress,
   Alert,
@@ -32,6 +32,7 @@ const AdminGrades = () => {
     loadClasses();
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedClass) {
       loadGrades();

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -25,7 +26,7 @@ export default function StudentsTab({ classId, classInfo }) {
   const [availableSlots, setAvailableSlots] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage] = useState(10);
   const [searchKeyword, setSearchKeyword] = useState('');
   const hasLoaded = React.useRef(false);
 
@@ -66,17 +67,6 @@ export default function StudentsTab({ classId, classInfo }) {
     }
   };
 
-  const getAttendanceColor = (attendance) => {
-    if (attendance >= 90) return "success";
-    if (attendance >= 75) return "warning";
-    return "error";
-  };
-
-  const getStatusColor = (status) => {
-    if (status === 'Active') return "success";
-    if (status === 'Inactive') return "error";
-    return "default";
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -96,10 +86,6 @@ export default function StudentsTab({ classId, classInfo }) {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(1);
-  };
 
 
   if (loading) {

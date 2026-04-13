@@ -1,6 +1,4 @@
-import React, { useState, useContext } from 'react';
-import { useTheme } from '@mui/material/styles';
-import { ColorModeContext } from '../../App';
+import React, { useState } from 'react';
 import {
   AppBar,
   Box,
@@ -36,9 +34,7 @@ import {
   Bell,
   Search,
   ChevronDown,
-  Home,
-  Moon,
-  Sun
+  Home
 } from 'lucide-react';
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -69,8 +65,6 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const theme = useTheme();
-  const colorMode = useContext(ColorModeContext);
   const collapsedWidthValue = collapsed ? collapsedWidth : drawerWidth;
 
   const handleDrawerToggle = () => {
@@ -112,7 +106,7 @@ const Layout = ({ children }) => {
   };
 
   const drawer = (
-    <Box sx={{ bgcolor: theme.palette.background.paper, color: theme.palette.text.primary, height: '100%', display: 'flex', flexDirection: 'column', transition: 'width 0.3s ease' }}>
+    <Box sx={{ bgcolor: 'background.paper', color: 'text.primary', height: '100%', display: 'flex', flexDirection: 'column', transition: 'width 0.3s ease' }}>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, transition: 'all 0.3s ease' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 1.5, transition: 'all 0.3s ease' }}>
           {collapsed ? (
@@ -163,11 +157,11 @@ const Layout = ({ children }) => {
               width: 38,
               height: 38,
               borderRadius: '50%',
-              bgcolor: theme.palette.mode === 'light' ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.08)',
-              boxShadow: theme.palette.mode === 'light' ? '0 8px 20px rgba(15, 23, 42, 0.08)' : '0 8px 20px rgba(15, 23, 42, 0.14)',
+              bgcolor: 'rgba(15, 23, 42, 0.05)',
+              boxShadow: '0 8px 20px rgba(15, 23, 42, 0.08)',
               transition: 'all 0.25s ease',
               '&:hover': {
-                bgcolor: theme.palette.mode === 'light' ? 'rgba(15, 23, 42, 0.12)' : 'rgba(255, 255, 255, 0.16)',
+                bgcolor: 'rgba(15, 23, 42, 0.12)',
                 transform: 'scale(1.02)',
               },
             }}
@@ -195,19 +189,11 @@ const Layout = ({ children }) => {
                   justifyContent: collapsed ? 'center' : 'flex-start',
                   alignItems: 'center',
                   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  bgcolor: isActive
-                    ? theme.palette.mode === 'light'
-                      ? 'rgba(59, 130, 246, 0.16)'
-                      : 'rgba(59, 130, 246, 0.24)'
-                    : 'transparent',
-                  color: isActive ? theme.palette.text.primary : theme.palette.text.secondary,
+                  bgcolor: isActive ? 'rgba(59, 130, 246, 0.16)' : 'transparent',
+                  color: isActive ? 'text.primary' : 'text.secondary',
                   '&:hover': {
-                    bgcolor: isActive
-                      ? theme.palette.mode === 'light'
-                        ? 'rgba(59, 130, 246, 0.22)'
-                        : 'rgba(59, 130, 246, 0.28)'
-                      : theme.palette.action.hover,
-                    color: theme.palette.text.primary,
+                    bgcolor: isActive ? 'rgba(59, 130, 246, 0.22)' : 'rgba(0, 0, 0, 0.04)',
+                    color: 'text.primary',
                     transform: collapsed ? 'none' : 'translateX(6px)',
                   },
                 }}
@@ -243,7 +229,7 @@ const Layout = ({ children }) => {
           );
         })}
       </List>
-      <Box sx={{ mt: 'auto', p: 1, borderTop: `1px solid ${theme.palette.divider}` }}>
+      <Box sx={{ mt: 'auto', p: 1, borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
         <ListItemButton
           onClick={handleLogout}
           sx={{
@@ -253,8 +239,8 @@ const Layout = ({ children }) => {
             px: collapsed ? 0 : 1.5,
             justifyContent: collapsed ? 'center' : 'flex-start',
             alignItems: 'center',
-            color: theme.palette.mode === 'light' ? '#dc2626' : '#f87171',
-            '&:hover': { bgcolor: theme.palette.mode === 'light' ? 'rgba(220, 38, 38, 0.12)' : 'rgba(248, 113, 113, 0.14)' },
+            color: '#dc2626',
+            '&:hover': { bgcolor: 'rgba(220, 38, 38, 0.12)' },
           }}
           title={collapsed ? 'Đăng xuất' : undefined}
         >
@@ -285,12 +271,10 @@ const Layout = ({ children }) => {
         sx={{
           width: { sm: `calc(100% - ${collapsedWidthValue}px)` },
           ml: { sm: `${collapsedWidthValue}px` },
-          bgcolor: theme.palette.mode === 'light' 
-            ? 'rgba(255, 255, 255, 0.8)' 
-            : 'rgba(30, 41, 59, 0.8)',
+          bgcolor: 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(12px)',
-          color: theme.palette.text.primary,
-          borderBottom: `1px solid ${theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)'}`,
+          color: 'text.primary',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
@@ -313,13 +297,13 @@ const Layout = ({ children }) => {
                 ml: 1,
                 cursor: 'pointer',
                 '&:hover .headerBreadcrumb': {
-                  color: theme.palette.primary.main,
+                  color: 'primary.main',
                 },
               }}
             >
-              <Home size={18} color={theme.palette.text.secondary} />
-              <Typography variant="body2" sx={{ color: theme.palette.divider }}>/</Typography>
-              <Typography className="headerBreadcrumb" variant="subtitle2" component="div" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: -0.2 }}>
+              <Home size={18} color="#64748b" />
+              <Typography variant="body2" sx={{ color: 'divider' }}>/</Typography>
+              <Typography className="headerBreadcrumb" variant="subtitle2" component="div" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: -0.2 }}>
                 Dashboard
               </Typography>
             </Box>
@@ -329,32 +313,30 @@ const Layout = ({ children }) => {
             <Box sx={{ 
               display: { xs: 'none', sm: 'flex' },
               alignItems: 'center',
-              bgcolor: theme.palette.mode === 'light' 
-                ? 'rgba(0, 0, 0, 0.04)' 
-                : 'rgba(15, 23, 42, 0.6)',
+              bgcolor: 'rgba(0, 0, 0, 0.04)',
               borderRadius: '12px',
               px: 1.5,
               py: 0.5,
               mr: 1,
-              border: `1px solid ${theme.palette.mode === 'light' ? 'transparent' : 'rgba(255, 255, 255, 0.1)'}`,
+              border: '1px solid transparent',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               '&:focus-within': {
-                bgcolor: theme.palette.mode === 'light' ? 'white' : 'transparent',
-                borderColor: theme.palette.primary.main,
-                boxShadow: `0 0 0 2px ${theme.palette.primary.main}33`
+                bgcolor: 'white',
+                borderColor: 'primary.main',
+                boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
               }
             }}>
-              <Search size={16} color={theme.palette.text.secondary} />
+              <Search size={16} color="#64748b" />
               <InputBase
                 placeholder="Tìm kiếm..."
                 sx={{ 
                   ml: 1, 
                   fontSize: '0.85rem', 
-                  color: theme.palette.text.primary,
+                  color: 'text.primary',
                   width: 150,
                   transition: 'width 0.3s',
                   '& .MuiInputBase-input::placeholder': {
-                    color: theme.palette.text.secondary,
+                    color: 'text.secondary',
                     opacity: 0.5
                   },
                   '&:focus-within': { width: 220 }
@@ -362,10 +344,7 @@ const Layout = ({ children }) => {
               />
             </Box>
 
-            <IconButton onClick={colorMode.toggleColorMode} sx={{ color: theme.palette.text.secondary }}>
-              {theme.palette.mode === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </IconButton>
-            <IconButton sx={{ color: theme.palette.text.secondary }}>
+            <IconButton sx={{ color: 'text.secondary' }}>
               <Bell size={20} />
             </IconButton>
             
@@ -377,23 +356,23 @@ const Layout = ({ children }) => {
                 borderRadius: '12px',
                 px: 1,
                 py: 0.5,
-                '&:hover': { bgcolor: theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.04)' }
+                '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
-                  <Typography variant="body2" sx={{ fontWeight: 800, lineHeight: 1, color: theme.palette.text.primary }}>Admin</Typography>
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>Quản trị viên</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800, lineHeight: 1, color: 'text.primary' }}>Admin</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Quản trị viên</Typography>
                 </Box>
                 <Avatar sx={{ 
                   width: 38, 
                   height: 38, 
-                  bgcolor: theme.palette.primary.main, 
+                  bgcolor: 'primary.main', 
                   fontSize: '0.9rem', 
                   fontWeight: 800,
-                  boxShadow: `0 4px 12px ${theme.palette.primary.main}33`
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
                 }}>A</Avatar>
-                <ChevronDown size={14} color={theme.palette.text.secondary} />
+                <ChevronDown size={14} color="#64748b" />
               </Box>
             </Button>
             <MuiMenu

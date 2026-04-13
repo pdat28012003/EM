@@ -33,10 +33,10 @@ const StudentNavigationMenu = ({
         Dashboard
       </MenuItem>
       <MenuItem component={Link} to="/student/courses" onClick={onClose}>
-        Khóa học của tôi
+        Chương trình học
       </MenuItem>
       <MenuItem component={Link} to="/student/schedule" onClick={onClose}>
-        Lịch học
+        Thời khóa biểu
       </MenuItem>
       <MenuItem component={Link} to="/student/assignments" onClick={onClose}>
         Bài tập

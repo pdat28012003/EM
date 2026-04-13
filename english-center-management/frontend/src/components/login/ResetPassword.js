@@ -13,7 +13,7 @@ import {
   IconButton,
   InputAdornment,
 } from "@mui/material";
-import { Lock, ArrowBack, School, MenuBook, Groups, TrendingUp, Visibility, VisibilityOff } from "@mui/icons-material";
+import { Lock, ArrowBack, MenuBook, Groups, TrendingUp, Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { authAPI } from "../../services/api";
 
