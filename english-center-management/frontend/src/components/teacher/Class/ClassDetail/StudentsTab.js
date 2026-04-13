@@ -15,12 +15,15 @@ import {
   TextField,
   Skeleton
 } from '@mui/material';
-import { classesAPI } from '../../../../services/api';
+import { curriculumAPI } from '../../../../services/api';
 
 export default function StudentsTab({ classId, classInfo }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [maxCapacity, setMaxCapacity] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState(null);
+  const [sessions, setSessions] = useState([]);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -35,16 +38,25 @@ export default function StudentsTab({ classId, classInfo }) {
   const loadStudents = async () => {
     try {
       setLoading(true);
-      // Server-side pagination
-      const response = await classesAPI.getStudents(classId, {
-        page: page,
-        pageSize: rowsPerPage
-      });
+      // Get teacherId from localStorage or props
+      const userData = localStorage.getItem('user');
+      const teacherId = userData ? JSON.parse(userData).teacherId : null;
       
-    
-      const pagedData = response.data;
-      setStudents(pagedData?.data || []);        
-      setTotalCount(pagedData?.totalCount || 0); 
+      if (teacherId) {
+        // Get students from teacher's sessions
+        const response = await curriculumAPI.getStudentsByTeacherSessions(teacherId);
+        const data = response.data || {};
+        setStudents(data.students || []);        
+        setTotalCount(data.totalCount || 0);
+        setSessions(data.sessions || []);
+      } else {
+        // Fallback: get all students in curriculum
+        const response = await curriculumAPI.getStudents(classId);
+        const data = response.data || {};
+        setStudents(data.students || []);        
+        setTotalCount(data.totalCount || 0);
+        setSessions(data.sessions || []);
+      }
     } catch (error) {
       console.error('Error loading students:', error);
       setStudents([]);
@@ -147,7 +159,7 @@ export default function StudentsTab({ classId, classInfo }) {
 
       {filteredStudents.length === 0 ? (
         <Alert severity="info">
-          {searchKeyword ? 'Không tìm thấy học viên' : 'Không có học viên trong lớp'}
+          {searchKeyword ? 'Không tìm thấy học viên' : 'Không có học viên trong khóa học'}
         </Alert>
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 3 }}>

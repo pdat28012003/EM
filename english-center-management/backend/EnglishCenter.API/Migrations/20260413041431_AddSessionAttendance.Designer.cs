@@ -4,6 +4,7 @@ using EnglishCenter.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnglishCenter.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260413041431_AddSessionAttendance")]
+    partial class AddSessionAttendance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -138,14 +141,11 @@ namespace EnglishCenter.API.Migrations
                     b.Property<string>("AttachmentUrl")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("ClassId")
+                    b.Property<int>("ClassId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<int?>("CurriculumId")
-                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -183,8 +183,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("AssignmentId");
 
                     b.HasIndex("ClassId");
-
-                    b.HasIndex("CurriculumId");
 
                     b.HasIndex("SkillId");
 
@@ -2037,14 +2035,11 @@ namespace EnglishCenter.API.Migrations
 
             modelBuilder.Entity("EnglishCenter.API.Models.Assignment", b =>
                 {
-                    b.HasOne("EnglishCenter.API.Models.Class", null)
+                    b.HasOne("EnglishCenter.API.Models.Class", "Class")
                         .WithMany("Assignments")
-                        .HasForeignKey("ClassId");
-
-                    b.HasOne("EnglishCenter.API.Models.Curriculum", "Curriculum")
-                        .WithMany()
-                        .HasForeignKey("CurriculumId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("EnglishCenter.API.Models.Skill", "Skill")
                         .WithMany()
@@ -2056,7 +2051,7 @@ namespace EnglishCenter.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Curriculum");
+                    b.Navigation("Class");
 
                     b.Navigation("Skill");
 

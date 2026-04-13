@@ -15,7 +15,7 @@ import {
   Assignment,
   Grading
 } from '@mui/icons-material';
-import { classesAPI } from '../../../../services/api';
+import { curriculumAPI } from '../../../../services/api';
 
 // Import tabs
 import StudentsTab from './StudentsTab';
@@ -69,7 +69,7 @@ export default function ClassDetail() {
   const loadClassInfo = async () => {
     try {
       // Load class info from API
-      const response = await classesAPI.getById(classId);
+      const response = await curriculumAPI.getById(classId);
       setClassInfo(response.data);
     } catch (error) {
       console.error('Error loading class info:', error);
@@ -205,7 +205,7 @@ export default function ClassDetail() {
         </TabPanel>
         
         <TabPanel value={activeTab} index={2}>
-          <AssignmentsTab classId={classId} classInfo={classInfo} />
+          <AssignmentsTab curriculumId={classId} curriculumInfo={classInfo} />
         </TabPanel>
         
         <TabPanel value={activeTab} index={3}>

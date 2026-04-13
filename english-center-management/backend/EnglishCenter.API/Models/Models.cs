@@ -45,6 +45,8 @@ namespace EnglishCenter.API.Models
         public ICollection<TestScore> TestScores { get; set; } = new List<TestScore>();
         public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
         public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
+        public ICollection<Curriculum> Curriculums { get; set; } = new List<Curriculum>();
+        public ICollection<SessionStudent> SessionStudents { get; set; } = new List<SessionStudent>();
     }
 
     public class Teacher
@@ -360,6 +362,7 @@ namespace EnglishCenter.API.Models
         public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<CurriculumDay> CurriculumDays { get; set; } = new List<CurriculumDay>();
         public ICollection<Teacher> ParticipantTeachers { get; set; } = new List<Teacher>();
+        public ICollection<Student> ParticipantStudents { get; set; } = new List<Student>();
         public ICollection<Document> Documents { get; set; } = new List<Document>();
     }
 
@@ -430,6 +433,8 @@ namespace EnglishCenter.API.Models
         public Teacher? Teacher { get; set; }
 
         public ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
+
+        public ICollection<SessionStudent> SessionStudents { get; set; } = new List<SessionStudent>();
     }
 
     public class Lesson
@@ -682,5 +687,59 @@ namespace EnglishCenter.API.Models
         // Navigation properties
         [ForeignKey("TeacherId")]
         public Teacher Teacher { get; set; } = null!;
+    }
+
+    // SessionStudent - Register students to specific sessions
+    public class SessionStudent
+    {
+        [Key]
+        public int SessionStudentId { get; set; }
+
+        [Required]
+        public int CurriculumSessionId { get; set; }
+
+        [Required]
+        public int StudentId { get; set; }
+
+        public DateTime RegistrationDate { get; set; } = DateTime.Now;
+
+        [MaxLength(500)]
+        public string Notes { get; set; } = string.Empty;
+
+        // Navigation properties
+        [ForeignKey("CurriculumSessionId")]
+        public CurriculumSession CurriculumSession { get; set; } = null!;
+
+        [ForeignKey("StudentId")]
+        public Student Student { get; set; } = null!;
+    }
+
+    public class SessionAttendance
+    {
+        [Key]
+        public int SessionAttendanceId { get; set; }
+
+        [Required]
+        public int CurriculumSessionId { get; set; }
+
+        [Required]
+        public int StudentId { get; set; }
+
+        [Required]
+        public DateTime AttendanceDate { get; set; } = DateTime.Now;
+
+        [Required]
+        [MaxLength(20)]
+        public string Status { get; set; } = "Present"; // Present, Absent, Late
+
+        [MaxLength(500)]
+        public string Notes { get; set; } = string.Empty;
+
+        // Navigation properties
+        [ForeignKey("CurriculumSessionId")]
+        public CurriculumSession CurriculumSession { get; set; } = null!;
+
+        [ForeignKey("StudentId")]
+        public Student Student { get; set; } = null!;
     }
 }
