@@ -103,8 +103,7 @@ if (rawConnectionString.StartsWith("postgres://", StringComparison.OrdinalIgnore
         Username = username,
         Password = password,
         Database = database,
-        SslMode = SslMode.Require,
-        TrustServerCertificate = true
+        SslMode = SslMode.Require
     };
 
     connectionString = csb.ConnectionString;
