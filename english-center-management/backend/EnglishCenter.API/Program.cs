@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.FileProviders;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,9 +84,39 @@ builder.Services.AddHttpClient<ISePayService, SePayService>(client =>
 builder.Services.AddSignalR();
 
 // Configure Database
+var rawConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+string connectionString;
+
+if (rawConnectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+    rawConnectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+{
+    var uri = new Uri(rawConnectionString);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : string.Empty;
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
+    var database = uri.AbsolutePath.Trim('/');
+
+    var csb = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.IsDefaultPort ? 5432 : uri.Port,
+        Username = username,
+        Password = password,
+        Database = database,
+        SslMode = SslMode.Require,
+        TrustServerCertificate = true
+    };
+
+    connectionString = csb.ConnectionString;
+}
+else
+{
+    connectionString = rawConnectionString;
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
+        connectionString,
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
 // Register custom services
