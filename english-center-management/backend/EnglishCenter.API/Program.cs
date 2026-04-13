@@ -5,9 +5,16 @@ using EnglishCenter.API.Hubs;
 using EnglishCenter.API.Converters;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
 // Add services to the container
 builder.Services.AddControllers()
@@ -118,6 +125,13 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -128,6 +142,8 @@ app.UseStaticFiles();
 // Log the Swagger URL
 app.Logger.LogInformation("Swagger UI is available at: http://localhost:5000/swagger");
 app.Logger.LogInformation("Or: https://localhost:5001/swagger (if using HTTPS)");
+
+app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
 {

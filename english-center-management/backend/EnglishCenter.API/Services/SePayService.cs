@@ -26,45 +26,42 @@ namespace EnglishCenter.API.Services
             try
             {
                 var sePayConfig = _configuration.GetSection("SePay");
-                var apiUrl = sePayConfig["ApiUrl"] ?? "https://qr.sepay.vn/img";
+                var apiKey = sePayConfig["ApiKey"];
+                var apiUrl = sePayConfig["ApiUrl"] ?? "https://my.sepay.vn/api/v2/qr_code/generate";
 
                 _logger.LogInformation("Generating QR code via SePay. URL: {Url}", apiUrl);
                 _logger.LogInformation("Request data: {Request}", JsonSerializer.Serialize(request));
 
-                // Build QR URL using SePay's public API (no authentication needed)
-                var qrUrl = $"{apiUrl}?acc={request.accountNumber}&bank={GetBankName(request.acqId)}";
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
                 
-                if (!string.IsNullOrEmpty(request.amount) && request.amount != "0")
-                {
-                    qrUrl += $"&amount={request.amount}";
-                }
-                
-                if (!string.IsNullOrEmpty(request.addInfo))
-                {
-                    qrUrl += $"&des={Uri.EscapeDataString(request.addInfo)}";
-                }
+                // Add a reasonable timeout
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
 
-                _logger.LogInformation("Generated QR URL: {QrUrl}", qrUrl);
-
-                // Test if the QR URL is accessible
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                var response = await _httpClient.GetAsync(qrUrl, cts.Token);
+                var response = await _httpClient.PostAsJsonAsync(apiUrl, request, cts.Token);
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("QR code generated successfully via SePay public API");
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var content = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation("SePay Response Content: {Content}", content);
                     
-                    return new SePayQRResponseDto
+                    var result = JsonSerializer.Deserialize<SePayResponse<SePayQRResponseDto>>(content, options);
+                    
+                    if (result?.status == 200 && result.data != null)
                     {
-                        qrCode = request.addInfo ?? $"SEPAY-{DateTime.Now:yyyyMMddHHmmss}",
-                        qrData = qrUrl,
-                        img = qrUrl
-                    };
+                        _logger.LogInformation("QR code generated successfully. QR Code: {QrCode}", result.data.qrCode);
+                        return result.data;
+                    }
+                    
+                    _logger.LogWarning("SePay returned success status code but error or missing data in body: Status={Status}, Error={Error}, FullContent={FullContent}", result?.status, result?.error, content);
+                    return null;
                 }
                 else
                 {
-                    _logger.LogError("SePay QR URL failed with status {StatusCode}", response.StatusCode);
-                    return GenerateFallbackQR(request);
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("SePay API failed with status {StatusCode}: {Error}", response.StatusCode, errorContent);
+                    return null;
                 }
             }
             catch (OperationCanceledException)
