@@ -19,7 +19,11 @@ import {
   TableRow,
   ToggleButton,
   ToggleButtonGroup,
-  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Tooltip,
 } from '@mui/material';
 import {
   CalendarMonth,
@@ -30,11 +34,9 @@ import {
   Refresh,
   ViewModule,
   ViewList,
+  Sync
 } from '@mui/icons-material';
 import { studentsAPI, authAPI } from '../../../services/api';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 
@@ -42,10 +44,12 @@ const StudentSchedule = () => {
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [startDate, setStartDate] = useState(dayjs().startOf('week').add(1, 'day'));
-  const [endDate, setEndDate] = useState(dayjs().endOf('week').add(1, 'day'));
-  const [viewMode, setViewMode] = useState('list'); // 'list' | 'table'
+  const [startDate] = useState(dayjs().startOf('week').add(1, 'day'));
+  const [endDate] = useState(dayjs().endOf('week').add(1, 'day'));
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'table' | 'calendar'
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedClass, setSelectedClass] = useState('all');
+  const [classOptions, setClassOptions] = useState(['all']);
 
   const clearDateFilter = () => {
     setSelectedDate(null);
@@ -53,6 +57,7 @@ const StudentSchedule = () => {
 
   useEffect(() => {
     loadSchedule();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate]);
 
   const loadSchedule = async () => {
@@ -102,7 +107,12 @@ const StudentSchedule = () => {
       const response = await studentsAPI.getSchedule(studentId, params);
 
       const scheduleData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
-      setSchedule(Array.isArray(scheduleData) ? scheduleData : []);
+      const scheduleArray = Array.isArray(scheduleData) ? scheduleData : [];
+      setSchedule(scheduleArray);
+      
+      // Extract unique class names for filter
+      const uniqueClasses = [...new Set(scheduleArray.map(s => s.courseName || s.CourseName).filter(Boolean))];
+      setClassOptions(['all', ...uniqueClasses]);
     } catch (err) {
       console.error('Error loading schedule:', err);
       if (err.response?.status === 404) {
@@ -119,19 +129,25 @@ const StudentSchedule = () => {
   };
 
 
-  const resetDates = () => {
-    setStartDate(dayjs().startOf('week').add(1, 'day'));
-    setEndDate(dayjs().endOf('week').add(1, 'day'));
-  };
-
   const handleViewModeChange = (event, newMode) => {
     if (newMode !== null) {
       setViewMode(newMode);
     }
   };
 
+  // Filter schedule based on selected class
+  const getFilteredSchedule = () => {
+    if (selectedClass === 'all') {
+      return schedule;
+    }
+    return schedule.filter(item => 
+      (item.courseName || item.CourseName) === selectedClass
+    );
+  };
+
   // Helper to group schedule by day of week
   const getScheduleByDay = () => {
+    const filteredSchedule = getFilteredSchedule();
     const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
     const timeSlots = ['08:00', '10:00', '14:00', '16:00', '18:00', '20:00'];
 
@@ -143,7 +159,7 @@ const StudentSchedule = () => {
       });
     });
 
-    schedule.forEach(item => {
+    filteredSchedule.forEach(item => {
       if (item.date || item.Date) {
         const date = dayjs(item.date || item.Date);
         const dayOfWeek = days[date.day() === 0 ? 6 : date.day() - 1];
@@ -171,10 +187,20 @@ const StudentSchedule = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom fontWeight="bold">
-        Lịch Học Của Tôi
-      </Typography>
+    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, sm: 3, md: 4 } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <CalendarMonth sx={{ fontSize: { xs: 24, sm: 28, md: 32 }, color: '#4F46E5' }} />
+        <Typography 
+          variant="h4" 
+          fontWeight="bold"
+          sx={{ 
+            fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
+            lineHeight: 1.2
+          }}
+        >
+          Thời Khóa Biểu
+        </Typography>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -182,30 +208,178 @@ const StudentSchedule = () => {
         </Alert>
       )}
 
-      {/* Filter Controls */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Grid container spacing={3} alignItems="center">
-          <Grid item xs={12} md={8}>
-            <Typography variant="h6">
+      {/* Enhanced Filter Controls */}
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+        {/* Mobile Layout - Stacked */}
+        <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+          {/* Filter Dropdown */}
+          <Box sx={{ mb: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Lọc theo lớp học</InputLabel>
+              <Select
+                value={selectedClass}
+                label="Lọc theo lớp học"
+                onChange={(e) => setSelectedClass(e.target.value)}
+              >
+                <MenuItem value="all">Tất cả lớp học</MenuItem>
+                {classOptions.slice(1).map((className) => (
+                  <MenuItem key={className} value={className}>
+                    {className}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+          
+          {/* Title */}
+          <Box sx={{ textAlign: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
               {selectedDate
                 ? `Lịch học ngày ${selectedDate.format('DD/MM/YYYY')}`
                 : 'Tất cả lịch học'
               }
             </Typography>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Box display="flex" gap={2}>
-              {selectedDate && (
-                <Button variant="outlined" onClick={clearDateFilter}>
-                  Xóa bộ lọc
-                </Button>
-              )}
-              <Button variant="contained" startIcon={<Refresh />} onClick={loadSchedule}>
-                Làm mới
+          </Box>
+          
+          {/* Button Group - Horizontal Scroll */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1, 
+            overflowX: 'auto',
+            '&::-webkit-scrollbar': { height: '6px' },
+            '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
+            '&::-webkit-scrollbar-thumb': { background: '#c1c1c1', borderRadius: '3px' }
+          }}>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              size="small"
+            >
+              <Tooltip title="Danh sách">
+                <ToggleButton value="list">
+                  <ViewList />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Lịch tuần">
+                <ToggleButton value="table">
+                  <ViewModule />
+                </ToggleButton>
+              </Tooltip>
+            </ToggleButtonGroup>
+            
+            {selectedDate && (
+              <Button variant="outlined" onClick={clearDateFilter} size="small">
+                Xóa bộ lọc
               </Button>
-            </Box>
-          </Grid>
-        </Grid>
+            )}
+            
+            <Button 
+              variant="contained" 
+              startIcon={<Refresh />} 
+              onClick={loadSchedule}
+              size="small"
+              sx={{
+                background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #3730A3 0%, #4338CA 100%)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
+                },
+                transition: 'all 0.3s ease',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Làm mới
+            </Button>
+          </Box>
+        </Box>
+        
+        {/* Desktop Layout - Horizontal */}
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
+          {/* Left: Filter */}
+          <Box sx={{ minWidth: 200, flexShrink: 0 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Lọc theo lớp học</InputLabel>
+              <Select
+                value={selectedClass}
+                label="Lọc theo lớp học"
+                onChange={(e) => setSelectedClass(e.target.value)}
+              >
+                <MenuItem value="all">Tất cả lớp học</MenuItem>
+                {classOptions.slice(1).map((className) => (
+                  <MenuItem key={className} value={className}>
+                    {className}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+          
+          {/* Center: Title */}
+          <Box sx={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              {selectedDate
+                ? `Lịch học ngày ${selectedDate.format('DD/MM/YYYY')}`
+                : 'Tất cả lịch học'
+              }
+            </Typography>
+          </Box>
+          
+          {/* Right: Button Group */}
+          <Box display="flex" alignItems="center" gap={1.5} flexShrink={0}>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              size="small"
+            >
+              <Tooltip title="Danh sách">
+                <ToggleButton value="list">
+                  <ViewList />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Lịch tuần">
+                <ToggleButton value="table">
+                  <ViewModule />
+                </ToggleButton>
+              </Tooltip>
+            </ToggleButtonGroup>
+            
+            <Tooltip title="Đồng bộ Google Calendar">
+              <Button 
+                variant="outlined" 
+                startIcon={<Sync />}
+                onClick={() => {/* TODO: Implement Google Calendar sync */}}
+              >
+                Google Calendar
+              </Button>
+            </Tooltip>
+            
+            {selectedDate && (
+              <Button variant="outlined" onClick={clearDateFilter}>
+                Xóa bộ lọc
+              </Button>
+            )}
+            
+            <Button 
+              variant="contained" 
+              startIcon={<Refresh />} 
+              onClick={loadSchedule}
+              sx={{
+                background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #3730A3 0%, #4338CA 100%)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Làm mới
+            </Button>
+          </Box>
+        </Box>
       </Paper>
 
       {schedule.length === 0 ? (
@@ -321,7 +495,7 @@ const StudentSchedule = () => {
         // List View (original cards)
         <>
           <Grid container spacing={3}>
-            {schedule
+            {getFilteredSchedule()
               .sort((a, b) => {
                 // Sắp xếp theo ngày và giờ
                 if (!a.Date || !b.Date) return 0;
@@ -408,7 +582,7 @@ const StudentSchedule = () => {
                   Tổng số buổi học
                 </Typography>
                 <Typography variant="h5" fontWeight="bold">
-                  {schedule.length}
+                  {getFilteredSchedule().length}
                 </Typography>
               </Grid>
               <Grid item xs={6} md={3}>
@@ -416,7 +590,7 @@ const StudentSchedule = () => {
                   Số giáo viên
                 </Typography>
                 <Typography variant="h5" fontWeight="bold">
-                  {[...new Set(schedule.map(s => s.teacherName).filter(Boolean))].length}
+                  {[...new Set(getFilteredSchedule().map(s => s.teacherName).filter(Boolean))].length}
                 </Typography>
               </Grid>
               <Grid item xs={6} md={3}>
@@ -424,7 +598,7 @@ const StudentSchedule = () => {
                   Số phòng học
                 </Typography>
                 <Typography variant="h5" fontWeight="bold">
-                  {[...new Set(schedule.map(s => s.roomName).filter(Boolean))].length}
+                  {[...new Set(getFilteredSchedule().map(s => s.roomName).filter(Boolean))].length}
                 </Typography>
               </Grid>
               <Grid item xs={6} md={3}>
@@ -432,7 +606,7 @@ const StudentSchedule = () => {
                   Số khóa học
                 </Typography>
                 <Typography variant="h5" fontWeight="bold">
-                  {[...new Set(schedule.map(s => s.courseName).filter(Boolean))].length}
+                  {[...new Set(getFilteredSchedule().map(s => s.courseName).filter(Boolean))].length}
                 </Typography>
               </Grid>
             </Grid>

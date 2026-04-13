@@ -32,7 +32,8 @@ const Profile = () => {
       setFormData(prev => ({
         ...prev,
         fullName: user?.fullName || '',
-        phoneNumber: user?.phoneNumber || ''
+        phoneNumber: user?.phoneNumber || '',
+        address: user?.address || ''
       }));
       setError('');
       setSuccess('');

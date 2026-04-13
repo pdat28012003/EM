@@ -3,10 +3,8 @@ import { Link } from 'react-router-dom';
 import {
   Menu,
   MenuItem,
-  Box,
   ListItemIcon,
-  Typography,
-  Divider
+  Typography
 } from '@mui/material';
 import { Assignment, Dashboard, Class, Schedule, AccountCircle, Logout, Description } from '@mui/icons-material';
 import { useNavigation } from '../../hooks/useNavigation';

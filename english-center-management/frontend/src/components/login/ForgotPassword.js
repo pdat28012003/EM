@@ -11,7 +11,7 @@ import {
   Link,
   Avatar,
 } from "@mui/material";
-import { Email, ArrowBack, School, MenuBook, Groups, TrendingUp } from "@mui/icons-material";
+import { Email, ArrowBack, MenuBook, Groups, TrendingUp } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from "../../services/api";
 

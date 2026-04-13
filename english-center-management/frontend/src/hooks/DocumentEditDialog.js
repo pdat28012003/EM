@@ -71,7 +71,7 @@ const DocumentEditDialog = ({
               <MenuItem value="">
                 <em>Không chọn</em>
               </MenuItem>
-              {curriculums.map(c => (
+              {(curriculums || []).map(c => (
                 <MenuItem key={c.curriculumId} value={c.curriculumId}>
                   {c.curriculumName}
                 </MenuItem>

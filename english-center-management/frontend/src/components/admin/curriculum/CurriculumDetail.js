@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -13,18 +14,14 @@ import {
   Group,
   EventNote,
   ArrowBack,
-  EmojiEvents,
-  PictureAsPdf
 } from '@mui/icons-material';
-import { curriculumAPI, roomsAPI, teachersAPI, curriculumsAPI, documentsAPI } from '../../../services/api';
+import { curriculumAPI, roomsAPI, teachersAPI, documentsAPI } from '../../../services/api';
 
 const CurriculumDetail = () => {
   const { curriculumId } = useParams();
   const [curriculum, setCurriculum] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [teachers, setTeachers] = useState([]);
-  const [availableTeachers, setAvailableTeachers] = useState([]);
-  const [loadingAvailableTeachers, setLoadingAvailableTeachers] = useState(false);
   // New state for teachers with availability status from BE
   const [teachersWithAvailability, setTeachersWithAvailability] = useState([]);
   const [loadingTeachersAvailability, setLoadingTeachersAvailability] = useState(false);
@@ -36,8 +33,8 @@ const CurriculumDetail = () => {
   const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
   const [isEditingSession, setIsEditingSession] = useState(false);
   const [isEditingLesson, setIsEditingLesson] = useState(false);
+  const [, setSelectedSession] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
-  const [selectedSession, setSelectedSession] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [dateRange, setDateRange] = useState([]);
   const [showFullDesc, setShowFullDesc] = useState(false);

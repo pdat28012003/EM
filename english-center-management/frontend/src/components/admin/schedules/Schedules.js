@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -15,7 +16,6 @@ import { studentsAPI, classesAPI, teachersAPI, roomsAPI } from '../../../service
 import StudentSchedule from './StudentSchedule';
 import TeacherSchedule from './TeacherSchedule';
 import CreateSchedule from './CreateSchedule';
-import dayjs from 'dayjs';
 
 const Schedules = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -51,6 +51,7 @@ const Schedules = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadStudents();
     loadClasses();
@@ -58,12 +59,14 @@ const Schedules = () => {
     loadRooms();
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedTeacher) {
       loadTeacherSchedule(selectedTeacher.teacherId);
     }
   }, [selectedTeacher, selectedDate, startDate, endDate]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedStudent) {
       loadSchedule(selectedStudent.studentId);
@@ -127,6 +130,7 @@ const Schedules = () => {
   };
 
   // Debounced search functions
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (studentsSearch !== undefined) {
@@ -136,6 +140,7 @@ const Schedules = () => {
     return () => clearTimeout(timeoutId);
   }, [studentsSearch]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (teachersSearch !== undefined) {
@@ -206,11 +211,14 @@ const Schedules = () => {
 
   const loadTeachers = async () => {
     try {
+      setLoadingTeachers(true);
       const response = await teachersAPI.getAll({ isActive: true });
       const teachersData = Array.isArray(response.data?.data) ? response.data.data : [];
       setTeachers(teachersData);
     } catch (err) {
       console.error('Error loading teachers:', err);
+    } finally {
+      setLoadingTeachers(false);
     }
   };
 

@@ -11,7 +11,6 @@ import { useTheme } from '@mui/material/styles';
 import {
   Users,
   GraduationCap,
-  BookOpen,
   DoorOpen,
   TrendingUp,
   CreditCard,

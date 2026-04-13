@@ -5,7 +5,6 @@ import {
   Grid,
   Card,
   CardContent,
-  Chip,
 } from '@mui/material';
 
 const ClassSelection = ({ classes, onSelectClass, loading }) => {
