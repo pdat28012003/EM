@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -13,8 +14,6 @@ import {
   DialogContent,
   DialogActions,
   LinearProgress,
-  IconButton,
-  Tooltip,
   Alert,
   Table,
   TableBody,
@@ -26,17 +25,13 @@ import {
   TextField,
   Select,
   MenuItem,
-  FormControl,
-  InputLabel
+  FormControl
 } from "@mui/material";
 
 import {
-  Assignment,
   Assessment,
   People,
   Class,
-  AccessTime,
-  LocationOn,
   Email,
   Phone
 } from "@mui/icons-material";
@@ -55,8 +50,9 @@ const TeacherClasses = () => {
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendanceData, setAttendanceData] = useState({}); // Lưu trạng thái điểm danh cho từng học viên
+  // eslint-disable-next-line no-unused-vars
   const [selectedClass, setSelectedClass] = useState(null);
-  const [teacher, setTeacher] = useState(null);
+  const [, setTeacher] = useState(null);
   const hasLoaded = React.useRef(false);
 
   // Helper functions
@@ -80,10 +76,6 @@ const TeacherClasses = () => {
 
   const navigate = useNavigate();
 
-  const handleViewExercises = (classItem) => {
-    setSelectedClass(classItem);
-    setAssignmentDialogOpen(true);
-  };
 
   const handleViewClassDetail = (classItem) => {
     // Navigate to class detail page
@@ -137,18 +129,6 @@ const TeacherClasses = () => {
     }
   };
 
-  const handleViewStudents = (classItem) => {
-    setSelectedClass(classItem);
-    setAttendanceData({}); // Reset attendance data khi đổi lớp
-    loadClassStudents(classItem.classId);
-    setStudentsDialogOpen(true);
-  };
-
-  const handleViewGrades = (classItem) => {
-    setSelectedClass(classItem);
-    setAttendanceData({}); // Reset attendance data khi đổi lớp
-    setGradesDialogOpen(true);
-  };
 
   const handleAttendanceChange = (studentId, status) => {
     // Chỉ update local state - KHÔNG GỌI API

@@ -11,7 +11,6 @@ import {
   Avatar,
   IconButton,
   Tooltip,
-  LinearProgress,
   Table,
   TableBody,
   TableCell,
@@ -65,12 +64,14 @@ const Documents = () => {
         loadClasses(parsedUser.studentId || parsedUser.userId);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (student) {
       loadDocuments(student.studentId || student.userId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, filterType, filterClass, filterDate]);
 
   const loadDocuments = async (studentId) => {
@@ -167,11 +168,25 @@ const Documents = () => {
   };
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (!bytes || bytes === 0 || isNaN(bytes)) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      return '-';
+    }
   };
 
   const handleDownload = async (doc) => {
@@ -196,7 +211,47 @@ const Documents = () => {
       const response = await documentsAPI.download(doc.documentId);
       const blob = new Blob([response.data]);
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      
+      // Get file extension
+      const fileName = doc.OriginalFileName || doc.Title || 'download';
+      const fileExtension = fileName.split('.').pop().toLowerCase();
+      
+      // For PDF and images, try to open in preview
+      if (['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
+        // Create a simple preview modal or open in new tab
+        const previewWindow = window.open('', '_blank');
+        previewWindow.document.write(`
+          <html>
+            <head>
+              <title>${fileName} - Preview</title>
+              <style>
+                body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f5f5; }
+                .preview-container { max-width: 100%; max-height: 100vh; }
+                .preview-container img { max-width: 100%; max-height: 90vh; object-fit: contain; }
+                .preview-container iframe { width: 100%; height: 90vh; border: none; }
+                .download-btn { position: fixed; top: 20px; right: 20px; padding: 10px 20px; background: #10B981; color: white; border: none; border-radius: 5px; cursor: pointer; }
+              </style>
+            </head>
+            <body>
+              <button class="download-btn" onclick="window.location.href='${url}'">Tải xuống</button>
+              <div class="preview-container">
+                ${fileExtension === 'pdf' 
+                  ? `<iframe src="${url}"></iframe>` 
+                  : `<img src="${url}" alt="${fileName}" />`
+                }
+              </div>
+            </body>
+          </html>
+        `);
+      } else {
+        // For other files, just download
+        const link = window.document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        window.document.body.appendChild(link);
+        link.click();
+        window.document.body.removeChild(link);
+      }
     } catch (error) {
       console.error('Error viewing document:', error);
     }
@@ -219,7 +274,7 @@ const Documents = () => {
             sx={{ 
               p: 3, 
               borderRadius: 2,
-              background: 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)',
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
               color: 'white'
             }}
           >
@@ -408,6 +463,14 @@ const Documents = () => {
                 setFilterDate(null);
               }}
               fullWidth
+              sx={{
+                borderColor: searchTerm || filterType !== 'all' || filterClass !== 'all' || filterDate ? 'inherit' : 'rgba(0,0,0,0.23)',
+                color: searchTerm || filterType !== 'all' || filterClass !== 'all' || filterDate ? 'inherit' : 'rgba(0,0,0,0.6)',
+                '&:hover': {
+                  borderColor: searchTerm || filterType !== 'all' || filterClass !== 'all' || filterDate ? 'inherit' : 'rgba(0,0,0,0.87)',
+                  color: searchTerm || filterType !== 'all' || filterClass !== 'all' || filterDate ? 'inherit' : 'rgba(0,0,0,0.87)',
+                }
+              }}
             >
               Xóa bộ lọc
             </Button>
@@ -470,12 +533,18 @@ const Documents = () => {
                               label={getTypeLabel(doc.Type)} 
                               color={getTypeColor(doc.Type)}
                               size="small"
+                              sx={{
+                                px: 1.5,
+                                py: 0.5,
+                                fontWeight: 500,
+                                fontSize: '0.75rem'
+                              }}
                             />
                           </TableCell>
                           <TableCell>{doc.ClassName}</TableCell>
                           <TableCell>{doc.TeacherName}</TableCell>
                           <TableCell>{formatFileSize(doc.FileSize)}</TableCell>
-                          <TableCell>{doc.UploadDate}</TableCell>
+                          <TableCell>{formatDate(doc.UploadDate)}</TableCell>
                           <TableCell>{doc.DownloadCount}</TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', gap: 1 }}>

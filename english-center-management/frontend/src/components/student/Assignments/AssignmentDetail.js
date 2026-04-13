@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -10,14 +11,13 @@ import {
   Paper,
   Radio,
   Stack,
-  TextField,
   Typography,
   CircularProgress,
   FormControlLabel,
   RadioGroup,
   Chip,
 } from '@mui/material';
-import { ArrowBack, Save, Upload, AttachFile, CheckCircle } from '@mui/icons-material';
+import { ArrowBack, Save, Upload, AttachFile } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { assignmentsAPI, authAPI, studentsAPI, uploadAPI } from '../../../services/api';
@@ -41,7 +41,6 @@ const StudentAssignmentDetail = () => {
   const [content, setContent] = useState('');
   const [answers, setAnswers] = useState({}); // questionId -> answerId
   const [selectedFile, setSelectedFile] = useState(null);
-  const [attachmentUrl, setAttachmentUrl] = useState(null);
   const fileInputRef = useRef(null);
 
   const numericAssignmentId = useMemo(() => Number(assignmentId), [assignmentId]);
@@ -128,9 +127,6 @@ const StudentAssignmentDetail = () => {
             // Pre-fill content if exists
             if (subRes.data?.content) {
               setContent(subRes.data.content);
-            }
-            if (subRes.data?.attachmentUrl) {
-              setAttachmentUrl(subRes.data.attachmentUrl);
             }
           } catch (e) {
             // ignore 404 - not submitted yet

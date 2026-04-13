@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   IconButton,
@@ -32,6 +33,7 @@ const NotificationDropdown = () => {
   const open = Boolean(anchorEl);
   const actionMenuOpen = Boolean(actionMenuAnchor);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadUnreadCount();
     connectSSE();

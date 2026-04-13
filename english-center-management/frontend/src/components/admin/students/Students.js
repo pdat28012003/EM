@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Paper,
   Typography,
@@ -16,36 +16,28 @@ import {
   Tooltip,
   Menu,
   InputAdornment,
-  Fade,
-  Drawer,
   Divider,
   Stack,
-  useTheme,
   Grid,
   CircularProgress,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { 
-  Add, 
   Edit, 
   Delete, 
   Visibility, 
   VisibilityOff, 
   CalendarMonth, 
   AssignmentInd, 
-  CloudUpload,
   MoreVert,
   Search,
   Clear,
   PersonAdd,
-  FilterList,
-  ArrowUpward,
-  ArrowDownward
+  FilterList
 } from '@mui/icons-material';
 import { studentsAPI, enrollmentsAPI, classesAPI, UPLOAD_URL } from '../../../services/api';
 
 const Students = () => {
-  const theme = useTheme();
   const [students, setStudents] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
@@ -59,8 +51,6 @@ const Students = () => {
   const [editingStudent, setEditingStudent] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(null);
   const [studentSchedule, setStudentSchedule] = useState([]);
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState('');
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     fullName: '',
@@ -97,18 +87,13 @@ const Students = () => {
     return base;
   }, [filterValue]);
 
-  useEffect(() => {
-    loadStudents();
-    loadClasses();
-  }, [searchTerm, filterValue, paginationModel]);
-
   const toDateInputValue = (value) => {
     if (!value) return '';
     const s = value.toString();
     return s.includes('T') ? s.split('T')[0] : s;
   };
 
-  const loadStudents = async () => {
+  const loadStudents = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -163,9 +148,9 @@ const Students = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, filterValue, paginationModel]);
 
-  const loadClasses = async () => {
+  const loadClasses = useCallback(async () => {
     try {
       const response = await classesAPI.getAll({ status: 'Active' });
       const classesData = response.data?.Data || response.data?.data || response.data || [];
@@ -173,7 +158,12 @@ const Students = () => {
     } catch (error) {
       console.error('Error loading classes:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadStudents();
+    loadClasses();
+  }, [loadStudents, loadClasses]);
 
   const handleOpenDialog = (student = null) => {
     if (student) {
@@ -368,39 +358,39 @@ const Students = () => {
 
   const levelStyles = {
     Beginner: { 
-      bgcolor: theme.palette.mode === 'dark' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(241, 245, 249, 0.8)', 
-      color: theme.palette.mode === 'dark' ? '#94a3b8' : '#475569',
-      border: theme.palette.mode === 'dark' ? '1px solid rgba(148, 163, 184, 0.2)' : '1px solid rgba(226, 232, 240, 0.5)',
+      bgcolor: 'rgba(241, 245, 249, 0.8)', 
+      color: '#475569',
+      border: '1px solid rgba(226, 232, 240, 0.5)',
       fontWeight: 600
     },
     Elementary: { 
-      bgcolor: theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 251, 235, 0.8)', 
-      color: theme.palette.mode === 'dark' ? '#f59e0b' : '#b45309',
-      border: theme.palette.mode === 'dark' ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(254, 243, 199, 0.5)',
+      bgcolor: 'rgba(255, 251, 235, 0.8)', 
+      color: '#b45309',
+      border: '1px solid rgba(254, 243, 199, 0.5)',
       fontWeight: 600
     },
     'Pre-Intermediate': { 
-      bgcolor: theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(236, 253, 245, 0.8)', 
-      color: theme.palette.mode === 'dark' ? '#10b981' : '#047857',
-      border: theme.palette.mode === 'dark' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(209, 250, 229, 0.5)',
+      bgcolor: 'rgba(236, 253, 245, 0.8)', 
+      color: '#047857',
+      border: '1px solid rgba(209, 250, 229, 0.5)',
       fontWeight: 600
     },
     Intermediate: { 
-      bgcolor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 246, 255, 0.8)', 
-      color: theme.palette.mode === 'dark' ? '#3b82f6' : '#1d4ed8',
-      border: theme.palette.mode === 'dark' ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(219, 234, 254, 0.5)',
+      bgcolor: 'rgba(239, 246, 255, 0.8)', 
+      color: '#1d4ed8',
+      border: '1px solid rgba(219, 234, 254, 0.5)',
       fontWeight: 600
     },
     'Upper-Intermediate': { 
-      bgcolor: theme.palette.mode === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(245, 243, 255, 0.8)', 
-      color: theme.palette.mode === 'dark' ? '#8b5cf6' : '#6d28d9',
-      border: theme.palette.mode === 'dark' ? '1px solid rgba(139, 92, 246, 0.2)' : '1px solid rgba(237, 233, 254, 0.5)',
+      bgcolor: 'rgba(245, 243, 255, 0.8)', 
+      color: '#6d28d9',
+      border: '1px solid rgba(237, 233, 254, 0.5)',
       fontWeight: 600
     },
     Advanced: { 
-      bgcolor: theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(254, 242, 242, 0.8)', 
-      color: theme.palette.mode === 'dark' ? '#ef4444' : '#b91c1c',
-      border: theme.palette.mode === 'dark' ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(254, 226, 226, 0.5)',
+      bgcolor: 'rgba(254, 242, 242, 0.8)', 
+      color: '#b91c1c',
+      border: '1px solid rgba(254, 226, 226, 0.5)',
       fontWeight: 600
     },
   };
@@ -454,7 +444,7 @@ const Students = () => {
         <Typography 
           variant="body2" 
           sx={{ 
-            color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.7)' : 'text.secondary', 
+            color: 'text.secondary', 
             fontWeight: 500,
             width: '100%',
             textAlign: 'center',
@@ -474,7 +464,7 @@ const Students = () => {
         <Typography 
           variant="body2" 
           sx={{ 
-            color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.7)' : 'text.secondary',
+            color: 'text.secondary',
             width: '100%',
             textAlign: 'center',
           }}
@@ -658,21 +648,21 @@ const Students = () => {
                       boxShadow: 'none',
                     } : {}),
                     ...(!isActive ? {
-                      border: (theme.palette.mode === 'dark') ? 'none' : '1px solid',
-                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                      border: '1px solid',
+                      bgcolor: 'transparent',
                       color: 'inherit',
                       boxShadow: 'none',
                     } : {}),
                     ...(isActive && !isLevel ? {
                       bgcolor: 'primary.main',
                       color: 'white',
-                      border: theme.palette.mode === 'dark' ? 'none' : '1px solid',
-                      boxShadow: theme.palette.mode === 'dark' ? '0 0 12px rgba(59, 130, 246, 0.5)' : 'none',
+                      border: '1px solid',
+                      boxShadow: 'none',
                     } : {}),
                     '&:hover': { 
                       ...(isLevel
                         ? { bgcolor: levelStyle?.bgcolor, color: levelStyle?.color, border: levelStyle?.border, boxShadow: 'none' }
-                        : { bgcolor: 'primary.main', color: 'white', boxShadow: theme.palette.mode === 'dark' ? '0 0 12px rgba(59, 130, 246, 0.3)' : 'none' })
+                        : { bgcolor: 'primary.main', color: 'white', boxShadow: 'none' })
                     }
                   }}
                 />
@@ -683,7 +673,7 @@ const Students = () => {
           <IconButton 
             onClick={handleOpenFilterMenu}
             sx={{ 
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'background.default', 
+              bgcolor: 'background.default', 
               borderRadius: 2,
               '&:hover': { bgcolor: 'primary.main', color: 'white' }
             }}
@@ -700,8 +690,8 @@ const Students = () => {
                 width: 200,
                 borderRadius: 2,
                 mt: 1,
-                boxShadow: theme.palette.mode === 'dark' ? '0 8px 32px rgba(0,0,0,0.5)' : '0 4px 20px rgba(0,0,0,0.1)',
-                border: theme.palette.mode === 'dark' ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                border: 'none',
               }
             }}
           >
@@ -759,7 +749,7 @@ const Students = () => {
             border: 'none',
             '& .MuiDataGrid-columnSeparator': { display: 'none' },
             '& .MuiDataGrid-columnHeaders': {
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.7)' : 'rgba(248, 250, 252, 0.5)',
+              bgcolor: 'rgba(248, 250, 252, 0.5)',
               borderBottom: '1px solid',
               borderColor: 'divider',
             },
@@ -774,7 +764,7 @@ const Students = () => {
               transition: 'all 0.2s ease',
               borderBottom: '1px solid rgba(226, 232, 240, 0.05)',
               '&:hover': {
-                bgcolor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.04)' : '#f8fafc',
+                bgcolor: '#f8fafc',
                 '& .actions-icon': {
                   color: 'primary.main',
                   transform: 'scale(1.1)',

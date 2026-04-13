@@ -7,14 +7,11 @@ import {
   Typography,
   IconButton,
   Box,
-  Button,
-  Badge
+  Button
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  School,
-  Notifications,
-  AccountCircle
+  School
 } from '@mui/icons-material';
 import { authAPI } from '../../services/api';
 import { useNavigation } from '../../hooks/useNavigation';
@@ -79,6 +76,10 @@ const StudentHeader = () => {
   };
 
   const handleProfile = () => {
+    navigate('/student/profile');
+  };
+
+  const handleSettings = () => {
     navigate('/student/profile');
   };
 
@@ -163,7 +164,7 @@ const StudentHeader = () => {
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
           >
-            Khóa học của tôi
+            Chương trình học
           </Button>
           <Button
             component={Link}
@@ -176,7 +177,7 @@ const StudentHeader = () => {
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
           >
-            Lịch học
+            Thời khóa biểu
           </Button>
           <Button
             component={Link}
@@ -238,6 +239,7 @@ const StudentHeader = () => {
                 onClose={handleUserMenuClose}
                 user={user}
                 onProfileClick={handleProfile}
+                onSettingsClick={handleSettings}
                 onLogout={handleLogout}
               />
             </>

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Typography,
@@ -15,7 +16,6 @@ import {
   Chip,
   Menu,
   InputAdornment,
-  CircularProgress,
   useTheme,
   Grid,
   Avatar,
@@ -33,8 +33,6 @@ import {
   Payments, 
   AccessTime,
   Close,
-  Label,
-  Info
 } from '@mui/icons-material';
 import { coursesAPI } from '../../../services/api';
 import { alpha } from '@mui/material/styles';
@@ -65,6 +63,7 @@ const Courses = () => {
 
   const levels = ['Tất cả', 'Beginner', 'Elementary', 'Intermediate', 'Advanced'];
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadCourses();
   }, [paginationModel, filterLevel, searchTerm]);

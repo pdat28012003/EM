@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Avatar as MuiAvatar,
   IconButton,
   Tooltip,
-  CircularProgress,
   Typography
 } from '@mui/material';
-import { Camera } from '@mui/icons-material';
 
 const UserAvatar = ({ 
   user, 
@@ -19,7 +16,6 @@ const UserAvatar = ({
   ...props 
 }) => {
   const [updateTrigger, setUpdateTrigger] = useState(0);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Listen for user updates to refresh avatar
