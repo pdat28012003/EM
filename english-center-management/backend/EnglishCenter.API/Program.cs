@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
 using EnglishCenter.API.Services;
+using EnglishCenter.API.Hubs;
 using EnglishCenter.API.Converters;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
 
@@ -12,7 +14,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new TimeSpanJsonConverter());
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Giữ PascalCase
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // Change to CamelCase
     });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -61,14 +63,28 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// Register CAPTCHA service
+builder.Services.AddHttpClient<ICaptchaService, CaptchaService>();
+
+// Register SePay service with timeout
+builder.Services.AddHttpClient<ISePayService, SePayService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
+// Add SignalR
+builder.Services.AddSignalR();
+
 // Configure Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsqlOptions => npgsqlOptions.EnableRetryOnFailure()));
-        // Register custom services
+        sqlOptions => sqlOptions.EnableRetryOnFailure()));
+
+// Register custom services
 builder.Services.AddScoped<IMappingService, MappingService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddSingleton<INotificationService, NotificationService>();
 
 // Configure JWT Authentication
 var tokenKey = builder.Configuration.GetSection("AppSettings:Token").Value;
@@ -113,7 +129,10 @@ app.UseStaticFiles();
 app.Logger.LogInformation("Swagger UI is available at: http://localhost:5000/swagger");
 app.Logger.LogInformation("Or: https://localhost:5001/swagger (if using HTTPS)");
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowAll");
 
@@ -121,5 +140,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map SignalR hubs
+app.MapHub<PaymentHub>("/paymentHub");
 
 app.Run();

@@ -29,6 +29,8 @@ namespace EnglishCenter.API.DTOs
 
         [Required]
         public string Password { get; set; } = string.Empty;
+
+        public string? CaptchaToken { get; set; }
     }
 
     public class LoginResponse
@@ -48,6 +50,7 @@ namespace EnglishCenter.API.DTOs
         public string? PhoneNumber { get; set; }
         public string? Avatar { get; set; }
         public string Role { get; set; } = string.Empty;
+        public int? StudentId { get; set; }
     }
 
     public class RefreshTokenRequest
@@ -82,6 +85,7 @@ namespace EnglishCenter.API.DTOs
         public string? FullName { get; set; }
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
+        public string? Avatar { get; set; }
         public IFormFile? AvatarFile { get; set; }
     }
 }

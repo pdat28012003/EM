@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -10,8 +11,6 @@ import {
   Paper,
   Avatar,
   IconButton,
-  Tooltip,
-  LinearProgress,
   Table,
   TableBody,
   TableCell,
@@ -29,8 +28,7 @@ import {
   DialogActions,
   FormControl,
   InputLabel,
-  Select,
-  Fab
+  Select
 } from '@mui/material';
 import {
   Description,
@@ -41,7 +39,6 @@ import {
   Edit,
   Visibility,
   FilterList,
-  Add,
   Folder,
   InsertDriveFile,
   PictureAsPdf,
@@ -131,28 +128,58 @@ const Documents = () => {
     }
   };
 
-  const getFileIcon = (fileType) => {
+  const [dragActive, setDragActive] = useState(false);
+  
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+  
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setSelectedFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const getFileExtension = (doc) => {
+    if (!doc) return 'unknown';
+    if (doc.FileType) return doc.FileType.toLowerCase();
+    if (doc.OriginalFileName && doc.OriginalFileName.includes('.')) return doc.OriginalFileName.split('.').pop().toLowerCase();
+    if (doc.Title && doc.Title.includes('.')) return doc.Title.split('.').pop().toLowerCase();
+    return 'unknown';
+  };
+
+  const getFileIcon = (doc) => {
+    const fileType = typeof doc === 'string' ? doc.toLowerCase() : getFileExtension(doc);
     switch (fileType) {
       case 'pdf':
-        return <PictureAsPdf sx={{ color: '#f44336' }} />;
+        return <PictureAsPdf sx={{ color: '#ef4444', fontSize: 32 }} />;
       case 'docx':
       case 'doc':
-        return <Description sx={{ color: '#2196f3' }} />;
+        return <Description sx={{ color: '#3b82f6', fontSize: 32 }} />;
       case 'mp3':
       case 'wav':
-        return <AudioFile sx={{ color: '#ff9800' }} />;
+        return <AudioFile sx={{ color: '#f59e0b', fontSize: 32 }} />;
       case 'mp4':
       case 'avi':
-        return <VideoLibrary sx={{ color: '#4caf50' }} />;
+        return <VideoLibrary sx={{ color: '#8b5cf6', fontSize: 32 }} />;
       case 'pptx':
       case 'ppt':
-        return <InsertDriveFile sx={{ color: '#9c27b0' }} />;
+        return <InsertDriveFile sx={{ color: '#d946ef', fontSize: 32 }} />;
       case 'jpg':
       case 'jpeg':
       case 'png':
-        return <Image sx={{ color: '#e91e63' }} />;
+        return <Image sx={{ color: '#10b981', fontSize: 32 }} />;
       default:
-        return <InsertDriveFile sx={{ color: '#607d8b' }} />;
+        return <InsertDriveFile sx={{ color: '#64748b', fontSize: 32 }} />;
     }
   };
 
@@ -202,14 +229,14 @@ const Documents = () => {
 
 const handleDownload = async (doc) => {
   try {
-    const response = await documentsAPI.download(doc.documentId);
+    const response = await documentsAPI.download(doc.DocumentId);
 
     const blob = new Blob([response.data]);
     const url = window.URL.createObjectURL(blob);
 
     const link = window.document.createElement('a');
     link.href = url;
-    link.download = doc.originalFileName || doc.title;
+    link.download = doc.OriginalFileName || doc.Title || 'download';
 
     window.document.body.appendChild(link);
     link.click();
@@ -432,7 +459,7 @@ const handleUpload = async () => {
                   </Box>
                   <Box>
                     <Typography variant="h4" fontWeight="bold">
-                      {documents.filter(d => d.uploadDate === new Date().toISOString().split('T')[0]).length}
+                      {documents.filter(d => d.UploadDate === new Date().toISOString().split('T')[0]).length}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Hôm nay
@@ -452,7 +479,7 @@ const handleUpload = async () => {
                   </Box>
                   <Box>
                     <Typography variant="h4" fontWeight="bold">
-                      {documents.reduce((sum, doc) => sum + doc.downloadCount, 0)}
+                      {documents.reduce((sum, doc) => sum + (doc.DownloadCount || 0), 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Lượt tải
@@ -485,89 +512,118 @@ const handleUpload = async () => {
         </Grid>
 
         {/* Filters and Search */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              placeholder="Tìm kiếm tài liệu..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Loại tài liệu</InputLabel>
-              <Select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                label="Loại tài liệu"
+        {/* Filters and Search */}
+        <Box sx={{ mb: 4 }}>
+          {/* Filter Chips */}
+          <Box sx={{ display: 'flex', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
+            {[
+              { value: 'all', label: 'Tất cả' },
+              { value: 'material', label: 'Giáo trình' },
+              { value: 'exercise', label: 'Bài tập' },
+              { value: 'presentation', label: 'Trình chiếu' },
+              { value: 'video', label: 'Video bài giảng' },
+              { value: 'audio', label: 'Audio' }
+            ].map(ft => (
+              <Chip
+                key={ft.value}
+                label={ft.label}
+                onClick={() => setFilterType(ft.value)}
+                sx={{ 
+                  fontWeight: filterType === ft.value ? 600 : 500,
+                  bgcolor: filterType === ft.value ? '#10b981' : 'transparent',
+                  color: filterType === ft.value ? 'white' : 'text.primary',
+                  border: filterType === ft.value ? 'none' : '1px solid #cbd5e1',
+                  '&:hover': { bgcolor: filterType === ft.value ? '#059669' : 'rgba(16, 185, 129, 0.1)' }
+                }}
+              />
+            ))}
+          </Box>
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                placeholder="Tìm kiếm tài liệu..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                size="small"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Lớp học</InputLabel>
+                <Select
+                  value={filterClass}
+                  onChange={(e) => setFilterClass(e.target.value)}
+                  label="Lớp học"
+                >
+                  <MenuItem value="all">Tất cả</MenuItem>
+                  {classes.map(cls => (
+                    <MenuItem key={cls.classId} value={cls.classId}>
+                      {cls.className}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Ngày tải lên"
+                value={filterDate}
+                onChange={setFilterDate}
+                format="DD/MM/YYYY"
+                slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+              />
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <Button
+                variant="outlined"
+                startIcon={<FilterList />}
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterType('all');
+                  setFilterClass('all');
+                  setFilterDate(null);
+                }}
+                fullWidth
+                sx={{ height: 40 }}
               >
-                <MenuItem value="all">Tất cả</MenuItem>
-                <MenuItem value="material">Tài liệu</MenuItem>
-                <MenuItem value="exercise">Bài tập</MenuItem>
-                <MenuItem value="presentation">Trình chiếu</MenuItem>
-                <MenuItem value="audio">Audio</MenuItem>
-                <MenuItem value="video">Video</MenuItem>
-              </Select>
-            </FormControl>
+                Xóa bộ lọc
+              </Button>
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Lớp học</InputLabel>
-              <Select
-                value={filterClass}
-                onChange={(e) => setFilterClass(e.target.value)}
-                label="Lớp học"
-              >
-                <MenuItem value="all">Tất cả</MenuItem>
-                {classes.map(cls => (
-                  <MenuItem key={cls.classId} value={cls.classId}>
-                    {cls.className}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <DatePicker
-              label="Ngày tải lên"
-              value={filterDate}
-              onChange={setFilterDate}
-              format="DD/MM/YYYY"
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <Button
-              variant="outlined"
-              startIcon={<FilterList />}
-              onClick={() => {
-                setSearchTerm('');
-                setFilterType('all');
-                setFilterClass('all');
-                setFilterDate(null);
-              }}
-              fullWidth
-            >
-              Xóa bộ lọc
-            </Button>
-          </Grid>
-        </Grid>
+        </Box>
 
         {/* Documents Table */}
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Danh sách tài liệu
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Danh sách tài liệu
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<CloudUpload />}
+                  onClick={handleUploadOpen}
+                  sx={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%)',
+                    }
+                  }}
+                >
+                  Thêm tài liệu
+                </Button>
+              </Box>
               
               <TableContainer>
                 <Table>
@@ -576,10 +632,10 @@ const handleUpload = async () => {
                       <TableCell sx={{ fontWeight: 'bold' }}>Tên tài liệu</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Loại</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Lớp học</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Kích thước</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Quyền xem</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Ngày tải</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Lượt tải</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Thao tác</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="center">Lượt tải</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="center">Thao tác</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -596,36 +652,47 @@ const handleUpload = async () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      documents.map((document) => (
-                       <TableRow key={document.documentId} hover>
+                      documents.map((document, index) => (
+                        <TableRow key={document.DocumentId || index} hover sx={{ '& td': { py: 1.5 }, transition: '0.2s' }}>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              {getFileIcon(document.fileType)}
+                              {getFileIcon(document)}
                               <Box>
-                                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                  {document.title}
+                                <Typography variant="body1" sx={{ fontWeight: 600, color: '#1e293b' }}>
+                                  {document.Title}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                  {document.description}
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{getFileExtension(document)}</span>
+                                  <span>•</span>
+                                  <span>{document.FileSize || 'Không rõ'}</span>
                                 </Typography>
                               </Box>
                             </Box>
                           </TableCell>
                           <TableCell>
                             <Chip 
-                              label={getTypeLabel(document.type)} 
-                              color={getTypeColor(document.type)}
+                              label={getTypeLabel(document.Type)} 
+                              color={getTypeColor(document.Type)}
                               size="small"
+                              sx={{ fontWeight: 500 }}
                             />
                           </TableCell>
-                          <TableCell>{document.className}</TableCell>
-                          <TableCell>{document.fileSize}</TableCell>
-                          <TableCell>{document.uploadDate}</TableCell>
-                          <TableCell>{document.downloadCount}</TableCell>
+                          <TableCell>{document.ClassName || 'Dùng chung'}</TableCell>
                           <TableCell>
+                            <Typography variant="body2" color="text.secondary">
+                              <Visibility sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'text-bottom' }} /> 
+                              {document.Visibility || 'Học viên'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>{document.UploadDate}</TableCell>
+                          <TableCell align="center">
+                            <Chip label={document.DownloadCount || 0} size="small" variant="outlined" />
+                          </TableCell>
+                          <TableCell align="center">
                             <IconButton
                               size="small"
                               onClick={(e) => handleMenuOpen(e, document)}
+                              sx={{ '&:hover': { bgcolor: 'rgba(16, 185, 129, 0.1)' } }}
                             >
                               <MoreVert />
                             </IconButton>
@@ -639,20 +706,6 @@ const handleUpload = async () => {
             </Paper>
           </Grid>
         </Grid>
-
-        {/* Floating Action Button */}
-        <Fab
-          color="primary"
-          aria-label="upload"
-          onClick={handleUploadOpen}
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-          }}
-        >
-          <CloudUpload />
-        </Fab>
 
         {/* Context Menu */}
         <Menu
@@ -727,23 +780,52 @@ const handleUpload = async () => {
                   ))}
                 </Select>
               </FormControl>
-              <Button
-                variant="outlined"
-                component="label"
-                fullWidth
-                sx={{ mb: 2 }}
+              <Box 
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                sx={{ 
+                  mb: 2, p: 4, 
+                  border: '2px dashed', 
+                  borderColor: dragActive ? '#10b981' : '#cbd5e1', 
+                  borderRadius: 2, 
+                  bgcolor: dragActive ? 'rgba(16, 185, 129, 0.05)' : '#f8fafc',
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onClick={() => document.getElementById('file-upload').click()}
               >
-                Chọn file
+                <CloudUpload sx={{ fontSize: 48, color: dragActive ? '#10b981' : '#94a3b8', mb: 1 }} />
+                <Typography variant="body1" fontWeight={600} color={dragActive ? '#10b981' : '#475569'}>
+                  Kéo thả file vào đây hoặc click để chọn
+                </Typography>
+                <Typography variant="caption" color="text.secondary" mt={1}>
+                  Hỗ trợ: PDF, DOCX, MP4, MP3, JPG, PNG...
+                </Typography>
                 <input
+                  id="file-upload"
                   type="file"
                   hidden
                   onChange={handleFileSelect}
                 />
-              </Button>
+              </Box>
               {selectedFile && (
-                <Typography variant="body2" color="textSecondary">
-                  File đã chọn: {selectedFile.name}
-                </Typography>
+                <Box sx={{ p: 2, bgcolor: '#f0fdf4', borderRadius: 2, border: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Description sx={{ color: '#16a34a' }} />
+                  <Box>
+                    <Typography variant="body2" fontWeight={600} color="#166534">
+                      {selectedFile.name}
+                    </Typography>
+                    <Typography variant="caption" color="#166534">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </Typography>
+                  </Box>
+                </Box>
               )}
             </Box>
           </DialogContent>

@@ -24,6 +24,8 @@ namespace EnglishCenter.API.Models
 
         public string? AttachmentUrl { get; set; } // File submission
 
+        public string? OriginalFileName { get; set; } // Original filename for display
+
         public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }

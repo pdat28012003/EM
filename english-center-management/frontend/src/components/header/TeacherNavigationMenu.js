@@ -33,10 +33,13 @@ const TeacherNavigationMenu = ({
         Dashboard
       </MenuItem>
       <MenuItem component={Link} to="/teacher/classes" onClick={onClose}>
-        Lớp học
+        Khóa học
       </MenuItem>
       <MenuItem component={Link} to="/teacher/schedule" onClick={onClose}>
         Lịch dạy
+      </MenuItem>
+      <MenuItem component={Link} to="/teacher/availability" onClick={onClose}>
+        Đăng ký lịch rảnh
       </MenuItem>
       <MenuItem component={Link} to="/teacher/materials" onClick={onClose}>
         Tài liệu

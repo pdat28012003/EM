@@ -2,28 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AppBar,
+  Container,
   Toolbar,
   Typography,
   IconButton,
   Box,
-  Button,
-  InputBase,
-  Badge
+  Button
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  School,
-  Notifications,
-  Search as SearchIcon,
-  AccountCircle,
-  Assignment,
-  Assessment
+  School
 } from '@mui/icons-material';
 import { authAPI } from '../../services/api';
 import { useNavigation } from '../../hooks/useNavigation';
 import UserAvatar from './UserAvatar';
 import UserMenu from './UserMenu';
 import NavigationMenu from './NavigationMenu';
+import NotificationDropdown from './NotificationDropdown';
 
 const TeacherHeader = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -32,17 +27,10 @@ const TeacherHeader = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { navigateToHome } = useNavigation();
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
 
-  const handleSearch = (e) => {
-    if (e.key === 'Enter') {
-      // Handle search logic here
-      console.log('Searching for:', search);
-      // You can add navigation to search results page
-      // navigate(`/search?q=${encodeURIComponent(search)}`);
-    }
+  const handleUserMenuClose = () => {
+    setUserMenuAnchor(null);  
   };
-
 
   useEffect(() => {
     const loadUserData = () => {
@@ -87,10 +75,6 @@ const TeacherHeader = () => {
     setUserMenuAnchor(event.currentTarget);
   };
 
-  const handleUserMenuClose = () => {
-    setUserMenuAnchor(null);
-  };
-
   const handleLogout = async () => {
     try {
       await authAPI.logout();
@@ -127,15 +111,22 @@ const TeacherHeader = () => {
     }
   };
 
+  const handleSettings = () => {
+    handleUserMenuClose();
+    navigate('/teacher/profile');
+  };
+
   return (
-    <AppBar 
-      position="sticky" 
-      sx={{ 
+    <AppBar
+      position="fixed"
+      sx={{
         background: 'linear-gradient(90deg, #7c3aed 0%, #6d28d9 100%)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        zIndex: 9999
       }}
     >
-      <Toolbar sx={{ minHeight: '48px !important', height: '48px' }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+        <Toolbar disableGutters sx={{ minHeight: '48px !important', height: '48px' }}>
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
           <Box 
@@ -163,50 +154,76 @@ const TeacherHeader = () => {
           </Box>
         </Box>
 
-   {/* Search Bar */}
-<Box
-  sx={{
-    display: { xs: 'none', md: 'flex' },
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: '20px',
-    px: 2,
-    py: 0.2,
-    width: '300px'
-  }}
->
-  <SearchIcon sx={{ color: 'white', mr: 1, fontSize: 18 }} />
-  <InputBase
-    placeholder="Tìm kiếm..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    onKeyDown={handleSearch}
-    sx={{
-      color: 'white',
-      fontSize: '0.85rem',
-      width: '100%',
-      '& input::placeholder': {
-        color: 'rgba(255,255,255,0.7)'
-      }
-    }}
-  />
-</Box>
+        {/* Desktop Navigation */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.5, ml: 2 }}>
+          <Button 
+            component={Link}
+            to="/teacher/dashboard"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            Dashboard
+          </Button>
+          <Button 
+            component={Link}
+            to="/teacher/classes"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            Khóa học
+          </Button>
+          <Button 
+            component={Link}
+            to="/teacher/schedule"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            Lịch dạy
+          </Button>
+          {/* <Button 
+            component={Link}
+            to="/teacher/availability"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            Lịch rảnh
+          </Button> */}
+          <Button 
+            component={Link}
+            to="/teacher/documents"
+            sx={{ 
+              color: 'white', 
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            Tài liệu
+          </Button>
+        </Box>
 
         {/* Action Buttons */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, ml: 2, alignItems: 'center' }}>
           {isAuthenticated && user ? (
             <>
               {/* Notifications */}
-              <IconButton
-                sx={{ 
-                  color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
-                }}
-              >
-                <Badge badgeContent={0} color="error">
-                  <Notifications />
-                </Badge>
-              </IconButton>
+              <NotificationDropdown />
 
               <UserAvatar 
                 user={user} 
@@ -220,6 +237,7 @@ const TeacherHeader = () => {
                 onClose={handleUserMenuClose}
                 user={user}
                 onProfileClick={handleProfile}
+                onSettingsClick={handleSettings}
                 onLogout={handleLogout}
               />
             </>
@@ -232,7 +250,6 @@ const TeacherHeader = () => {
                 borderColor: 'white',
                 color: 'white',
                 fontSize: '0.75rem',
-                px: 2,
                 py: 0.5,
                 '&:hover': { 
                   borderColor: 'white',
@@ -245,7 +262,6 @@ const TeacherHeader = () => {
             </Button>
           )}
         </Box>
-
         {/* Mobile Menu Button */}
         <IconButton
           edge="start"
@@ -265,7 +281,8 @@ const TeacherHeader = () => {
           isAuthenticated={isAuthenticated}
           user={user}
         />
-      </Toolbar>
+        </Toolbar>
+      </Container>
     </AppBar>
   );
 };

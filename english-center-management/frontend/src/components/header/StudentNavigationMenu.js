@@ -8,12 +8,12 @@ import {
 } from '@mui/material';
 import { useNavigation } from '../../hooks/useNavigation';
 
-const StudentNavigationMenu = ({ 
-  anchorEl, 
-  open, 
-  onClose, 
-  isAuthenticated, 
-  user 
+const StudentNavigationMenu = ({
+  anchorEl,
+  open,
+  onClose,
+  isAuthenticated,
+  user
 }) => {
   const { navigateToHomeWindow } = useNavigation();
 
@@ -33,18 +33,21 @@ const StudentNavigationMenu = ({
         Dashboard
       </MenuItem>
       <MenuItem component={Link} to="/student/courses" onClick={onClose}>
-        Khóa học của tôi
+        Chương trình học
       </MenuItem>
       <MenuItem component={Link} to="/student/schedule" onClick={onClose}>
-        Lịch học
+        Thời khóa biểu
       </MenuItem>
       <MenuItem component={Link} to="/student/assignments" onClick={onClose}>
         Bài tập
       </MenuItem>
-      <MenuItem component={Link} to="/student/materials" onClick={onClose}>
+      <MenuItem component={Link} to="/student/documents" onClick={onClose}>
         Tài liệu
       </MenuItem>
-      
+      <MenuItem component={Link} to="/student/payments" onClick={onClose}>
+        Thanh toán
+      </MenuItem>
+
       {isAuthenticated && user ? (
         <>
           <Divider />
@@ -53,7 +56,7 @@ const StudentNavigationMenu = ({
               Xin chào, {user.fullName || user.name || 'User'}
             </Box>
           </MenuItem>
-          <MenuItem component={Link} to="/profile" onClick={onClose}>
+          <MenuItem component={Link} to="/student/profile" onClick={onClose}>
             Thông tin cá nhân
           </MenuItem>
           <MenuItem component={Link} to="/login" onClick={onClose}>

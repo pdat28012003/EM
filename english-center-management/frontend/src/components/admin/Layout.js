@@ -13,54 +13,70 @@ import {
   Toolbar,
   Typography,
   Button,
-  Menu,
+  Menu as MuiMenu,
   MenuItem,
+  Avatar,
+  InputBase,
+  Tooltip,
 } from '@mui/material';
-import {
+import { 
+  LayoutDashboard, 
+  Users, 
+  GraduationCap, 
+  BookOpen, 
+  DoorOpen, 
+  Calendar, 
+  BarChart3, 
+  CreditCard, 
+  FileText,
+  LogOut,
   Menu as MenuIcon,
-  Dashboard,
-  People,
-  School,
-  Class,
-  AttachMoney,
-  Schedule,
-  Assessment,
-  LibraryBooks,
-  MeetingRoom as Room,
-  CheckCircle,
-  AccountCircle,
-  Logout,
-  Description,
-} from '@mui/icons-material';
+  Bell,
+  Search,
+  ChevronDown,
+  Home
+} from 'lucide-react';
+
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
 
-const drawerWidth = 240;
+const drawerWidth = 280;
+const collapsedWidth = 80;
 
 const menuItems = [
-  { text: 'Dashboard', icon: <Dashboard />, path: '/' },
-  { text: 'Học Viên', icon: <People />, path: '/students' },
-  { text: 'Giáo Viên', icon: <School />, path: '/teachers' },
-  { text: 'Khóa Học', icon: <LibraryBooks />, path: '/courses' },
-  { text: 'Kỹ Năng', icon: <School />, path: '/skills' },
-  { text: 'Lớp Học', icon: <Class />, path: '/classes' },
-  { text: 'Phòng Học', icon: <Room />, path: '/rooms' },
-  { text: 'Chương Trình Học', icon: <LibraryBooks />, path: '/curriculum' },
-  { text: 'Thanh Toán', icon: <AttachMoney />, path: '/payments' },
-  { text: 'Lịch Học', icon: <Schedule />, path: '/schedules' },
-  { text: 'Điểm Số', icon: <Assessment />, path: '/test-scores' },
-  { text: 'Điểm Danh', icon: <CheckCircle />, path: '/attendance' },
-  { text: 'Tài Liệu', icon: <Description />, path: '/documents' },
+  { text: 'Dashboard', icon: <LayoutDashboard size={22} />, path: '/' },
+  { text: 'Học Viên', icon: <Users size={22} />, path: '/students' },
+  { text: 'Giáo Viên', icon: <GraduationCap size={22} />, path: '/teachers' },
+  { text: 'Khóa Học', icon: <BookOpen size={22} />, path: '/courses' },
+  { text: 'Kỹ Năng', icon: <BarChart3 size={22} />, path: '/skills' },
+  { text: 'Lớp Học', icon: <BookOpen size={22} />, path: '/classes' },
+  { text: 'Phòng Học', icon: <DoorOpen size={22} />, path: '/rooms' },
+  { text: 'Chương Trình Học', icon: <FileText size={22} />, path: '/curriculum' },
+  { text: 'Thanh Toán', icon: <CreditCard size={22} />, path: '/payments' },
+  { text: 'Lịch Học', icon: <Calendar size={22} />, path: '/schedules' },
+  { text: 'Điểm Số', icon: <BarChart3 size={22} />, path: '/grades' },
+  { text: 'Tài Liệu', icon: <FileText size={22} />, path: '/documents' },
 ];
 
 const Layout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
+  const collapsedWidthValue = collapsed ? collapsedWidth : drawerWidth;
+
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleSidebarCollapse = () => {
+    setCollapsed((prev) => !prev);
+  };
+
+  const handleSidebarExpand = () => {
+    if (collapsed) setCollapsed(false);
   };
 
   const handleMenuClick = (event) => {
@@ -71,11 +87,14 @@ const Layout = ({ children }) => {
     setAnchorEl(null);
   };
 
+  const handleNavigateHome = () => {
+    navigate('/');
+  };
+
   const handleLogout = async () => {
     try {
       await authAPI.logout();
     } catch (err) {
-      // Continue with logout even if API call fails
       console.error('Logout API failed:', err);
     } finally {
       localStorage.removeItem('authToken');
@@ -87,42 +106,160 @@ const Layout = ({ children }) => {
   };
 
   const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" fontWeight="bold">
-          English Center
-        </Typography>
-      </Toolbar>
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              component={Link}
-              to={item.path}
-              selected={location.pathname === item.path}
-              sx={{
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.light',
-                  color: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: 'primary.light',
-                  },
-                },
-              }}
-            >
-              <ListItemIcon
+    <Box sx={{ bgcolor: 'background.paper', color: 'text.primary', height: '100%', display: 'flex', flexDirection: 'column', transition: 'width 0.3s ease' }}>
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, transition: 'all 0.3s ease' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 1.5, transition: 'all 0.3s ease' }}>
+          {collapsed ? (
+            <Tooltip title="Mở menu" arrow>
+              <IconButton
+                onClick={handleSidebarExpand}
                 sx={{
-                  color: location.pathname === item.path ? 'primary.main' : 'inherit',
+                  width: 40,
+                  height: 40,
+                  bgcolor: 'primary.main',
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                  },
                 }}
               >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+                <GraduationCap color="white" size={18} />
+              </IconButton>
+            </Tooltip>
+          ) : (
+            <Box sx={{
+              width: 32,
+              height: 32,
+              bgcolor: 'primary.main',
+              borderRadius: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <GraduationCap color="white" size={18} />
+            </Box>
+          )}
+          {!collapsed && (
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1.1rem', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+              English Center
+            </Typography>
+          )}
+        </Box>
+        <Tooltip title={collapsed ? 'Mở menu' : 'Thu gọn menu'} arrow>
+          <IconButton
+            color="inherit"
+            aria-label="toggle sidebar"
+            onClick={handleSidebarCollapse}
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: '50%',
+              bgcolor: 'rgba(15, 23, 42, 0.05)',
+              boxShadow: '0 8px 20px rgba(15, 23, 42, 0.08)',
+              transition: 'all 0.25s ease',
+              '&:hover': {
+                bgcolor: 'rgba(15, 23, 42, 0.12)',
+                transform: 'scale(1.02)',
+              },
+            }}
+          >
+            <MenuIcon size={18} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+      <List sx={{ px: collapsed ? 0 : 1.5, mt: 0.5, '& .MuiListItem-root': { px: 0.5 } }}>
+        {menuItems.map((item) => {
+          const isActive = item.path === '/' 
+            ? location.pathname === '/' 
+            : location.pathname.startsWith(item.path);
+          return (
+            <ListItem key={item.text} disablePadding sx={{ mb: 0 }}>
+              <ListItemButton
+                component={Link}
+                to={item.path}
+                title={collapsed ? item.text : undefined}
+                sx={{
+                  width: '100%',
+                  borderRadius: '10px',
+                  py: 0.8,
+                  px: collapsed ? 0 : 1.5,
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  alignItems: 'center',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  bgcolor: isActive ? 'rgba(59, 130, 246, 0.16)' : 'transparent',
+                  color: isActive ? 'text.primary' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: isActive ? 'rgba(59, 130, 246, 0.22)' : 'rgba(0, 0, 0, 0.04)',
+                    color: 'text.primary',
+                    transform: collapsed ? 'none' : 'translateX(6px)',
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: collapsed ? 0 : 1.5,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    color: 'inherit',
+                    width: collapsed ? '100%' : 'auto',
+                  }}
+                >
+                  {React.cloneElement(item.icon, { size: 20, strokeWidth: isActive ? 2.5 : 2 })}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={item.text}
+                  primaryTypographyProps={{ 
+                    variant: 'body2', 
+                    fontWeight: isActive ? 700 : 500,
+                    sx: { fontSize: '0.85rem' }
+                  }}
+                  sx={{
+                    opacity: collapsed ? 0 : 1,
+                    width: collapsed ? 0 : 'auto',
+                    transition: 'opacity 0.25s ease, width 0.25s ease',
+                    overflow: 'hidden',
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
-    </div>
+      <Box sx={{ mt: 'auto', p: 1, borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
+        <ListItemButton
+          onClick={handleLogout}
+          sx={{
+            width: '100%',
+            borderRadius: '10px',
+            py: 0.8,
+            px: collapsed ? 0 : 1.5,
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            alignItems: 'center',
+            color: '#dc2626',
+            '&:hover': { bgcolor: 'rgba(220, 38, 38, 0.12)' },
+          }}
+          title={collapsed ? 'Đăng xuất' : undefined}
+        >
+          <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 1.5, display: 'flex', justifyContent: 'center', color: 'inherit' }}>
+            <LogOut size={18} />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Đăng xuất" 
+            primaryTypographyProps={{ variant: 'body2', fontWeight: 600, sx: { fontSize: '0.85rem' } }}
+            sx={{
+              opacity: collapsed ? 0 : 1,
+              width: collapsed ? 0 : 'auto',
+              transition: 'opacity 0.25s ease, width 0.25s ease',
+              overflow: 'hidden',
+            }}
+          />
+        </ListItemButton>
+      </Box>
+    </Box>
   );
 
   return (
@@ -130,48 +267,144 @@ const Layout = ({ children }) => {
       <CssBaseline />
       <AppBar
         position="fixed"
+        elevation={0}
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { sm: `calc(100% - ${collapsedWidthValue}px)` },
+          ml: { sm: `${collapsedWidthValue}px` },
+          bgcolor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(12px)',
+          color: 'text.primary',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Hệ Thống Quản Lý Trung Tâm Tiếng Anh
-          </Typography>
-          <Button
-            color="inherit"
-            startIcon={<AccountCircle />}
-            onClick={handleMenuClick}
-            sx={{ textTransform: 'none' }}
-          >
-            Admin
-          </Button>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            onClick={handleMenuClose}
-          >
-            <MenuItem onClick={handleLogout}>
-              <Logout sx={{ mr: 1 }} />
-              Đăng xuất
-            </MenuItem>
-          </Menu>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { sm: 'none' } }}
+            >
+              <MenuIcon size={24} />
+            </IconButton>
+            <Box
+              onClick={handleNavigateHome}
+              sx={{
+                display: { xs: 'none', md: 'flex' },
+                alignItems: 'center',
+                gap: 1.5,
+                ml: 1,
+                cursor: 'pointer',
+                '&:hover .headerBreadcrumb': {
+                  color: 'primary.main',
+                },
+              }}
+            >
+              <Home size={18} color="#64748b" />
+              <Typography variant="body2" sx={{ color: 'divider' }}>/</Typography>
+              <Typography className="headerBreadcrumb" variant="subtitle2" component="div" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: -0.2 }}>
+                Dashboard
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ 
+              display: { xs: 'none', sm: 'flex' },
+              alignItems: 'center',
+              bgcolor: 'rgba(0, 0, 0, 0.04)',
+              borderRadius: '12px',
+              px: 1.5,
+              py: 0.5,
+              mr: 1,
+              border: '1px solid transparent',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:focus-within': {
+                bgcolor: 'white',
+                borderColor: 'primary.main',
+                boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
+              }
+            }}>
+              <Search size={16} color="#64748b" />
+              <InputBase
+                placeholder="Tìm kiếm..."
+                sx={{ 
+                  ml: 1, 
+                  fontSize: '0.85rem', 
+                  color: 'text.primary',
+                  width: 150,
+                  transition: 'width 0.3s',
+                  '& .MuiInputBase-input::placeholder': {
+                    color: 'text.secondary',
+                    opacity: 0.5
+                  },
+                  '&:focus-within': { width: 220 }
+                }}
+              />
+            </Box>
+
+            <IconButton sx={{ color: 'text.secondary' }}>
+              <Bell size={20} />
+            </IconButton>
+            
+            <Button
+              onClick={handleMenuClick}
+              sx={{ 
+                textTransform: 'none',
+                ml: 1,
+                borderRadius: '12px',
+                px: 1,
+                py: 0.5,
+                '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
+                  <Typography variant="body2" sx={{ fontWeight: 800, lineHeight: 1, color: 'text.primary' }}>Admin</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Quản trị viên</Typography>
+                </Box>
+                <Avatar sx={{ 
+                  width: 38, 
+                  height: 38, 
+                  bgcolor: 'primary.main', 
+                  fontSize: '0.9rem', 
+                  fontWeight: 800,
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
+                }}>A</Avatar>
+                <ChevronDown size={14} color="#64748b" />
+              </Box>
+            </Button>
+            <MuiMenu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+              onClick={handleMenuClose}
+              PaperProps={{
+                elevation: 3,
+                sx: { 
+                  mt: 1, 
+                  borderRadius: '12px', 
+                  minWidth: 180,
+                  border: '1px solid rgba(0, 0, 0, 0.05)'
+                }
+              }}
+            >
+              <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: '#f87171' }}>
+                <LogOut size={18} style={{ marginRight: 12 }} />
+                Đăng xuất
+              </MenuItem>
+            </MuiMenu>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box
         component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{
+          width: { sm: collapsedWidthValue },
+          flexShrink: { sm: 0 },
+          cursor: collapsed ? 'pointer' : 'default',
+        }}
       >
         <Drawer
           variant="temporary"
@@ -196,7 +429,9 @@ const Layout = ({ children }) => {
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: drawerWidth,
+              width: collapsedWidthValue,
+              transition: 'width 0.3s ease',
+              overflowX: 'hidden',
             },
           }}
           open
@@ -208,8 +443,11 @@ const Layout = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          p: 2,
+          width: { sm: `calc(100% - ${collapsedWidthValue}px)` },
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          transition: 'width 0.3s ease',
         }}
       >
         <Toolbar />

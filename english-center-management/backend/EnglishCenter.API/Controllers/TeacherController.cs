@@ -24,15 +24,17 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets all teachers. (Lấy danh sách tất cả giáo viên.)
+        /// Gets all teachers. (Lấy danh sách tất cả giảng viên.)
         /// </summary>
         /// <param name="isActive">Status (Trạng thái hoạt động)</param>
+        /// <param name="search">Search text (Tìm kiếm theo tên, email, SĐT,Chuyên môn, )</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Số lượng mỗi trang)</param>
-        /// <returns>Paged list of teachers (Danh sách giáo viên có phân trang)</returns>
+        /// <returns>Paged list of teachers (Danh sách giảng viên có phân trang)</returns>
         [HttpGet]
         public async Task<ActionResult<PagedResult<TeacherDto>>> GetTeachers(
             [FromQuery] bool? isActive = null,
+            [FromQuery] string? search = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
@@ -41,6 +43,17 @@ namespace EnglishCenter.API.Controllers
             if (isActive.HasValue)
             {
                 query = query.Where(t => t.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(t => 
+                    t.FullName.Contains(search) || 
+                    t.Email.Contains(search) || 
+                    t.PhoneNumber.Contains(search) ||
+                    t.Specialization.Contains(search) ||
+                    t.Qualifications.Contains(search) ||
+                    t.HireDate.ToString().Contains(search));
             }
 
             var totalCount = await query.CountAsync();
@@ -195,6 +208,81 @@ namespace EnglishCenter.API.Controllers
             return CreatedAtAction(nameof(GetTeacher), new { id = teacher.TeacherId }, teacherDto);
         }
 
+        /// <summary>
+        /// Updates a teacher. (Cập nhật thông tin giảng viên.)
+        /// </summary>
+        /// <param name="id">Teacher ID (ID giảng viên)</param>
+        /// <param name="dto">Teacher update data (Dữ liệu cập nhật)</param>
+        /// <returns>Updated teacher (Thông tin giảng viên đã cập nhật)</returns>
+        [HttpPut("{id}")]
+        public async Task<ActionResult<TeacherDto>> UpdateTeacher(int id, UpdateTeacherDto dto)
+        {
+            var teacher = await _context.Teachers.FindAsync(id);
+            if (teacher == null)
+            {
+                return NotFound(new { message = "Teacher not found" });
+            }
+
+            // Check email uniqueness if changed
+            if (teacher.Email != dto.Email)
+            {
+                var existingTeacher = await _context.Teachers
+                    .FirstOrDefaultAsync(t => t.Email == dto.Email && t.TeacherId != id && t.IsActive);
+                if (existingTeacher != null)
+                {
+                    return Conflict(new { message = "A teacher with this email already exists" });
+                }
+            }
+
+            teacher.FullName = dto.FullName;
+            teacher.Email = dto.Email;
+            teacher.PhoneNumber = dto.PhoneNumber;
+            teacher.Specialization = dto.Specialization;
+            teacher.Qualifications = dto.Qualifications;
+            teacher.HourlyRate = dto.HourlyRate;
+            teacher.IsActive = dto.IsActive;
+
+            await _context.SaveChangesAsync();
+
+            var teacherDto = new TeacherDto
+            {
+                TeacherId = teacher.TeacherId,
+                FullName = teacher.FullName,
+                Email = teacher.Email,
+                PhoneNumber = teacher.PhoneNumber,
+                Specialization = teacher.Specialization,
+                Qualifications = teacher.Qualifications,
+                HireDate = teacher.HireDate,
+                HourlyRate = teacher.HourlyRate,
+                IsActive = teacher.IsActive
+            };
+
+            return Ok(teacherDto);
+        }
+
+        /// <summary>
+        /// Deletes a teacher. (Xóa giảng viên.)
+        /// </summary>
+        /// <param name="id">Teacher ID (ID giảng viên)</param>
+        /// <returns>No content (Không có nội dung)</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTeacher(int id)
+        {
+            var teacher = await _context.Teachers
+                .FirstOrDefaultAsync(t => t.TeacherId == id);
+
+            if (teacher == null)
+            {
+                return NotFound(new { message = "Teacher not found" });
+            }
+
+            // Soft delete - mark as inactive
+            teacher.IsActive = false;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {
             using (var hmac = new HMACSHA512())
@@ -297,6 +385,129 @@ namespace EnglishCenter.API.Controllers
             catch (Exception)
             {
                 return StatusCode(500, new { message = "Error retrieving teacher schedule" });
+            }
+        }
+
+        /// <summary>
+        /// Gets all teachers with availability status for a specific time slot.
+        /// (Lấy danh sách giảng viên kèm trạng thái rảnh/bận trong khung giờ cụ thể.)
+        /// </summary>
+        /// <param name="date">Date to check (yyyy-MM-dd)</param>
+        /// <param name="startTime">Start time (HH:mm)</param>
+        /// <param name="endTime">End time (HH:mm)</param>
+        /// <param name="excludeSessionId">Optional session ID to exclude (for editing)</param>
+        /// <param name="roomId">Optional room ID to check availability</param>
+        /// <returns>List of teachers with isBusy flag and room availability info</returns>
+        [HttpGet("availability")]
+        public async Task<ActionResult<object>> GetTeachersWithAvailability(
+            [FromQuery] string date,
+            [FromQuery] string startTime,
+            [FromQuery] string endTime,
+            [FromQuery] int? excludeSessionId = null,
+            [FromQuery] int? roomId = null)
+        {
+            try
+            {
+                // Parse inputs
+                if (!DateTime.TryParseExact(date, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var checkDate))
+                {
+                    return BadRequest(new { message = "Invalid date format. Use yyyy-MM-dd" });
+                }
+
+                // Parse time - accept both HH:mm and HH:mm:ss formats
+                TimeSpan start, end;
+                if (!TimeSpan.TryParseExact(startTime, @"hh\:mm", null, out start) &&
+                    !TimeSpan.TryParseExact(startTime, @"hh\:mm\:ss", null, out start))
+                {
+                    return BadRequest(new { message = "Invalid start time format. Use HH:mm or HH:mm:ss" });
+                }
+                if (!TimeSpan.TryParseExact(endTime, @"hh\:mm", null, out end) &&
+                    !TimeSpan.TryParseExact(endTime, @"hh\:mm\:ss", null, out end))
+                {
+                    return BadRequest(new { message = "Invalid end time format. Use HH:mm or HH:mm:ss" });
+                }
+
+                if (start >= end)
+                {
+                    return BadRequest(new { message = "Start time must be before end time" });
+                }
+
+                // Check room availability if roomId provided
+                bool isRoomAvailable = true;
+                string? roomConflictMessage = null;
+                if (roomId.HasValue)
+                {
+                    var roomConflict = await _context.CurriculumSessions
+                        .Include(cs => cs.CurriculumDay)
+                        .Where(cs => cs.RoomId == roomId.Value &&
+                                     cs.CurriculumDay.ScheduleDate.Date == checkDate.Date &&
+                                     (excludeSessionId == null || cs.CurriculumSessionId != excludeSessionId.Value) &&
+                                     (start < cs.EndTime && end > cs.StartTime)) // Time overlap check
+                        .FirstOrDefaultAsync();
+
+                    if (roomConflict != null)
+                    {
+                        isRoomAvailable = false;
+                        roomConflictMessage = $"Phòng học đã bị chiếm từ {roomConflict.StartTime:hh\\:mm} - {roomConflict.EndTime:hh\\:mm}";
+                    }
+                }
+
+                // Get all active teachers
+                var allTeachers = await _context.Teachers
+                    .Where(t => t.IsActive)
+                    .Select(t => new
+                    {
+                        t.TeacherId,
+                        t.FullName,
+                        t.Email,
+                        t.PhoneNumber,
+                        t.Specialization,
+                        t.Qualifications,
+                        t.HourlyRate
+                    })
+                    .ToListAsync();
+
+                // Find busy teachers (those with overlapping sessions on the same date)
+                var busyTeacherIds = await _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .Where(cs => cs.TeacherId.HasValue &&
+                                 cs.CurriculumDay.ScheduleDate.Date == checkDate.Date &&
+                                 (excludeSessionId == null || cs.CurriculumSessionId != excludeSessionId.Value) &&
+                                 (start < cs.EndTime && end > cs.StartTime)) // Time overlap check
+                    .Select(cs => cs.TeacherId!.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                var busyIdSet = new HashSet<int>(busyTeacherIds);
+
+                // Build result with isBusy flag
+                var teachersWithStatus = allTeachers.Select(t => new
+                {
+                    t.TeacherId,
+                    t.FullName,
+                    t.Email,
+                    t.PhoneNumber,
+                    t.Specialization,
+                    t.Qualifications,
+                    t.HourlyRate,
+                    isBusy = busyIdSet.Contains(t.TeacherId),
+                    busyReason = busyIdSet.Contains(t.TeacherId) ? $"Giảng viên đang có lịch dạy từ {startTime} - {endTime}" : null
+                });
+
+                return Ok(new
+                {
+                    teachers = teachersWithStatus,
+                    roomInfo = roomId.HasValue ? new
+                    {
+                        roomId = roomId.Value,
+                        isAvailable = isRoomAvailable,
+                        conflictMessage = roomConflictMessage
+                    } : null
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error checking teacher availability", error = ex.Message });
             }
         }
     }

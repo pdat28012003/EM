@@ -18,11 +18,10 @@ namespace EnglishCenter.API.Models
         [StringLength(50)]
         public string Type { get; set; } = string.Empty; // Homework, Quiz, Project, Exam
 
-        [Required]
-        public int ClassId { get; set; }
+        public int? CurriculumId { get; set; }
 
-        [ForeignKey("ClassId")]
-        public virtual Class? Class { get; set; }
+        [ForeignKey("CurriculumId")]
+        public virtual Curriculum? Curriculum { get; set; }
 
         [Required]
         public int TeacherId { get; set; }
@@ -43,6 +42,11 @@ namespace EnglishCenter.API.Models
         public int MaxScore { get; set; } = 100;
 
         public string? AttachmentUrl { get; set; }
+
+        public int? SkillId { get; set; }
+
+        [ForeignKey("SkillId")]
+        public virtual Skill? Skill { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
 

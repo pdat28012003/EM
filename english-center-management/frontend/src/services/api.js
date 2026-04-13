@@ -55,6 +55,10 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
+    // Skip transforming blob data (file downloads)
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
     response.data = keysToCamelCaseDeep(response.data);
     return response;
   },
@@ -97,7 +101,17 @@ export const teachersAPI = {
   getById: (id) => api.get(`/teacher/${id}`),
   create: (data) => api.post('/teacher', data),
   update: (id, data) => api.put(`/teacher/${id}`, data),
+  delete: (id) => api.delete(`/teacher/${id}`),
   getSchedule: (id, params) => api.get(`/teacher/${id}/schedule`, { params }),
+  // Teacher Availability - NEW API with isBusy flag
+  getTeachersWithAvailability: (params) => api.get('/teacher/availability', { params }),
+  // Old availability APIs (deprecated)
+  getAvailabilities: (teacherId) => api.get(`/teacheravailability/teacher/${teacherId}`),
+  createAvailability: (data) => api.post('/teacheravailability', data),
+  updateAvailability: (id, data) => api.put(`/teacheravailability/${id}`, data),
+  deleteAvailability: (id) => api.delete(`/teacheravailability/${id}`),
+  batchCreateAvailabilities: (data) => api.post('/teacheravailability/batch', data),
+  getAvailableTeachers: (params) => api.get('/teacheravailability/available', { params }),
 };
 
 // Courses API
@@ -153,8 +167,23 @@ export const assignmentsAPI = {
   create: (data) => api.post('/assignment', data),
   update: (id, data) => api.put(`/assignment/${id}`, data),
   delete: (id) => api.delete(`/assignment/${id}`),
+  closeAssignment: (id) => api.put(`/assignment/${id}/close`),
+  reopenAssignment: (id) => api.put(`/assignment/${id}/reopen`),
   getSubmissions: (assignmentId, params = {}) => api.get(`/assignment/${assignmentId}/submissions`, { params }),
-  gradeSubmission: (submissionId, data) => api.put(`/assignment/submissions/${submissionId}/grade`, data)
+  createSubmission: (assignmentId, data) => api.post(`/assignment/${assignmentId}/submissions`, data),
+  submitQuiz: (assignmentId, data) => api.post(`/assignment/${assignmentId}/submit-quiz`, data),
+  getQuizResult: (assignmentId, params) => api.get(`/assignment/${assignmentId}/quiz-result`, { params }),
+  gradeSubmission: (submissionId, data) => api.put(`/assignment/submissions/${submissionId}/grade`, data),
+  getAllResults: (assignmentId) => api.get(`/assignment/${assignmentId}/all-results`),
+  resetSubmission: (assignmentId, studentId) => api.delete(`/assignment/${assignmentId}/students/${studentId}/reset-submission`),
+  getMySubmission: (assignmentId, studentId) => api.get(`/assignment/${assignmentId}/my-submission`, { params: { studentId } }),
+  // Quiz endpoints
+  getQuizQuestions: (assignmentId) => api.get(`/assignment/${assignmentId}/questions`),
+  createQuizQuestion: (assignmentId, data) => api.post(`/assignment/${assignmentId}/questions`, data),
+  updateQuizQuestion: (questionId, data) => api.put(`/assignment/questions/${questionId}`, data),
+  deleteQuizQuestion: (questionId) => api.delete(`/assignment/questions/${questionId}`),
+  deleteQuizAnswer: (answerId) => api.delete(`/assignment/answers/${answerId}`),
+  downloadSubmission: (submissionId) => api.get(`/assignment/submissions/${submissionId}/download`, { responseType: 'blob' }),
 };
 
 // Enrollments API
@@ -193,6 +222,29 @@ export const curriculumAPI = {
   createLesson: (data) => api.post('/curriculum/lesson', data),
   updateLesson: (id, data) => api.put(`/curriculum/lesson/${id}`, data),
   deleteLesson: (id) => api.delete(`/curriculum/lesson/${id}`),
+  // Curriculum Students
+  getStudents: (curriculumId) => api.get(`/curriculum/${curriculumId}/students`),
+  addStudent: (curriculumId, studentId) => api.post(`/curriculum/${curriculumId}/students`, { studentId }),
+  removeStudent: (curriculumId, studentId) => api.delete(`/curriculum/${curriculumId}/students/${studentId}`),
+  // Session Students
+  getSessionStudents: (sessionId) => api.get(`/curriculum/session/${sessionId}/students`),
+  addStudentToSession: (sessionId, studentId, notes) => api.post(`/curriculum/session/${sessionId}/students`, { studentId, notes }),
+  removeStudentFromSession: (sessionId, studentId) => api.delete(`/curriculum/session/${sessionId}/students/${studentId}`),
+  getAvailableStudentsForSession: (sessionId) => api.get(`/curriculum/session/${sessionId}/available-students`),
+  getCurriculumsByStudent: (studentId) => api.get(`/curriculum/student/${studentId}`),
+  getCurriculumsByTeacher: (teacherId) => api.get(`/curriculum/teacher/${teacherId}`),
+  getStudentsByTeacherSessions: (teacherId) => api.get(`/curriculum/teacher/${teacherId}/students`),
+};
+
+// Alias for Documents component
+export const curriculumsAPI = curriculumAPI;
+
+// Session Attendance API
+export const sessionAttendanceAPI = {
+  getAll: (params) => api.get('/sessionattendance', { params }),
+  create: (data) => api.post('/sessionattendance', data),
+  update: (id, data) => api.put(`/sessionattendance/${id}`, data),
+  delete: (id) => api.delete(`/sessionattendance/${id}`),
 };
 
 // Rooms API
@@ -221,6 +273,8 @@ export const authAPI = {
   refreshToken: () => api.post('/auth/refresh-token'),
   getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/update-profile', data),
+  forgotPassword: (data) => api.post('/auth/forgot-password', data),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
 };
 
 // Documents API
@@ -238,15 +292,60 @@ export const documentsAPI = {
   download: (id) => api.get(`/documents/${id}/download`, { responseType: 'blob' }),
   getTeacherDocuments: (teacherId, params) => api.get(`/documents/teacher/${teacherId}`, { params }),
   getStudentDocuments: (studentId, params) => api.get(`/documents/student/${studentId}`, { params }),
+  getPendingDocuments: (params) => api.get('/documents/pending', { params }),
 };
 
-// Test Scores API
-export const testScoresAPI = {
-  getAll: (params) => api.get('/testscores', { params }),
-  getById: (id) => api.get(`/testscores/${id}`),
-  create: (data) => api.post('/testscores', data),
-  update: (id, data) => api.put(`/testscores/${id}`, data),
-  delete: (id) => api.delete(`/testscores/${id}`),
+// Upload API
+export const uploadAPI = {
+  uploadAvatar: (formData) => api.post('/upload/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  uploadSubmission: (formData) => api.post('/upload/submission', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+};
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: (params = {}) => api.get('/notifications', { params }),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  create: (data) => api.post('/notifications', data),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAsUnread: (id) => api.put(`/notifications/${id}/unread`),
+  markMultipleAsRead: (ids) => api.put('/notifications/mark-read', { notificationIds: ids }),
+  markAllAsRead: () => api.put('/notifications/mark-all-read'),
+  delete: (id) => api.delete(`/notifications/${id}`),
+};
+
+// Activity Logs API - Hoạt động gần đây (Timeline)
+export const activityLogsAPI = {
+  getMyActivities: (params = {}) => api.get('/activitylogs/my-activities', { params }),
+  getTeacherActivities: (teacherId, params = {}) => api.get(`/activitylogs/teacher/${teacherId}`, { params }),
+  getStudentActivities: (studentId, params = {}) => api.get(`/activitylogs/student/${studentId}`, { params }),
+  create: (data) => api.post('/activitylogs', data),
+  delete: (id) => api.delete(`/activitylogs/${id}`),
+};
+
+// Payments API
+export const paymentAPI = {
+  // Get enrolled courses for a student
+  getStudentEnrolledCourses: (studentId) => api.get(`/payment/student/${studentId}/enrolled-courses`),
+
+  // Create a new payment
+  createPayment: (data) => api.post('/payment/create-payment', data),
+
+  // Get payment by ID
+  getPaymentById: (id) => api.get(`/payment/${id}`),
+
+  // Get payment history for a student
+  getStudentPaymentHistory: (studentId) => api.get(`/payment/student/${studentId}/history`),
+
+  // Legacy endpoints (for admin)
+  getAll: (params) => api.get('/payments', { params }),
+  getById: (id) => api.get(`/payments/${id}`),
+  create: (data) => api.post('/payments', data),
+  update: (id, data) => api.put(`/payments/${id}`, data),
+  delete: (id) => api.delete(`/payments/${id}`),
 };
 
 export default api;

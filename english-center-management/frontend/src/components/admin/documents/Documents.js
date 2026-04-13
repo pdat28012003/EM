@@ -1,6 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
   Paper,
   Typography,
   Button,
@@ -71,12 +71,14 @@ const Documents = () => {
   });
   const [editingDocument, setEditingDocument] = useState(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadDocuments();
     loadTeachers();
     loadClasses();
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadDocuments();
   }, [searchTerm, filterType, filterTeacher, filterClass, paginationModel.page, paginationModel.pageSize]);
@@ -445,7 +447,7 @@ const handleDownload = async (doc) => {
     },
     {
       field: 'fileSize',
-      headerName: 'Kích thước',
+      headerName: 'Dung lượng',
       width: 100,
       align: 'right',
       renderCell: (params) => (
@@ -458,6 +460,8 @@ const handleDownload = async (doc) => {
       field: 'uploadDate',
       headerName: 'Ngày tải',
       width: 110,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
         <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
           {new Date(params.row.uploadDate).toLocaleDateString('vi-VN', {
@@ -491,7 +495,7 @@ const handleDownload = async (doc) => {
       align: 'center',
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-          <Tooltip title="Xem" arrow>
+          <Tooltip title="Xem trước" arrow>
             <IconButton
               size="small"
               onClick={() => handleView(params.row)}
@@ -545,7 +549,7 @@ const handleDownload = async (doc) => {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Box sx={{ mt: 2, mb: 4 }}>
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h5" gutterBottom>
           Quản lý tài liệu hệ thống
@@ -829,7 +833,7 @@ const handleDownload = async (doc) => {
         classes={classes}
         dialogTitle="Chỉnh sửa tài liệu"
       />
-    </Container>
+    </Box>
   );
 };
 

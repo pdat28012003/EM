@@ -146,6 +146,58 @@ namespace EnglishCenter.API.Controllers
             _context.Enrollments.Add(enrollment);
             await _context.SaveChangesAsync();
 
+            // Create notification for the teacher of the class
+            var classEntityWithTeacher = await _context.Classes
+                .FirstOrDefaultAsync(c => c.ClassId == dto.ClassId);
+            
+            if (classEntityWithTeacher?.TeacherId != null)
+            {
+                var notification = new Notification
+                {
+                    TeacherId = classEntityWithTeacher.TeacherId,
+                    Title = "Học viên mới được thêm vào lớp",
+                    Message = $"Học viên {student.FullName} vừa được thêm vào lớp {classEntityWithTeacher.ClassName}",
+                    Type = "NewEnrollment",
+                    RelatedId = enrollment.EnrollmentId,
+                    RelatedType = "Enrollment",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Notifications.Add(notification);
+
+                // CREATE ACTIVITY LOG for teacher
+                var teacherActivity = new ActivityLog
+                {
+                    TeacherId = classEntityWithTeacher.TeacherId,
+                    Action = "ENROLL_STUDENT",
+                    Title = "Học viên mới được thêm vào lớp",
+                    Description = $"Học viên {student.FullName} vừa được thêm vào lớp {classEntityWithTeacher.ClassName}",
+                    IconType = "group_add",
+                    Color = "success",
+                    TargetId = enrollment.EnrollmentId,
+                    TargetType = "Enrollment",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.ActivityLogs.Add(teacherActivity);
+
+                // CREATE ACTIVITY LOG for student
+                var studentActivity = new ActivityLog
+                {
+                    StudentId = dto.StudentId,
+                    Action = "ENROLL_CLASS",
+                    Title = "Đã tham gia lớp học",
+                    Description = $"Bạn đã được thêm vào lớp {classEntityWithTeacher.ClassName}",
+                    IconType = "group_add",
+                    Color = "success",
+                    TargetId = enrollment.EnrollmentId,
+                    TargetType = "Enrollment",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.ActivityLogs.Add(studentActivity);
+
+                await _context.SaveChangesAsync();
+            }
+
             var enrollmentDto = await _context.Enrollments
                 .Include(e => e.Student)
                 .Include(e => e.Class)
@@ -240,7 +292,12 @@ namespace EnglishCenter.API.Controllers
                     PaymentDate = p.PaymentDate,
                     PaymentMethod = p.PaymentMethod,
                     Status = p.Status,
-                    Notes = p.Notes
+                    Notes = p.Notes,
+                    TransactionId = p.TransactionId,
+                    QRCodeUrl = p.QRCodeUrl,
+                    Gateway = p.Gateway,
+                    PaymentCompletedDate = p.PaymentCompletedDate,
+                    Courses = new List<CourseForPaymentDto>() // Empty list for manual payments
                 })
                 .OrderByDescending(p => p.PaymentDate)
                 .Skip((page - 1) * pageSize)
@@ -276,7 +333,7 @@ namespace EnglishCenter.API.Controllers
                 StudentId = dto.StudentId,
                 Amount = dto.Amount,
                 PaymentDate = DateTime.Now,
-                PaymentMethod = dto.PaymentMethod,
+                PaymentMethod = "Cash", // Default payment method for manual creation
                 Status = "Completed",
                 Notes = dto.Notes ?? ""
             };
@@ -293,7 +350,12 @@ namespace EnglishCenter.API.Controllers
                 PaymentDate = payment.PaymentDate,
                 PaymentMethod = payment.PaymentMethod,
                 Status = payment.Status,
-                Notes = payment.Notes ?? ""
+                Notes = payment.Notes ?? "",
+                TransactionId = payment.TransactionId,
+                QRCodeUrl = payment.QRCodeUrl,
+                Gateway = payment.Gateway,
+                PaymentCompletedDate = payment.PaymentCompletedDate,
+                Courses = new List<CourseForPaymentDto>() // Empty list for manual payments
             };
 
             return CreatedAtAction(nameof(GetPayments), new { id = payment.PaymentId }, paymentDto);
@@ -418,230 +480,6 @@ namespace EnglishCenter.API.Controllers
                 Capacity = room.Capacity,
                 Schedules = scheduleDtos
             });
-        }
-    }
-
-    // TEST SCORES CONTROLLER
-    [ApiController]
-    [Route("api/[controller]")]
-    public class TestScoresController : ControllerBase
-    {
-        private readonly ApplicationDbContext _context;
-
-        public TestScoresController(ApplicationDbContext context)
-        {
-            _context = context;
-        }
-
-        /// <summary>
-        /// Gets all test scores. (Lấy danh sách điểm số.)
-        /// </summary>
-        /// <param name="page">Page number (Số trang)</param>
-        /// <param name="pageSize">Page size (Kích thước trang)</param>
-        /// <returns>Paginated list of test scores (Danh sách điểm thi phân trang)</returns>
-        [HttpGet]
-        public async Task<ActionResult<PagedResult<TestScoreDto>>> GetTestScores(
-            [FromQuery] int? classId = null,
-            [FromQuery] int page = 1, 
-            [FromQuery] int pageSize = 10)
-        {
-            try
-            {
-                Console.WriteLine($"DEBUG: GetTestScores called with classId: {classId}");
-                
-                var query = _context.TestScores
-                    .Include(ts => ts.Student)
-                    .Include(ts => ts.Class)
-                    .AsQueryable();
-
-                Console.WriteLine($"DEBUG: Before filter - Total records: {await query.CountAsync()}");
-
-                if (classId.HasValue)
-                {
-                    Console.WriteLine($"DEBUG: Filtering by ClassId: {classId.Value}");
-                    query = query.Where(ts => ts.ClassId == classId.Value);
-                    
-                    var filteredCount = await query.CountAsync();
-                    Console.WriteLine($"DEBUG: After filter - Filtered records: {filteredCount}");
-                }
-
-                var totalCount = await query.CountAsync();
-                Console.WriteLine($"DEBUG: Final totalCount: {totalCount}");
-                
-                var testScores = await query
-                .Select(ts => new TestScoreDto
-                {
-                    TestScoreId = ts.TestScoreId,
-                    StudentId = ts.StudentId,
-                    StudentName = ts.Student.FullName,
-                    ClassId = ts.ClassId,
-                    ClassName = ts.Class.ClassName,
-                    TestName = ts.TestName,
-                    ListeningScore = ts.ListeningScore,
-                    ReadingScore = ts.ReadingScore,
-                    WritingScore = ts.WritingScore,
-                    SpeakingScore = ts.SpeakingScore,
-                    TotalScore = ts.TotalScore,
-                    TestDate = ts.TestDate,
-                    Comments = ts.Comments
-                })
-                .OrderByDescending(ts => ts.TestDate)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            return Ok(new PagedResult<TestScoreDto>
-            {
-                Data = testScores,
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
-            });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"ERROR in GetTestScores: {ex.Message}");
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Gets a test score by ID. (Lấy điểm thi theo ID.)
-        /// </summary>
-        /// <param name="id">Test score ID (ID điểm thi)</param>
-        /// <returns>Test score details (Chi tiết điểm thi)</returns>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TestScoreDto>> GetTestScore(int id)
-        {
-            var testScore = await _context.TestScores
-                .Include(ts => ts.Student)
-                .Include(ts => ts.Class)
-                .Where(ts => ts.TestScoreId == id)
-                .Select(ts => new TestScoreDto
-                {
-                    TestScoreId = ts.TestScoreId,
-                    StudentId = ts.StudentId,
-                    StudentName = ts.Student.FullName,
-                    ClassId = ts.ClassId,
-                    ClassName = ts.Class.ClassName,
-                    TestName = ts.TestName,
-                    ListeningScore = ts.ListeningScore,
-                    ReadingScore = ts.ReadingScore,
-                    WritingScore = ts.WritingScore,
-                    SpeakingScore = ts.SpeakingScore,
-                    TotalScore = ts.TotalScore,
-                    TestDate = ts.TestDate,
-                    Comments = ts.Comments
-                })
-                .FirstOrDefaultAsync();
-
-            if (testScore == null)
-            {
-                return NotFound(new { message = "Test score not found" });
-            }
-
-            return Ok(testScore);
-        }
-
-        /// <summary>
-        /// Creates a new test score. (Nhập điểm thi/kiểm tra mới.)
-        /// </summary>
-        /// <param name="dto">Test score creation data (Dữ liệu điểm thi)</param>
-        /// <returns>Created test score (Thông tin điểm thi vừa tạo)</returns>
-        [HttpPost]
-        public async Task<ActionResult<TestScoreDto>> CreateTestScore(CreateTestScoreDto dto)
-        {
-            var totalScore = (dto.ListeningScore + dto.ReadingScore + 
-                            dto.WritingScore + dto.SpeakingScore) / 4;
-
-            var testScore = new TestScore
-            {
-                StudentId = dto.StudentId,
-                ClassId = dto.ClassId,
-                TestName = dto.TestName,
-                ListeningScore = dto.ListeningScore,
-                ReadingScore = dto.ReadingScore,
-                WritingScore = dto.WritingScore,
-                SpeakingScore = dto.SpeakingScore,
-                TotalScore = totalScore,
-                TestDate = DateTime.Now,
-                Comments = dto.Comments
-            };
-
-            _context.TestScores.Add(testScore);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetTestScores), new { id = testScore.TestScoreId }, testScore);
-        }
-
-        /// <summary>
-        /// Updates a test score. (Cập nhật điểm thi.)
-        /// </summary>
-        /// <param name="id">Test score ID (ID điểm thi)</param>
-        /// <param name="dto">Test score update data (Dữ liệu cập nhật điểm thi)</param>
-        /// <returns>Updated test score (Thông tin điểm thi đã cập nhật)</returns>
-        [HttpPut("{id}")]
-        public async Task<ActionResult<TestScoreDto>> UpdateTestScore(int id, UpdateTestScoreDto dto)
-        {
-            var testScore = await _context.TestScores.FindAsync(id);
-            if (testScore == null)
-            {
-                return NotFound(new { message = "Test score not found" });
-            }
-
-            testScore.ListeningScore = dto.ListeningScore;
-            testScore.ReadingScore = dto.ReadingScore;
-            testScore.WritingScore = dto.WritingScore;
-            testScore.SpeakingScore = dto.SpeakingScore;
-            testScore.TotalScore = (dto.ListeningScore + dto.ReadingScore + dto.WritingScore + dto.SpeakingScore) / 4;
-            testScore.Comments = dto.Comments;
-
-            await _context.SaveChangesAsync();
-
-            var updatedTestScore = await _context.TestScores
-                .Include(ts => ts.Student)
-                .Include(ts => ts.Class)
-                .Where(ts => ts.TestScoreId == id)
-                .Select(ts => new TestScoreDto
-                {
-                    TestScoreId = ts.TestScoreId,
-                    StudentId = ts.StudentId,
-                    StudentName = ts.Student.FullName,
-                    ClassId = ts.ClassId,
-                    ClassName = ts.Class.ClassName,
-                    TestName = ts.TestName,
-                    ListeningScore = ts.ListeningScore,
-                    ReadingScore = ts.ReadingScore,
-                    WritingScore = ts.WritingScore,
-                    SpeakingScore = ts.SpeakingScore,
-                    TotalScore = ts.TotalScore,
-                    TestDate = ts.TestDate,
-                    Comments = ts.Comments
-                })
-                .FirstOrDefaultAsync();
-
-            return Ok(updatedTestScore);
-        }
-
-        /// <summary>
-        /// Deletes a test score. (Xóa điểm thi.)
-        /// </summary>
-        /// <param name="id">Test score ID (ID điểm thi)</param>
-        /// <returns>No content (Không có nội dung)</returns>
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteTestScore(int id)
-        {
-            var testScore = await _context.TestScores.FindAsync(id);
-            if (testScore == null)
-            {
-                return NotFound(new { message = "Test score not found" });
-            }
-
-            _context.TestScores.Remove(testScore);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
         }
     }
 

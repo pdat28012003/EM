@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Container,
   Typography,
   Box,
   Paper,
@@ -14,12 +13,19 @@ import {
   Chip,
   MenuItem,
   Alert,
+  Avatar,
+  useTheme,
+  LinearProgress,
+  Fade,
+  Menu,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Add, Edit, People, PersonAdd, Delete } from '@mui/icons-material';
+import { Add, Edit, PersonAdd, Delete, School, MoreVert } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
 import { classesAPI, coursesAPI, teachersAPI, enrollmentsAPI, studentsAPI, roomsAPI, curriculumAPI } from '../../../services/api';
 
 const Classes = () => {
+  const theme = useTheme();
   const [classes, setClasses] = useState([]);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
@@ -35,6 +41,9 @@ const Classes = () => {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [classToDelete, setClassToDelete] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedClassForMenu, setSelectedClassForMenu] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     className: '',
     courseId: '',
@@ -48,27 +57,35 @@ const Classes = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('Loading courses with pageSize: 1000');
       const [classesRes, coursesRes, teachersRes, studentsRes, roomsRes, curriculumsRes] = await Promise.all([
         classesAPI.getAll({ page: paginationModel.page + 1, pageSize: paginationModel.pageSize }),
-        coursesAPI.getAll(),
-        teachersAPI.getAll(),
-        studentsAPI.getAll(),
-        roomsAPI.getAll(),
-        curriculumAPI.getAll({ page: 1, pageSize: 100 })
+        coursesAPI.getAll({ pageSize: 100 }),
+        teachersAPI.getAll({ pageSize: 1000 }),
+        studentsAPI.getAll({ pageSize: 1000 }),
+        roomsAPI.getAll({ pageSize: 1000 }),
+        curriculumAPI.getAll({ page: 1, pageSize: 1000 })
       ]);
-      const classesData = Array.isArray(classesRes.data?.data) ? classesRes.data.data : [];
+
+      // Extract classes
+      const classesData = classesRes.data?.data?.data || classesRes.data?.data || [];
       setClasses(classesData);
-      setCourses(Array.isArray(coursesRes.data?.data) ? coursesRes.data.data : Array.isArray(coursesRes.data) ? coursesRes.data : []);
-      setTeachers(Array.isArray(teachersRes.data?.data) ? teachersRes.data.data : []);
-      setStudents(Array.isArray(studentsRes.data?.data) ? studentsRes.data.data : []);
-      setRooms(Array.isArray(roomsRes.data?.data) ? roomsRes.data.data : Array.isArray(roomsRes.data) ? roomsRes.data : []);
-      setCurriculums(Array.isArray(curriculumsRes.data?.data) ? curriculumsRes.data.data : Array.isArray(curriculumsRes.data) ? curriculumsRes.data : []);
-      setRowCount(classesRes.data?.totalCount || classesData.length);
+      setRowCount(classesRes.data?.data?.totalCount || classesRes.data?.totalCount || classesData.length);
+
+      // Extract lookups
+      const coursesData = coursesRes.data?.data?.data || coursesRes.data?.data || [];
+      console.log('Courses loaded:', coursesData.length, coursesData);
+      setCourses(coursesData);
+      setTeachers(teachersRes.data?.data?.data || teachersRes.data?.data || []);
+      setStudents(studentsRes.data?.data?.data || studentsRes.data?.data || []);
+      setRooms(roomsRes.data?.data?.data || roomsRes.data?.data || []);
+      setCurriculums(curriculumsRes.data?.data?.data || curriculumsRes.data?.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -76,17 +93,32 @@ const Classes = () => {
     }
   };
 
-  const handleOpenDialog = () => {
-    setFormData({
-      className: '',
-      courseId: '',
-      teacherId: '',
-      startDate: '',
-      endDate: '',
-      maxStudents: 20,
-      roomId: '',
-      curriculumId: '',
-    });
+  const handleOpenDialog = (classItem = null) => {
+    if (classItem) {
+      setEditingId(classItem.classId);
+      setFormData({
+        className: classItem.className,
+        courseId: classItem.courseId,
+        teacherId: classItem.teacherId,
+        startDate: classItem.startDate ? classItem.startDate.split('T')[0] : '',
+        endDate: classItem.endDate ? classItem.endDate.split('T')[0] : '',
+        maxStudents: classItem.maxStudents,
+        roomId: classItem.roomId || '',
+        curriculumId: classItem.curriculumId || '',
+      });
+    } else {
+      setEditingId(null);
+      setFormData({
+        className: '',
+        courseId: '',
+        teacherId: '',
+        startDate: '',
+        endDate: '',
+        maxStudents: 20,
+        roomId: '',
+        curriculumId: '',
+      });
+    }
     setOpenDialog(true);
   };
 
@@ -104,14 +136,27 @@ const Classes = () => {
 
   const handleSubmit = async () => {
     try {
-      await classesAPI.create({
-        ...formData,
-        courseId: parseInt(formData.courseId),
-        teacherId: parseInt(formData.teacherId),
-        maxStudents: parseInt(formData.maxStudents),
-        roomId: formData.roomId ? parseInt(formData.roomId) : null,
-        curriculumId: formData.curriculumId ? parseInt(formData.curriculumId) : null,
-      });
+      if (editingId) {
+        await classesAPI.update(editingId, {
+          ...formData,
+          courseId: parseInt(formData.courseId),
+          teacherId: parseInt(formData.teacherId),
+          maxStudents: parseInt(formData.maxStudents),
+          roomId: formData.roomId ? parseInt(formData.roomId) : null,
+          curriculumId: formData.curriculumId ? parseInt(formData.curriculumId) : null,
+        });
+        alert('Cập nhật lớp học thành công!');
+      } else {
+        await classesAPI.create({
+          ...formData,
+          courseId: parseInt(formData.courseId),
+          teacherId: parseInt(formData.teacherId),
+          maxStudents: parseInt(formData.maxStudents),
+          roomId: formData.roomId ? parseInt(formData.roomId) : null,
+          curriculumId: formData.curriculumId ? parseInt(formData.curriculumId) : null,
+        });
+        alert('Tạo lớp học thành công!');
+      }
       handleCloseDialog();
       setPaginationModel(prev => ({ ...prev, page: 0 }));
       loadData();
@@ -121,11 +166,88 @@ const Classes = () => {
     }
   };
 
+  const getClassIcon = () => <School fontSize="small" />;
+
+  const getClassStatus = (startDate, endDate) => {
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (now < start) return 'Sắp khai giảng';
+    if (now > end) return 'Đã kết thúc';
+    return 'Active';
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Sắp khai giảng': return 'warning';
+      case 'Đã kết thúc': return 'default';
+      case 'Active': return 'success';
+      default: return 'default';
+    }
+  };
+
+  const handleOpenMenu = (event, classItem) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setSelectedClassForMenu(classItem);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+    setSelectedClassForMenu(null);
+  };
+
   const columns = [
-    { field: 'classId', headerName: 'ID', width: 70 },
-    { field: 'className', headerName: 'Tên Lớp', width: 180 },
-    { field: 'courseName', headerName: 'Khóa Học', width: 200 },
-    { field: 'curriculumName', headerName: 'Chương trình', width: 200 },
+    {
+      field: 'classId',
+      headerName: 'ID',
+      width: 70,
+      pinned: 'left',
+    },
+    {
+      field: 'className',
+      headerName: 'Tên Lớp',
+      flex: 1,
+      minWidth: 200,
+      pinned: 'left',
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
+          <Avatar
+            sx={{
+              width: 28,
+              height: 28,
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.18)' : 'rgba(59, 130, 246, 0.12)',
+              color: theme.palette.primary.main,
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.18)',
+              flexShrink: 0,
+            }}
+          >
+            {getClassIcon()}
+          </Avatar>
+          <Typography variant="body2" fontWeight={800} noWrap>
+            {params.value}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'courseAndCurriculum',
+      headerName: 'Khóa Học / Chương Trình',
+      width: 280,
+      sortable: false,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8, py: 1 }}>
+          <Typography variant="body2" fontWeight={800} sx={{ lineHeight: 1.2 }}>
+            {params.row.courseName}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
+            {params.row.curriculumName}
+          </Typography>
+        </Box>
+      ),
+    },
     { field: 'teacherName', headerName: 'Giáo Viên', width: 180 },
     {
       field: 'startDate',
@@ -142,51 +264,110 @@ const Classes = () => {
     {
       field: 'students',
       headerName: 'Sĩ Số',
-      width: 100,
-      renderCell: (params) => `${params.row.currentStudents}/${params.row.maxStudents}`,
+      width: 160,
+      align: 'center',
+      headerAlign: 'center',
+      sortable: false,
+      renderCell: (params) => {
+        const current = params.row.currentStudents || 0;
+        const max = params.row.maxStudents || 20;
+        const percentage = Math.round((current / max) * 100);
+
+        // Logic màu bar: xanh < 90%, cam 90-99%, đỏ >= 100%
+        let barColor = theme.palette.success.main;
+        if (percentage >= 100) {
+          barColor = theme.palette.error.main;
+        } else if (percentage >= 90) {
+          barColor = theme.palette.warning.main;
+        }
+
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, width: '100%', py: 0.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" fontWeight={700}>
+                {current}/{max}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {percentage}%
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(percentage, 100)}
+              sx={{
+                height: 6,
+                borderRadius: 1,
+                backgroundColor: alpha(theme.palette.grey[400], 0.3),
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: barColor,
+                  borderRadius: 1,
+                },
+              }}
+            />
+          </Box>
+        );
+      },
     },
-    { field: 'roomName', headerName: 'Phòng', width: 100 },
     {
-      field: 'status',
-      headerName: 'Trạng Thái',
-      width: 130,
+      field: 'roomName',
+      headerName: 'Phòng',
+      width: 120,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
-        <Chip
-          label={params.value}
-          color={
-            params.value === 'Active'
-              ? 'success'
-              : params.value === 'Completed'
-              ? 'default'
-              : 'error'
-          }
-          size="small"
-        />
+        <Box sx={{ display: 'flex', width: '100%', justifyContent: 'center' }}>
+          <Typography
+            component="span"
+            sx={{
+              color: theme.palette.primary.main,
+              cursor: 'pointer',
+              fontWeight: 700,
+              '&:hover': {
+                textDecoration: 'underline',
+              },
+            }}
+            title="Xem lịch phòng"
+          >
+            {params.value || '—'}
+          </Typography>
+        </Box>
       ),
     },
     {
-      field: 'actions',
-      headerName: 'Hành động',
-      width: 120,
+      field: 'status',
+      headerName: 'Trạng Thái',
+      width: 140,
+      align: 'center',
+      headerAlign: 'center',
       sortable: false,
+      renderCell: (params) => {
+        const status = getClassStatus(params.row.startDate, params.row.endDate);
+        return (
+          <Chip
+            label={status}
+            color={getStatusColor(status)}
+            size="small"
+            sx={{ fontWeight: 700 }}
+          />
+        );
+      },
+    },
+    {
+      field: 'actions',
+      headerName: 'Hành Động',
+      width: 80,
+      align: 'center',
+      headerAlign: 'center',
+      sortable: false,
+      pinned: 'right',
       renderCell: (params) => (
         <>
           <IconButton
             size="small"
-            color="primary"
-            onClick={() => handleEnrollStudent(params.row)}
-            title="Thêm học viên"
+            onClick={(e) => handleOpenMenu(e, params.row)}
+            sx={{ color: 'text.secondary' }}
           >
-            <PersonAdd />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="error"
-            onClick={() => handleDeleteClass(params.row)}
-            title="Xóa lớp học"
-            disabled={params.row.currentStudents > 0}
-          >
-            <Delete />
+            <MoreVert fontSize="small" />
           </IconButton>
         </>
       ),
@@ -197,11 +378,13 @@ const Classes = () => {
     setSelectedClass(classItem);
     setSelectedStudent('');
     setEnrollDialog(true);
+    handleCloseMenu();
   };
 
   const handleDeleteClass = (classItem) => {
     setClassToDelete(classItem);
     setDeleteDialog(true);
+    handleCloseMenu();
   };
 
   const confirmDeleteClass = async () => {
@@ -216,12 +399,12 @@ const Classes = () => {
       loadData();
     } catch (error) {
       console.error('Error deleting class:', error);
-      
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.errors?.[0] || 
-                          error.message || 
-                          'Lỗi không xác định khi xóa lớp học';
-      
+
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.errors?.[0] ||
+        error.message ||
+        'Lỗi không xác định khi xóa lớp học';
+
       alert('Lỗi xóa: ' + errorMessage);
     }
   };
@@ -237,18 +420,18 @@ const Classes = () => {
         studentId: parseInt(selectedStudent),
         classId: selectedClass.classId,
       });
-      
+
       alert('Đăng ký học viên thành công!');
       setEnrollDialog(false);
       loadData(); // Reload data
     } catch (error) {
       console.error('Error enrolling student:', error);
-      
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.errors?.[0] || 
-                          error.message || 
-                          'Lỗi không xác định khi đăng ký học viên';
-      
+
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.errors?.[0] ||
+        error.message ||
+        'Lỗi không xác định khi đăng ký học viên';
+
       alert('Lỗi đăng ký: ' + errorMessage);
     }
   };
@@ -256,16 +439,16 @@ const Classes = () => {
   // Lọc học viên chưa đăng ký vào lớp đã chọn
   const getAvailableStudents = () => {
     if (!selectedClass || !students.length) return students;
-    
+
     // Lấy danh sách học viên đã đăng ký trong lớp này
     const enrolledStudentIds = selectedClass.enrollments?.map(e => e.studentId) || [];
-    
+
     // Trả về học viên chưa đăng ký
     return students.filter(student => !enrolledStudentIds.includes(student.studentId));
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ mt: 2, mb: 4, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" fontWeight="bold">
           Quản Lý Lớp Học
@@ -279,7 +462,7 @@ const Classes = () => {
         </Button>
       </Box>
 
-      <Paper sx={{ height: 600, width: '100%' }}>
+      <Paper sx={{ flex: 1, width: '100%', overflow: 'auto' }}>
         <DataGrid
           rows={classes}
           columns={columns}
@@ -294,8 +477,53 @@ const Classes = () => {
         />
       </Paper>
 
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMenu}
+        TransitionComponent={Fade}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: 200,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+            border: '1px solid',
+            borderColor: 'divider',
+            mt: 1,
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedClassForMenu) handleEnrollStudent(selectedClassForMenu);
+          }}
+          sx={{ gap: 1.5, py: 1 }}
+        >
+          <PersonAdd fontSize="small" color="primary" />
+          <Typography variant="body2" fontWeight={700}>Thêm Học Viên</Typography>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (selectedClassForMenu) handleOpenDialog(selectedClassForMenu);
+          }}
+          sx={{ gap: 1.5, py: 1 }}
+        >
+          <Edit fontSize="small" color="primary" />
+          <Typography variant="body2" fontWeight={700}>Chỉnh Sửa</Typography>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (selectedClassForMenu) handleDeleteClass(selectedClassForMenu);
+          }}
+          sx={{ gap: 1.5, py: 1, color: 'error.main' }}
+        >
+          <Delete fontSize="small" />
+          <Typography variant="body2" fontWeight={700}>Xóa Lớp</Typography>
+        </MenuItem>
+      </Menu>
+
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Thêm Lớp Học Mới</DialogTitle>
+        <DialogTitle>{editingId ? 'Cập Nhật Lớp Học' : 'Thêm Lớp Học Mới'}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
             <TextField
@@ -315,6 +543,16 @@ const Classes = () => {
               onChange={handleInputChange}
               required
               fullWidth
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
             >
               {courses.map((course) => (
                 <MenuItem key={course.courseId} value={course.courseId}>
@@ -330,6 +568,16 @@ const Classes = () => {
               onChange={handleInputChange}
               required
               fullWidth
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
             >
               {teachers.map((teacher) => (
                 <MenuItem key={teacher.teacherId} value={teacher.teacherId}>
@@ -374,6 +622,16 @@ const Classes = () => {
               select
               required
               fullWidth
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
             >
               {rooms.map((room) => (
                 <MenuItem key={room.roomId} value={room.roomId}>
@@ -388,6 +646,16 @@ const Classes = () => {
               onChange={handleInputChange}
               select
               fullWidth
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
             >
               <MenuItem value="">
                 <em>-- Không chọn --</em>
@@ -405,7 +673,7 @@ const Classes = () => {
         <DialogActions>
           <Button onClick={handleCloseDialog}>Hủy</Button>
           <Button onClick={handleSubmit} variant="contained">
-            Thêm Mới
+            {editingId ? 'Cập Nhật' : 'Thêm Mới'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -422,9 +690,19 @@ const Classes = () => {
               onChange={(e) => setSelectedStudent(e.target.value)}
               fullWidth
               required
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                      width: 'auto',
+                    },
+                  },
+                },
+              }}
               helperText={
-                getAvailableStudents().length === 0 
-                  ? "Không có học viên nào chưa đăng ký vào lớp này" 
+                getAvailableStudents().length === 0
+                  ? "Không có học viên nào chưa đăng ký vào lớp này"
                   : `Có ${getAvailableStudents().length} học viên có thể đăng ký`
               }
             >
@@ -434,7 +712,7 @@ const Classes = () => {
                 </MenuItem>
               ))}
             </TextField>
-            
+
             {getAvailableStudents().length === 0 && (
               <Alert severity="info" sx={{ mt: 2 }}>
                 Tất cả học viên đã đăng ký vào lớp này. Không thể thêm học viên mới.
@@ -444,8 +722,8 @@ const Classes = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEnrollDialog(false)}>Hủy</Button>
-          <Button 
-            onClick={handleSaveEnrollment} 
+          <Button
+            onClick={handleSaveEnrollment}
             variant="contained"
             disabled={!selectedStudent || getAvailableStudents().length === 0}
           >
@@ -463,23 +741,22 @@ const Classes = () => {
           </Typography>
           {classToDelete?.currentStudents > 0 && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              Lớp học này có {classToDelete.currentStudents} học viên. Không thể xóa lớp học có học viên đang hoạt động.
+              Lớp học này có {classToDelete.currentStudents} học viên. Cẩn thận khi xóa!
             </Alert>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialog(false)}>Hủy</Button>
-          <Button 
-            onClick={confirmDeleteClass} 
-            variant="contained" 
+          <Button
+            onClick={confirmDeleteClass}
+            variant="contained"
             color="error"
-            disabled={classToDelete?.currentStudents > 0}
           >
             Xóa
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   );
 };
 

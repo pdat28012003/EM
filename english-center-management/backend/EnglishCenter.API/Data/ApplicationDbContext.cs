@@ -15,6 +15,7 @@ namespace EnglishCenter.API.Data
         public DbSet<Class> Classes { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<PaymentCourse> PaymentCourses { get; set; }
         public DbSet<TestScore> TestScores { get; set; }
         public DbSet<Curriculum> Curriculums { get; set; }
         public DbSet<CurriculumDay> CurriculumDays { get; set; }
@@ -27,11 +28,20 @@ namespace EnglishCenter.API.Data
     public DbSet<Skill> Skills { get; set; }
     public DbSet<Grade> Grades { get; set; }
     public DbSet<Attendance> Attendances { get; set; }
+    public DbSet<QuizQuestion> QuizQuestions { get; set; }
+    public DbSet<QuizAnswer> QuizAnswers { get; set; }
+    public DbSet<StudentQuizAttempt> StudentQuizAttempts { get; set; }
+    public DbSet<StudentQuizAnswer> StudentQuizAnswers { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<ActivityLog> ActivityLogs { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserOtp> UserOtps { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Document> Documents { get; set; }
+        public DbSet<TeacherAvailability> TeacherAvailabilities { get; set; }
+        public DbSet<SessionStudent> SessionStudents { get; set; }
+public DbSet<SessionAttendance> SessionAttendances { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -84,6 +94,18 @@ namespace EnglishCenter.API.Data
                 .HasForeignKey(p => p.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<PaymentCourse>()
+                .HasOne(pc => pc.Payment)
+                .WithMany(p => p.PaymentCourses)
+                .HasForeignKey(pc => pc.PaymentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PaymentCourse>()
+                .HasOne(pc => pc.Course)
+                .WithMany(c => c.PaymentCourses)
+                .HasForeignKey(pc => pc.CourseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<TestScore>()
                 .HasOne(ts => ts.Student)
                 .WithMany(s => s.TestScores)
@@ -91,15 +113,15 @@ namespace EnglishCenter.API.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Assignment>()
-                .HasOne(a => a.Class)
-                .WithMany(c => c.Assignments)
-                .HasForeignKey(a => a.ClassId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Assignment>()
                 .HasOne(a => a.Teacher)
                 .WithMany(t => t.Assignments)
                 .HasForeignKey(a => a.TeacherId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Assignment>()
+                .HasOne(a => a.Curriculum)
+                .WithMany()
+                .HasForeignKey(a => a.CurriculumId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<AssignmentSubmission>()
@@ -119,6 +141,75 @@ namespace EnglishCenter.API.Data
                 .WithMany()
                 .HasForeignKey(asub => asub.GradedBy)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Quiz relationships
+            modelBuilder.Entity<QuizQuestion>()
+                .HasOne(q => q.Assignment)
+                .WithMany()
+                .HasForeignKey(q => q.AssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<QuizAnswer>()
+                .HasOne(a => a.Question)
+                .WithMany(q => q.Answers)
+                .HasForeignKey(a => a.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StudentQuizAttempt>()
+                .HasOne(a => a.Assignment)
+                .WithMany()
+                .HasForeignKey(a => a.AssignmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StudentQuizAttempt>()
+                .HasOne(a => a.Student)
+                .WithMany()
+                .HasForeignKey(a => a.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StudentQuizAnswer>()
+                .HasOne(sa => sa.Attempt)
+                .WithMany(a => a.StudentAnswers)
+                .HasForeignKey(sa => sa.AttemptId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StudentQuizAnswer>()
+                .HasOne(sa => sa.Question)
+                .WithMany()
+                .HasForeignKey(sa => sa.QuestionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StudentQuizAnswer>()
+                .HasOne(sa => sa.SelectedAnswer)
+                .WithMany()
+                .HasForeignKey(sa => sa.SelectedAnswerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Notification relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure ActivityLog relationships
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.Teacher)
+                .WithMany()
+                .HasForeignKey(a => a.TeacherId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.Student)
+                .WithMany()
+                .HasForeignKey(a => a.StudentId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Curriculum>()
                 .HasOne(c => c.Course)
@@ -162,18 +253,64 @@ namespace EnglishCenter.API.Data
                 .WithMany(t => t.ParticipatedCurriculums)
                 .UsingEntity(j => j.ToTable("CurriculumTeacher"));
 
-            // Configure Document relationships
-            modelBuilder.Entity<Document>()
-                .HasOne(d => d.Teacher)
-                .WithMany(t => t.Documents)
-                .HasForeignKey(d => d.TeacherId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Configure many-to-many relationship between Student and Curriculum
+            modelBuilder.Entity<Curriculum>()
+                .HasMany(c => c.ParticipantStudents)
+                .WithMany(s => s.Curriculums)
+                .UsingEntity(j => j.ToTable("CurriculumStudent"));
 
+            // Configure SessionStudent relationship
+            modelBuilder.Entity<SessionStudent>()
+                .HasOne(ss => ss.CurriculumSession)
+                .WithMany(cs => cs.SessionStudents)
+                .HasForeignKey(ss => ss.CurriculumSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SessionStudent>()
+                .HasOne(ss => ss.Student)
+                .WithMany(s => s.SessionStudents)
+                .HasForeignKey(ss => ss.StudentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SessionStudent>()
+                .HasIndex(ss => new { ss.CurriculumSessionId, ss.StudentId })
+                .IsUnique();
+
+            // Configure SessionAttendance
+            modelBuilder.Entity<SessionAttendance>()
+                .HasOne(sa => sa.CurriculumSession)
+                .WithMany()
+                .HasForeignKey(sa => sa.CurriculumSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SessionAttendance>()
+                .HasOne(sa => sa.Student)
+                .WithMany()
+                .HasForeignKey(sa => sa.StudentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SessionAttendance>()
+                .HasIndex(sa => new { sa.CurriculumSessionId, sa.StudentId, sa.AttendanceDate })
+                .IsUnique();
+
+            // Configure Document-Curriculum relationship
             modelBuilder.Entity<Document>()
-                .HasOne(d => d.Class)
+                .HasOne(d => d.Curriculum)
                 .WithMany(c => c.Documents)
-                .HasForeignKey(d => d.ClassId)
+                .HasForeignKey(d => d.CurriculumId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure Document-CurriculumSession relationship
+            modelBuilder.Entity<CurriculumSession>()
+                .HasOne(cs => cs.Document)
+                .WithMany()
+                .HasForeignKey(cs => cs.DocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure AssignmentSubmission Score precision to fix warning
+            modelBuilder.Entity<AssignmentSubmission>()
+                .Property(a => a.Score)
+                .HasPrecision(5, 2);
 
             // Seed initial data
             SeedData(modelBuilder);
@@ -276,6 +413,30 @@ namespace EnglishCenter.API.Data
                     Qualifications = "CELTA Certificate, BA in English Literature",
                     HireDate = new DateTime(2021, 3, 20),
                     HourlyRate = 180000,
+                    IsActive = true
+                }
+            );
+
+            // Seed Rooms (must be before Classes)
+            modelBuilder.Entity<Room>().HasData(
+                new Room
+                {
+                    RoomId = 1,
+                    RoomName = "Phòng 101",
+                    Description = "Phòng học tiêu chuẩn 20 chỗ",
+                    Capacity = 20,
+                    AvailableStartTime = new TimeSpan(7, 0, 0),
+                    AvailableEndTime = new TimeSpan(21, 0, 0),
+                    IsActive = true
+                },
+                new Room
+                {
+                    RoomId = 2,
+                    RoomName = "Phòng 102",
+                    Description = "Phòng học nhỏ 15 chỗ",
+                    Capacity = 15,
+                    AvailableStartTime = new TimeSpan(7, 0, 0),
+                    AvailableEndTime = new TimeSpan(21, 0, 0),
                     IsActive = true
                 }
             );

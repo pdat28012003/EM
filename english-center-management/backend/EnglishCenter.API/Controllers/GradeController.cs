@@ -32,11 +32,11 @@ namespace EnglishCenter.API.Controllers
                 {
                     GradeId = g.GradeId,
                     StudentId = g.StudentId,
-                    StudentName = g.Student.FullName,
+                    StudentName = g.Student != null ? g.Student.FullName : string.Empty,
                     AssignmentId = g.AssignmentId,
-                    AssignmentTitle = g.Assignment.Title,
+                    AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                     SkillId = g.SkillId,
-                    SkillName = g.Skill.Name,
+                    SkillName = g.Skill != null ? g.Skill.Name : string.Empty,
                     Score = g.Score,
                     MaxScore = g.MaxScore,
                     Comments = g.Comments,
@@ -65,11 +65,11 @@ namespace EnglishCenter.API.Controllers
                 {
                     GradeId = g.GradeId,
                     StudentId = g.StudentId,
-                    StudentName = g.Student.FullName,
+                    StudentName = g.Student != null ? g.Student.FullName : string.Empty,
                     AssignmentId = g.AssignmentId,
-                    AssignmentTitle = g.Assignment.Title,
+                    AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                     SkillId = g.SkillId,
-                    SkillName = g.Skill.Name,
+                    SkillName = g.Skill != null ? g.Skill.Name : string.Empty,
                     Score = g.Score,
                     MaxScore = g.MaxScore,
                     Comments = g.Comments,
@@ -84,25 +84,25 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets grades by class. (Lấy điểm theo lớp)
+        /// Gets grades by curriculum. (Lấy điểm theo chương trình)
         /// </summary>
-        [HttpGet("class/{classId}")]
-        public async Task<ActionResult<IEnumerable<GradeDto>>> GetGradesByClass(int classId)
+        [HttpGet("curriculum/{curriculumId}")]
+        public async Task<ActionResult<IEnumerable<GradeDto>>> GetGradesByCurriculum(int curriculumId)
         {
             var grades = await _context.Grades
                 .Include(g => g.Student)
                 .Include(g => g.Assignment)
                 .Include(g => g.Skill)
-                .Where(g => g.Assignment.ClassId == classId)
+                .Where(g => g.Assignment != null && g.Assignment.CurriculumId == curriculumId)
                 .Select(g => new GradeDto
                 {
                     GradeId = g.GradeId,
                     StudentId = g.StudentId,
-                    StudentName = g.Student.FullName,
+                    StudentName = g.Student != null ? g.Student.FullName : string.Empty,
                     AssignmentId = g.AssignmentId,
-                    AssignmentTitle = g.Assignment.Title,
+                    AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                     SkillId = g.SkillId,
-                    SkillName = g.Skill.Name,
+                    SkillName = g.Skill != null ? g.Skill.Name : string.Empty,
                     Score = g.Score,
                     MaxScore = g.MaxScore,
                     Comments = g.Comments,
@@ -140,6 +140,32 @@ namespace EnglishCenter.API.Controllers
                 _context.Grades.Add(grade);
                 await _context.SaveChangesAsync();
 
+                // Create notification for the student
+                var student = await _context.Students.FindAsync(dto.StudentId);
+                var skill = await _context.Skills.FindAsync(dto.SkillId);
+                var assignment = dto.AssignmentId.HasValue 
+                    ? await _context.Assignments.FindAsync(dto.AssignmentId.Value) 
+                    : null;
+
+                if (student != null)
+                {
+                    var assignmentName = assignment?.Title ?? "Bài tập";
+                    var skillName = skill?.Name ?? "";
+                    var notification = new Notification
+                    {
+                        StudentId = dto.StudentId,
+                        Title = "Điểm mới",
+                        Message = $"Bạn vừa có điểm {skillName} {assignmentName}: {dto.Score}/{dto.MaxScore}",
+                        Type = "NewGrade",
+                        RelatedId = grade.GradeId,
+                        RelatedType = "Grade",
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Notifications.Add(notification);
+                    await _context.SaveChangesAsync();
+                }
+
                 // Return created grade with full details
                 var createdGrade = await _context.Grades
                     .Include(g => g.Student)
@@ -150,11 +176,11 @@ namespace EnglishCenter.API.Controllers
                     {
                         GradeId = g.GradeId,
                         StudentId = g.StudentId,
-                        StudentName = g.Student.FullName,
+                        StudentName = g.Student != null ? g.Student.FullName : string.Empty,
                         AssignmentId = g.AssignmentId,
-                        AssignmentTitle = g.Assignment.Title,
+                        AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                         SkillId = g.SkillId,
-                        SkillName = g.Skill.Name,
+                        SkillName = g.Skill != null ? g.Skill.Name : string.Empty,
                         Score = g.Score,
                         MaxScore = g.MaxScore,
                         Comments = g.Comments,
@@ -164,7 +190,7 @@ namespace EnglishCenter.API.Controllers
                     })
                     .FirstOrDefaultAsync();
 
-                return CreatedAtAction(nameof(GetGradesByAssignment), new { assignmentId = createdGrade.AssignmentId }, createdGrade);
+                return CreatedAtAction(nameof(GetGradesByStudent), new { studentId = createdGrade?.StudentId }, createdGrade);
             }
             catch (Exception ex)
             {
@@ -202,11 +228,11 @@ namespace EnglishCenter.API.Controllers
                     {
                         GradeId = g.GradeId,
                         StudentId = g.StudentId,
-                        StudentName = g.Student.FullName,
+                        StudentName = g.Student != null ? g.Student.FullName : string.Empty,
                         AssignmentId = g.AssignmentId,
-                        AssignmentTitle = g.Assignment.Title,
+                        AssignmentTitle = g.Assignment != null ? g.Assignment.Title : null,
                         SkillId = g.SkillId,
-                        SkillName = g.Skill.Name,
+                        SkillName = g.Skill != null ? g.Skill.Name : string.Empty,
                         Score = g.Score,
                         MaxScore = g.MaxScore,
                         Comments = g.Comments,

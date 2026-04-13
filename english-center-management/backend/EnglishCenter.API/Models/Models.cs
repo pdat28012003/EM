@@ -45,6 +45,8 @@ namespace EnglishCenter.API.Models
         public ICollection<TestScore> TestScores { get; set; } = new List<TestScore>();
         public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
         public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
+        public ICollection<Curriculum> Curriculums { get; set; } = new List<Curriculum>();
+        public ICollection<SessionStudent> SessionStudents { get; set; } = new List<SessionStudent>();
     }
 
     public class Teacher
@@ -122,6 +124,7 @@ namespace EnglishCenter.API.Models
         // Navigation properties
         public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<Curriculum> Curriculums { get; set; } = new List<Curriculum>();
+        public ICollection<PaymentCourse> PaymentCourses { get; set; } = new List<PaymentCourse>();
     }
 
     public class Class
@@ -136,8 +139,7 @@ namespace EnglishCenter.API.Models
         [Required]
         public int CourseId { get; set; }
 
-        [Required]
-        public int TeacherId { get; set; }
+        public int? TeacherId { get; set; }
 
         public DateTime StartDate { get; set; }
 
@@ -157,7 +159,7 @@ namespace EnglishCenter.API.Models
         public Course Course { get; set; } = null!;
 
         [ForeignKey("TeacherId")]
-        public Teacher Teacher { get; set; } = null!;
+        public Teacher? Teacher { get; set; }
 
         [ForeignKey("RoomId")]
         public Room? Room { get; set; }
@@ -208,17 +210,56 @@ namespace EnglishCenter.API.Models
         public DateTime PaymentDate { get; set; }
 
         [MaxLength(50)]
-        public string PaymentMethod { get; set; } = string.Empty; // Cash, Card, Transfer
+        public string PaymentMethod { get; set; } = string.Empty; // Cash, Card, Transfer, SePay
 
         [MaxLength(50)]
-        public string Status { get; set; } = "Completed"; // Completed, Pending, Cancelled
+        public string Status { get; set; } = "Pending"; // Completed, Pending, Cancelled
 
         [MaxLength(500)]
         public string Notes { get; set; } = string.Empty;
 
+        // SePay fields
+        [MaxLength(100)]
+        public string? TransactionId { get; set; } // SePay transaction ID
+
+        [MaxLength(500)]
+        public string? QRCodeUrl { get; set; } // URL của mã QR
+
+        [MaxLength(50)]
+        public string? Gateway { get; set; } // Payment gateway (MBBank, etc.)
+
+        public DateTime? PaymentCompletedDate { get; set; } // Thời gian thanh toán hoàn tất
+
         // Navigation properties
         [ForeignKey("StudentId")]
         public Student Student { get; set; } = null!;
+
+        // Many-to-many relationship with courses
+        public ICollection<PaymentCourse> PaymentCourses { get; set; } = new List<PaymentCourse>();
+    }
+
+    public class PaymentCourse
+    {
+        [Key]
+        public int PaymentCourseId { get; set; }
+
+        [Required]
+        public int PaymentId { get; set; }
+
+        [Required]
+        public int CourseId { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal CourseFee { get; set; } // Lưu lại học phí tại thời điểm thanh toán
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // Navigation properties
+        [ForeignKey("PaymentId")]
+        public Payment Payment { get; set; } = null!;
+
+        [ForeignKey("CourseId")]
+        public Course Course { get; set; } = null!;
     }
 
     public class TestScore
@@ -321,6 +362,8 @@ namespace EnglishCenter.API.Models
         public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<CurriculumDay> CurriculumDays { get; set; } = new List<CurriculumDay>();
         public ICollection<Teacher> ParticipantTeachers { get; set; } = new List<Teacher>();
+        public ICollection<Student> ParticipantStudents { get; set; } = new List<Student>();
+        public ICollection<Document> Documents { get; set; } = new List<Document>();
     }
 
     public class CurriculumDay
@@ -374,9 +417,14 @@ namespace EnglishCenter.API.Models
 
         public int? TeacherId { get; set; }
 
+        public int? DocumentId { get; set; }
+
         // Navigation properties
         [ForeignKey("CurriculumDayId")]
         public CurriculumDay CurriculumDay { get; set; } = null!;
+
+        [ForeignKey("DocumentId")]
+        public Document? Document { get; set; }
 
         [ForeignKey("RoomId")]
         public Room? AssignedRoom { get; set; }
@@ -385,6 +433,8 @@ namespace EnglishCenter.API.Models
         public Teacher? Teacher { get; set; }
 
         public ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
+
+        public ICollection<SessionStudent> SessionStudents { get; set; } = new List<SessionStudent>();
     }
 
     public class Lesson
@@ -594,16 +644,102 @@ namespace EnglishCenter.API.Models
         [Required]
         public int DownloadCount { get; set; } = 0;
 
+        // Associate with Curriculum (optional - null means standalone)
+        public int? CurriculumId { get; set; }
+
+        [ForeignKey("CurriculumId")]
+        public Curriculum? Curriculum { get; set; }
+    }
+
+    /// <summary>
+    /// Teacher Availability - Lịch rảnh của giảng viên
+    /// </summary>
+    public class TeacherAvailability
+    {
+        [Key]
+        public int AvailabilityId { get; set; }
+
         [Required]
         public int TeacherId { get; set; }
 
-        public int? ClassId { get; set; }
+        [Required]
+        public DayOfWeek DayOfWeek { get; set; } // Monday = 1, Tuesday = 2, ... Sunday = 0
+
+        [Required]
+        public TimeSpan StartTime { get; set; }
+
+        [Required]
+        public TimeSpan EndTime { get; set; }
+
+        public bool IsRecurring { get; set; } = true; // Lặp lại hàng tuần
+
+        public DateTime? SpecificDate { get; set; } // Ngày cụ thể nếu không lặp lại
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public DateTime? UpdatedAt { get; set; }
+
+        [MaxLength(500)]
+        public string Notes { get; set; } = string.Empty;
 
         // Navigation properties
         [ForeignKey("TeacherId")]
         public Teacher Teacher { get; set; } = null!;
+    }
 
-        [ForeignKey("ClassId")]
-        public Class? Class { get; set; }
+    // SessionStudent - Register students to specific sessions
+    public class SessionStudent
+    {
+        [Key]
+        public int SessionStudentId { get; set; }
+
+        [Required]
+        public int CurriculumSessionId { get; set; }
+
+        [Required]
+        public int StudentId { get; set; }
+
+        public DateTime RegistrationDate { get; set; } = DateTime.Now;
+
+        [MaxLength(500)]
+        public string Notes { get; set; } = string.Empty;
+
+        // Navigation properties
+        [ForeignKey("CurriculumSessionId")]
+        public CurriculumSession CurriculumSession { get; set; } = null!;
+
+        [ForeignKey("StudentId")]
+        public Student Student { get; set; } = null!;
+    }
+
+    public class SessionAttendance
+    {
+        [Key]
+        public int SessionAttendanceId { get; set; }
+
+        [Required]
+        public int CurriculumSessionId { get; set; }
+
+        [Required]
+        public int StudentId { get; set; }
+
+        [Required]
+        public DateTime AttendanceDate { get; set; } = DateTime.Now;
+
+        [Required]
+        [MaxLength(20)]
+        public string Status { get; set; } = "Present"; // Present, Absent, Late
+
+        [MaxLength(500)]
+        public string Notes { get; set; } = string.Empty;
+
+        // Navigation properties
+        [ForeignKey("CurriculumSessionId")]
+        public CurriculumSession CurriculumSession { get; set; } = null!;
+
+        [ForeignKey("StudentId")]
+        public Student Student { get; set; } = null!;
     }
 }

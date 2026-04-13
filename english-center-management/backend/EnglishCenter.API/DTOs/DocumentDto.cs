@@ -12,10 +12,8 @@ namespace EnglishCenter.API.DTOs
         public string FilePath { get; set; } = string.Empty;
         public DateTime UploadDate { get; set; }
         public int DownloadCount { get; set; }
-        public int TeacherId { get; set; }
-        public int? ClassId { get; set; }
-        public string? ClassName { get; set; }
-        public string? TeacherName { get; set; }
+        public int? CurriculumId { get; set; }
+        public string? CurriculumName { get; set; }
     }
 
     public class CreateDocumentDto
@@ -23,8 +21,7 @@ namespace EnglishCenter.API.DTOs
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
-        public int TeacherId { get; set; }
-        public int? ClassId { get; set; }
+        public int? CurriculumId { get; set; }
     }
 
     public class UpdateDocumentDto
@@ -32,6 +29,6 @@ namespace EnglishCenter.API.DTOs
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
-        public int? ClassId { get; set; }
+        public int? CurriculumId { get; set; }
     }
 }

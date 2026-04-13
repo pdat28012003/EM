@@ -22,6 +22,21 @@ namespace EnglishCenter.API.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CurriculumStudent", b =>
+                {
+                    b.Property<int>("CurriculumsCurriculumId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ParticipantStudentsStudentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CurriculumsCurriculumId", "ParticipantStudentsStudentId");
+
+                    b.HasIndex("ParticipantStudentsStudentId");
+
+                    b.ToTable("CurriculumStudent", (string)null);
+                });
+
             modelBuilder.Entity("CurriculumTeacher", b =>
                 {
                     b.Property<int>("ParticipantTeachersTeacherId")
@@ -37,6 +52,81 @@ namespace EnglishCenter.API.Migrations
                     b.ToTable("CurriculumTeacher", (string)null);
                 });
 
+            modelBuilder.Entity("EnglishCenter.API.Models.ActivityLog", b =>
+                {
+                    b.Property<int>("ActivityId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ActivityId"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("IconType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Metadata")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TargetType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ActivityId");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ActivityLogs");
+                });
+
             modelBuilder.Entity("EnglishCenter.API.Models.Assignment", b =>
                 {
                     b.Property<int>("AssignmentId")
@@ -48,11 +138,15 @@ namespace EnglishCenter.API.Migrations
                     b.Property<string>("AttachmentUrl")
                         .HasColumnType("text");
 
-                    b.Property<int>("ClassId")
-                        .HasColumnType("integer");
+                    b.Property<int?>("ClassId")
+                        .HasColumnType("int");
+
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CurriculumId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -63,6 +157,9 @@ namespace EnglishCenter.API.Migrations
 
                     b.Property<int>("MaxScore")
                         .HasColumnType("integer");
+
+                    b.Property<int?>("SkillId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -87,6 +184,10 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("AssignmentId");
 
                     b.HasIndex("ClassId");
+
+                    b.HasIndex("CurriculumId");
+
+                    b.HasIndex("SkillId");
 
                     b.HasIndex("TeacherId");
 
@@ -149,8 +250,13 @@ namespace EnglishCenter.API.Migrations
                     b.Property<int?>("GradedBy")
                         .HasColumnType("integer");
 
+                    b.Property<string>("OriginalFileName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("Score")
-                        .HasColumnType("numeric");
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -254,8 +360,8 @@ namespace EnglishCenter.API.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("TeacherId")
-                        .HasColumnType("integer");
+                    b.Property<int?>("TeacherId")
+                        .HasColumnType("int");
 
                     b.HasKey("ClassId");
 
@@ -493,6 +599,9 @@ namespace EnglishCenter.API.Migrations
                     b.Property<int>("CurriculumDayId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("int");
+
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("interval");
 
@@ -522,6 +631,8 @@ namespace EnglishCenter.API.Migrations
 
                     b.HasIndex("CurriculumDayId");
 
+                    b.HasIndex("DocumentId");
+
                     b.HasIndex("RoomId");
 
                     b.HasIndex("TeacherId");
@@ -539,6 +650,9 @@ namespace EnglishCenter.API.Migrations
 
                     b.Property<int?>("ClassId")
                         .HasColumnType("integer");
+
+                    b.Property<int?>("CurriculumId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -566,8 +680,8 @@ namespace EnglishCenter.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<int>("TeacherId")
-                        .HasColumnType("integer");
+                    b.Property<int?>("TeacherId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -585,6 +699,8 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("DocumentId");
 
                     b.HasIndex("ClassId");
+
+                    b.HasIndex("CurriculumId");
 
                     b.HasIndex("TeacherId");
 
@@ -656,8 +772,8 @@ namespace EnglishCenter.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("GradeId"));
 
-                    b.Property<int>("AssignmentId")
-                        .HasColumnType("integer");
+                    b.Property<int?>("AssignmentId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("AssignmentSkillAssignmentId")
                         .HasColumnType("integer");
@@ -750,6 +866,65 @@ namespace EnglishCenter.API.Migrations
                     b.ToTable("Lessons");
                 });
 
+            modelBuilder.Entity("EnglishCenter.API.Models.Notification", b =>
+                {
+                    b.Property<int>("NotificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("NotificationId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RelatedId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RelatedType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("NotificationId");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("EnglishCenter.API.Models.Payment", b =>
                 {
                     b.Property<int>("PaymentId")
@@ -761,10 +936,17 @@ namespace EnglishCenter.API.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Gateway")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Notes")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("PaymentCompletedDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("PaymentDate")
                         .HasColumnType("timestamp with time zone");
@@ -774,6 +956,10 @@ namespace EnglishCenter.API.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("QRCodeUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -781,6 +967,10 @@ namespace EnglishCenter.API.Migrations
 
                     b.Property<int>("StudentId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TransactionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("PaymentId");
 
@@ -839,6 +1029,110 @@ namespace EnglishCenter.API.Migrations
                             Status = "Completed",
                             StudentId = 2
                         });
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.PaymentCourse", b =>
+                {
+                    b.Property<int>("PaymentCourseId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentCourseId"));
+
+                    b.Property<decimal>("CourseFee")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PaymentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PaymentCourseId");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("PaymentId");
+
+                    b.ToTable("PaymentCourses");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.QuizAnswer", b =>
+                {
+                    b.Property<int>("AnswerId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AnswerId"));
+
+                    b.Property<string>("AnswerText")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AnswerId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("QuizAnswers");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.QuizQuestion", b =>
+                {
+                    b.Property<int>("QuestionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("QuestionId"));
+
+                    b.Property<int>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Explanation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Points")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("QuestionText")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("QuestionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("QuestionId");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.ToTable("QuizQuestions");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.RefreshToken", b =>
@@ -947,18 +1241,109 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("RoomId");
 
                     b.ToTable("Rooms");
+
+                    b.HasData(
+                        new
+                        {
+                            RoomId = 1,
+                            AvailableEndTime = new TimeSpan(0, 21, 0, 0, 0),
+                            AvailableStartTime = new TimeSpan(0, 7, 0, 0, 0),
+                            Capacity = 20,
+                            Description = "Phòng học tiêu chuẩn 20 chỗ",
+                            IsActive = true,
+                            RoomName = "Phòng 101"
+                        },
+                        new
+                        {
+                            RoomId = 2,
+                            AvailableEndTime = new TimeSpan(0, 21, 0, 0, 0),
+                            AvailableStartTime = new TimeSpan(0, 7, 0, 0, 0),
+                            Capacity = 15,
+                            Description = "Phòng học nhỏ 15 chỗ",
+                            IsActive = true,
+                            RoomName = "Phòng 102"
+                        });
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.SessionAttendance", b =>
+                {
+                    b.Property<int>("SessionAttendanceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SessionAttendanceId"));
+
+                    b.Property<DateTime>("AttendanceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CurriculumSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("SessionAttendanceId");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("CurriculumSessionId", "StudentId", "AttendanceDate")
+                        .IsUnique();
+
+                    b.ToTable("SessionAttendances");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.SessionStudent", b =>
+                {
+                    b.Property<int>("SessionStudentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SessionStudentId"));
+
+                    b.Property<int>("CurriculumSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("RegistrationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("SessionStudentId");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("CurriculumSessionId", "StudentId")
+                        .IsUnique();
+
+                    b.ToTable("SessionStudents");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Skill", b =>
                 {
                     b.Property<int>("SkillId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SkillId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SkillId"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1133,6 +1518,86 @@ namespace EnglishCenter.API.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EnglishCenter.API.Models.StudentQuizAnswer", b =>
+                {
+                    b.Property<int>("StudentAnswerId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StudentAnswerId"));
+
+                    b.Property<DateTime>("AnsweredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("AttemptId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("PointsEarned")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SelectedAnswerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TextAnswer")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("StudentAnswerId");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("SelectedAnswerId");
+
+                    b.ToTable("StudentQuizAnswers");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.StudentQuizAttempt", b =>
+                {
+                    b.Property<int>("AttemptId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttemptId"));
+
+                    b.Property<int>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("Score")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("TimeSpentSeconds")
+                        .HasColumnType("int");
+
+                    b.HasKey("AttemptId");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("StudentQuizAttempts");
+                });
+
             modelBuilder.Entity("EnglishCenter.API.Models.Teacher", b =>
                 {
                     b.Property<int>("TeacherId")
@@ -1214,6 +1679,53 @@ namespace EnglishCenter.API.Migrations
                             Qualifications = "CELTA Certificate, BA in English Literature",
                             Specialization = "Business English, Communication"
                         });
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.TeacherAvailability", b =>
+                {
+                    b.Property<int>("AvailabilityId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AvailabilityId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("SpecificDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("AvailabilityId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("TeacherAvailabilities");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.TestScore", b =>
@@ -1471,6 +1983,21 @@ namespace EnglishCenter.API.Migrations
                     b.ToTable("UserOtps");
                 });
 
+            modelBuilder.Entity("CurriculumStudent", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.Curriculum", null)
+                        .WithMany()
+                        .HasForeignKey("CurriculumsCurriculumId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnglishCenter.API.Models.Student", null)
+                        .WithMany()
+                        .HasForeignKey("ParticipantStudentsStudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CurriculumTeacher", b =>
                 {
                     b.HasOne("EnglishCenter.API.Models.Teacher", null)
@@ -1486,13 +2013,44 @@ namespace EnglishCenter.API.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EnglishCenter.API.Models.ActivityLog", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EnglishCenter.API.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Teacher");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("EnglishCenter.API.Models.Assignment", b =>
                 {
-                    b.HasOne("EnglishCenter.API.Models.Class", "Class")
+                    b.HasOne("EnglishCenter.API.Models.Class", null)
                         .WithMany("Assignments")
-                        .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("ClassId");
+
+                    b.HasOne("EnglishCenter.API.Models.Curriculum", "Curriculum")
+                        .WithMany()
+                        .HasForeignKey("CurriculumId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EnglishCenter.API.Models.Skill", "Skill")
+                        .WithMany()
+                        .HasForeignKey("SkillId");
 
                     b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
                         .WithMany("Assignments")
@@ -1500,7 +2058,9 @@ namespace EnglishCenter.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Class");
+                    b.Navigation("Curriculum");
+
+                    b.Navigation("Skill");
 
                     b.Navigation("Teacher");
                 });
@@ -1590,8 +2150,7 @@ namespace EnglishCenter.API.Migrations
                     b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
                         .WithMany("Classes")
                         .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Course");
 
@@ -1632,6 +2191,11 @@ namespace EnglishCenter.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EnglishCenter.API.Models.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("EnglishCenter.API.Models.Room", "AssignedRoom")
                         .WithMany()
                         .HasForeignKey("RoomId");
@@ -1644,25 +2208,27 @@ namespace EnglishCenter.API.Migrations
 
                     b.Navigation("CurriculumDay");
 
+                    b.Navigation("Document");
+
                     b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Document", b =>
                 {
-                    b.HasOne("EnglishCenter.API.Models.Class", "Class")
+                    b.HasOne("EnglishCenter.API.Models.Class", null)
                         .WithMany("Documents")
-                        .HasForeignKey("ClassId")
+                        .HasForeignKey("ClassId");
+
+                    b.HasOne("EnglishCenter.API.Models.Curriculum", "Curriculum")
+                        .WithMany("Documents")
+                        .HasForeignKey("CurriculumId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
+                    b.HasOne("EnglishCenter.API.Models.Teacher", null)
                         .WithMany("Documents")
-                        .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("TeacherId");
 
-                    b.Navigation("Class");
-
-                    b.Navigation("Teacher");
+                    b.Navigation("Curriculum");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Enrollment", b =>
@@ -1688,9 +2254,7 @@ namespace EnglishCenter.API.Migrations
                 {
                     b.HasOne("EnglishCenter.API.Models.Assignment", "Assignment")
                         .WithMany("Grades")
-                        .HasForeignKey("AssignmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("AssignmentId");
 
                     b.HasOne("EnglishCenter.API.Models.Skill", "Skill")
                         .WithMany("Grades")
@@ -1726,6 +2290,28 @@ namespace EnglishCenter.API.Migrations
                     b.Navigation("CurriculumSession");
                 });
 
+            modelBuilder.Entity("EnglishCenter.API.Models.Notification", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId");
+
+                    b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId");
+
+                    b.HasOne("EnglishCenter.API.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Teacher");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("EnglishCenter.API.Models.Payment", b =>
                 {
                     b.HasOne("EnglishCenter.API.Models.Student", "Student")
@@ -1735,6 +2321,47 @@ namespace EnglishCenter.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.PaymentCourse", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.Course", "Course")
+                        .WithMany("PaymentCourses")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EnglishCenter.API.Models.Payment", "Payment")
+                        .WithMany("PaymentCourses")
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.QuizAnswer", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.QuizQuestion", "Question")
+                        .WithMany("Answers")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.QuizQuestion", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.Assignment", "Assignment")
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.RefreshToken", b =>
@@ -1748,6 +2375,44 @@ namespace EnglishCenter.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("EnglishCenter.API.Models.SessionAttendance", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.CurriculumSession", "CurriculumSession")
+                        .WithMany()
+                        .HasForeignKey("CurriculumSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnglishCenter.API.Models.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CurriculumSession");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.SessionStudent", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.CurriculumSession", "CurriculumSession")
+                        .WithMany("SessionStudents")
+                        .HasForeignKey("CurriculumSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnglishCenter.API.Models.Student", "Student")
+                        .WithMany("SessionStudents")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CurriculumSession");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("EnglishCenter.API.Models.Student", b =>
                 {
                     b.HasOne("EnglishCenter.API.Models.User", "User")
@@ -1757,6 +2422,51 @@ namespace EnglishCenter.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("EnglishCenter.API.Models.StudentQuizAnswer", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.StudentQuizAttempt", "Attempt")
+                        .WithMany("StudentAnswers")
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnglishCenter.API.Models.QuizQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EnglishCenter.API.Models.QuizAnswer", "SelectedAnswer")
+                        .WithMany()
+                        .HasForeignKey("SelectedAnswerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Attempt");
+
+                    b.Navigation("Question");
+
+                    b.Navigation("SelectedAnswer");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.StudentQuizAttempt", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.Assignment", "Assignment")
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EnglishCenter.API.Models.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("EnglishCenter.API.Models.Teacher", b =>
                 {
                     b.HasOne("EnglishCenter.API.Models.User", "User")
@@ -1764,6 +2474,17 @@ namespace EnglishCenter.API.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.TeacherAvailability", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.Teacher", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.TestScore", b =>
@@ -1824,6 +2545,8 @@ namespace EnglishCenter.API.Migrations
                     b.Navigation("Classes");
 
                     b.Navigation("Curriculums");
+
+                    b.Navigation("PaymentCourses");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Curriculum", b =>
@@ -1831,6 +2554,8 @@ namespace EnglishCenter.API.Migrations
                     b.Navigation("Classes");
 
                     b.Navigation("CurriculumDays");
+
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.CurriculumDay", b =>
@@ -1841,11 +2566,23 @@ namespace EnglishCenter.API.Migrations
             modelBuilder.Entity("EnglishCenter.API.Models.CurriculumSession", b =>
                 {
                     b.Navigation("Lessons");
+
+                    b.Navigation("SessionStudents");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Lesson", b =>
                 {
                     b.Navigation("Attendances");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.Payment", b =>
+                {
+                    b.Navigation("PaymentCourses");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.QuizQuestion", b =>
+                {
+                    b.Navigation("Answers");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Role", b =>
@@ -1868,9 +2605,16 @@ namespace EnglishCenter.API.Migrations
 
                     b.Navigation("Payments");
 
+                    b.Navigation("SessionStudents");
+
                     b.Navigation("Submissions");
 
                     b.Navigation("TestScores");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.StudentQuizAttempt", b =>
+                {
+                    b.Navigation("StudentAnswers");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Teacher", b =>

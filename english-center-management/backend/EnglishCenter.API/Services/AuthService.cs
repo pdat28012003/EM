@@ -75,6 +75,16 @@ namespace EnglishCenter.API.Services
             user.LastLogin = DateTime.Now;
             await _context.SaveChangesAsync();
 
+            int? studentId = null;
+            
+            // If user is a Student, get the associated StudentId
+            if (user.Role.RoleName == "Student")
+            {
+                var student = await _context.Students
+                    .FirstOrDefaultAsync(s => s.UserId == user.UserId);
+                studentId = student?.StudentId;
+            }
+
             return new LoginResponse
             {
                 AccessToken = accessToken,
@@ -87,7 +97,8 @@ namespace EnglishCenter.API.Services
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
                     Avatar = user.Avatar,
-                    Role = user.Role.RoleName
+                    Role = user.Role.RoleName,
+                    StudentId = studentId
                 }
             };
         }
@@ -117,6 +128,16 @@ namespace EnglishCenter.API.Services
             _context.RefreshTokens.Add(refreshTokenEntity);
             await _context.SaveChangesAsync();
 
+            int? studentId = null;
+            
+            // If user is a Student, get the associated StudentId
+            if (user.Role.RoleName == "Student")
+            {
+                var student = await _context.Students
+                    .FirstOrDefaultAsync(s => s.UserId == user.UserId);
+                studentId = student?.StudentId;
+            }
+
             return new LoginResponse
             {
                 AccessToken = newAccessToken,
@@ -129,9 +150,26 @@ namespace EnglishCenter.API.Services
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
                     Avatar = user.Avatar,
-                    Role = user.Role.RoleName
+                    Role = user.Role.RoleName,
+                    StudentId = studentId
                 }
             };
+        }
+
+        public async Task<bool> LogoutAsync(int userId)
+        {
+            // Revoke all valid refresh tokens for this user
+            var refreshTokens = await _context.RefreshTokens
+                .Where(t => t.UserId == userId && t.ExpiryTime > DateTime.Now && t.RevokedAt == null)
+                .ToListAsync();
+            
+            foreach (var token in refreshTokens)
+            {
+                token.RevokedAt = DateTime.Now;
+            }
+            
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> ForgotPasswordAsync(ForgotPasswordRequest request)
@@ -172,6 +210,16 @@ namespace EnglishCenter.API.Services
 
             if (user == null) return null;
 
+            int? studentId = null;
+            
+            // If user is a Student, get the associated StudentId
+            if (user.Role.RoleName == "Student")
+            {
+                var student = await _context.Students
+                    .FirstOrDefaultAsync(s => s.UserId == userId);
+                studentId = student?.StudentId;
+            }
+
             return new UserDto
             {
                 UserId = user.UserId,
@@ -179,7 +227,8 @@ namespace EnglishCenter.API.Services
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
                 Avatar = user.Avatar,
-                Role = user.Role.RoleName
+                Role = user.Role.RoleName,
+                StudentId = studentId
             };
         }
 

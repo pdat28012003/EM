@@ -281,7 +281,7 @@ namespace EnglishCenter.API.Controllers
                     CurriculumId = c.CurriculumId,
                     CurriculumName = c.Curriculum != null ? c.Curriculum.CurriculumName : string.Empty,
                     TeacherId = c.TeacherId,
-                    TeacherName = c.Teacher.FullName,
+                    TeacherName = c.Teacher != null ? c.Teacher.FullName : "Not assigned",
                     StartDate = c.StartDate,
                     EndDate = c.EndDate,
                     MaxStudents = c.MaxStudents,
@@ -328,7 +328,7 @@ namespace EnglishCenter.API.Controllers
                     CurriculumId = c.CurriculumId,
                     CurriculumName = c.Curriculum != null ? c.Curriculum.CurriculumName : string.Empty,
                     TeacherId = c.TeacherId,
-                    TeacherName = c.Teacher.FullName,
+                    TeacherName = c.Teacher != null ? c.Teacher.FullName : "Not assigned",
                     StartDate = c.StartDate,
                     EndDate = c.EndDate,
                     MaxStudents = c.MaxStudents,
@@ -371,7 +371,55 @@ namespace EnglishCenter.API.Controllers
             _context.Classes.Add(classEntity);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetClass), new { id = classEntity.ClassId }, classEntity);
+            // Create notification for the assigned teacher
+            if (dto.TeacherId.HasValue)
+            {
+                var course = await _context.Courses.FindAsync(dto.CourseId);
+                
+                var notification = new Notification
+                {
+                    TeacherId = dto.TeacherId.Value,
+                    Title = "Bạn được phân công giảng dạy lớp mới",
+                    Message = $"Bạn đã được phân công giảng dạy lớp {dto.ClassName} - {course?.CourseName}",
+                    Type = "ClassAssignment",
+                    RelatedId = classEntity.ClassId,
+                    RelatedType = "Class",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync();
+            }
+
+            // Return created class with full details
+            var createdClass = await _context.Classes
+                .Include(c => c.Course)
+                .Include(c => c.Teacher)
+                .Include(c => c.Room)
+                .Include(c => c.Curriculum)
+                .Include(c => c.Enrollments)
+                .Where(c => c.ClassId == classEntity.ClassId)
+                .Select(c => new ClassDto
+                {
+                    ClassId = c.ClassId,
+                    ClassName = c.ClassName,
+                    CourseId = c.CourseId,
+                    CourseName = c.Course.CourseName,
+                    CurriculumId = c.CurriculumId,
+                    CurriculumName = c.Curriculum != null ? c.Curriculum.CurriculumName : string.Empty,
+                    TeacherId = c.TeacherId,
+                    TeacherName = c.Teacher != null ? c.Teacher.FullName : string.Empty,
+                    StartDate = c.StartDate,
+                    EndDate = c.EndDate,
+                    MaxStudents = c.MaxStudents,
+                    CurrentStudents = c.Enrollments.Count(e => e.Status == "Active"),
+                    RoomId = c.RoomId,
+                    RoomName = c.Room != null ? c.Room.RoomName : string.Empty,
+                    Status = c.Status
+                })
+                .FirstOrDefaultAsync();
+
+            return CreatedAtAction(nameof(GetClass), new { id = classEntity.ClassId }, createdClass);
         }
 
         /// <summary>
@@ -449,13 +497,6 @@ namespace EnglishCenter.API.Controllers
                 if (classEntity == null)
                 {
                     return NotFound(new { message = "Class not found" });
-                }
-
-                // Check if class has active students
-                var activeEnrollments = classEntity.Enrollments.Where(e => e.Status == "Active").Count();
-                if (activeEnrollments > 0)
-                {
-                    return BadRequest(new { message = "Cannot delete class with active students" });
                 }
 
                 // Remove related records first

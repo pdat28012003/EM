@@ -40,6 +40,8 @@ namespace EnglishCenter.API.Controllers
         /// <param name="search">Search term (Tìm kiếm theo tên, email, số điện thoại)</param>
         /// <param name="level">Student level (Cấp độ học viên)</param>
         /// <param name="isActive">Status (Trạng thái hoạt động)</param>
+        /// <param name="page">Page number (Số trang)</param>
+        /// <param name="pageSize">Page size (Số lượng mỗi trang)</param>
         /// <returns>List of students (Danh sách học viên)</returns>
         [HttpGet]
         public async Task<ActionResult<PagedResult<StudentDto>>> GetStudents(
@@ -56,15 +58,10 @@ namespace EnglishCenter.API.Controllers
 
                 var query = _context.Students.AsQueryable();
 
-                // Filter by status - mặc định chỉ lấy active students
+                // Filter by status 
                 if (isActive.HasValue)
                 {
                     query = query.Where(s => s.IsActive == isActive.Value);
-                }
-                else
-                {
-                    // Mặc định chỉ lấy students đang active
-                    query = query.Where(s => s.IsActive);
                 }
 
                 if (!string.IsNullOrEmpty(search))
@@ -169,66 +166,95 @@ namespace EnglishCenter.API.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var existingStudent = await _context.Students
+                // Check for existing Active student
+                var existingActiveStudent = await _context.Students
                     .FirstOrDefaultAsync(s => s.Email == dto.Email && s.IsActive);
                 
-                if (existingStudent != null)
+                if (existingActiveStudent != null)
                 {
-                    return Conflict(new { message = "A student with this email already exists" });
+                    return Conflict(new { message = "A student with this email already exists and is active." });
                 }
 
-                // Ensure no existing user with the same email
-                var existingUser = await _context.Users
+                // Find existing User (could be inactive)
+                var user = await _context.Users
                     .FirstOrDefaultAsync(u => u.Email == dto.Email);
-                if (existingUser != null)
-                {
-                    return Conflict(new { message = "A user with this email already exists" });
-                }
+                
+                // Find existing Student (could be inactive)
+                var student = await _context.Students
+                    .FirstOrDefaultAsync(s => s.Email == dto.Email);
 
                 // Ensure Student role exists
                 var studentRole = await _context.Roles
                     .FirstOrDefaultAsync(r => r.RoleName == "Student");
+                
                 if (studentRole == null)
                 {
-                    studentRole = new Role
-                    {
-                        RoleName = "Student",
-                        Description = "Student account"
-                    };
+                    studentRole = new Role { RoleName = "Student", Description = "Student account" };
                     _context.Roles.Add(studentRole);
                     await _context.SaveChangesAsync();
                 }
 
-                // Create authentication user for this student (for login)
                 CreatePasswordHash(dto.Password, out byte[] passwordHash, out byte[] passwordSalt);
-                var user = new User
-                {
-                    Email = dto.Email,
-                    FullName = dto.FullName,
-                    PhoneNumber = dto.PhoneNumber,
-                    PasswordHash = passwordHash,
-                    PasswordSalt = passwordSalt,
-                    RoleId = studentRole.RoleId,
-                    IsActive = true,
-                    CreatedAt = DateTime.Now
-                };
 
-                _context.Users.Add(user);
+                if (user != null)
+                {
+                    // Reactive and update existing user
+                    user.FullName = dto.FullName;
+                    user.PhoneNumber = dto.PhoneNumber;
+                    user.PasswordHash = passwordHash;
+                    user.PasswordSalt = passwordSalt;
+                    user.IsActive = true;
+                    user.RoleId = studentRole.RoleId; // Ensure role is correct
+                }
+                else
+                {
+                    // Create new user
+                    user = new User
+                    {
+                        Email = dto.Email,
+                        FullName = dto.FullName,
+                        PhoneNumber = dto.PhoneNumber,
+                        PasswordHash = passwordHash,
+                        PasswordSalt = passwordSalt,
+                        RoleId = studentRole.RoleId,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now
+                    };
+                    _context.Users.Add(user);
+                }
+
                 await _context.SaveChangesAsync();
 
-                var student = _mappingService.MapToStudent(dto);
-                student.Password = _passwordService.HashPassword(dto.Password);
-                student.UserId = user.UserId;
+                if (student != null)
+                {
+                    // Reactivate and update existing student
+                    student.FullName = dto.FullName;
+                    student.PhoneNumber = dto.PhoneNumber;
+                    student.DateOfBirth = dto.DateOfBirth;
+                    student.Address = dto.Address;
+                    student.Level = dto.Level;
+                    student.IsActive = true;
+                    student.Password = _passwordService.HashPassword(dto.Password);
+                    student.UserId = user.UserId;
+                }
+                else
+                {
+                    // Create new student
+                    student = _mappingService.MapToStudent(dto);
+                    student.Password = _passwordService.HashPassword(dto.Password);
+                    student.UserId = user.UserId;
+                    student.IsActive = true;
+                    _context.Students.Add(student);
+                }
 
-                _context.Students.Add(student);
                 await _context.SaveChangesAsync();
 
                 var studentDto = _mappingService.MapToStudentDto(student);
                 return CreatedAtAction(nameof(GetStudent), new { id = student.StudentId }, studentDto);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error creating student" });
+                return StatusCode(500, new { message = "Error creating student", details = ex.Message });
             }
         }
 
@@ -304,6 +330,17 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 student.IsActive = false;
+                
+                // Also deactivate associated user if exists
+                if (student.UserId.HasValue)
+                {
+                    var user = await _context.Users.FindAsync(student.UserId.Value);
+                    if (user != null)
+                    {
+                        user.IsActive = false;
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
                 return NoContent();
@@ -352,6 +389,60 @@ namespace EnglishCenter.API.Controllers
             catch (Exception)
             {
                 return StatusCode(500, new { message = "Error retrieving enrollments" });
+            }
+        }
+
+        /// <summary>
+        /// Gets student's enrolled classes. (Lấy danh sách lớp học của học viên.)
+        /// </summary>
+        /// <param name="id">Student ID (ID học viên)</param>
+        /// <returns>List of classes (Danh sách lớp học)</returns>
+        [HttpGet("{id}/classes")]
+        public async Task<ActionResult<IEnumerable<ClassDto>>> GetStudentClasses(int id)
+        {
+            try
+            {
+                var student = await FindStudent(id);
+                if (student == null)
+                {
+                    return NotFound(new { message = "Student not found" });
+                }
+
+                var classes = await _context.Enrollments
+                    .Include(e => e.Class)
+                    .ThenInclude(c => c.Course)
+                    .Include(e => e.Class)
+                    .ThenInclude(c => c.Teacher)
+                    .Include(e => e.Class)
+                    .ThenInclude(c => c.Room)
+                    .Include(e => e.Class)
+                    .ThenInclude(c => c.Curriculum)
+                    .Where(e => e.StudentId == id)
+                    .Select(e => new ClassDto
+                    {
+                        ClassId = e.Class.ClassId,
+                        ClassName = e.Class.ClassName,
+                        CourseId = e.Class.CourseId,
+                        CourseName = e.Class.Course.CourseName,
+                        CurriculumId = e.Class.CurriculumId,
+                        CurriculumName = e.Class.Curriculum != null ? e.Class.Curriculum.CurriculumName : string.Empty,
+                        TeacherId = e.Class.TeacherId,
+                        TeacherName = e.Class.Teacher != null ? e.Class.Teacher.FullName : "Not assigned",
+                        StartDate = e.Class.StartDate,
+                        EndDate = e.Class.EndDate,
+                        MaxStudents = e.Class.MaxStudents,
+                        CurrentStudents = e.Class.Enrollments.Count(en => en.Status == "Active"),
+                        RoomId = e.Class.RoomId,
+                        RoomName = e.Class.Room != null ? e.Class.Room.RoomName : string.Empty,
+                        Status = e.Class.Status
+                    })
+                    .ToListAsync();
+
+                return Ok(classes);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Error retrieving student classes" });
             }
         }
 

@@ -11,6 +11,19 @@ import {
   Alert,
   Paper,
   Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  ToggleButton,
+  ToggleButtonGroup,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Tooltip,
 } from '@mui/material';
 import {
   CalendarMonth,
@@ -19,8 +32,11 @@ import {
   Topic,
   Person,
   Refresh,
+  ViewModule,
+  ViewList,
+  Sync
 } from '@mui/icons-material';
-import { studentsAPI } from '../../../services/api';
+import { studentsAPI, authAPI } from '../../../services/api';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 
@@ -28,17 +44,27 @@ const StudentSchedule = () => {
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [startDate] = useState(dayjs().startOf('week').add(1, 'day'));
+  const [endDate] = useState(dayjs().endOf('week').add(1, 'day'));
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'table' | 'calendar'
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedClass, setSelectedClass] = useState('all');
+  const [classOptions, setClassOptions] = useState(['all']);
+
+  const clearDateFilter = () => {
+    setSelectedDate(null);
+  };
 
   useEffect(() => {
     loadSchedule();
-  }, [selectedDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate]);
 
   const loadSchedule = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('Vui lòng đăng nhập để xem lịch học');
@@ -46,38 +72,108 @@ const StudentSchedule = () => {
       }
 
       const user = JSON.parse(userData);
-      if (!user.studentId) {
-        setError('Không tìm thấy thông tin học viên');
+      let studentId = user.studentId;
+
+      // Fallback: If studentId is missing, fetch profile from server
+      if (!studentId) {
+        try {
+          const profileRes = await authAPI.getProfile();
+          // The API response might be in PascalCase in backend but camelCase here due to interceptors
+          const profileData = profileRes.data?.data || profileRes.data;
+          if (profileData && profileData.studentId) {
+            studentId = profileData.studentId;
+            // Update localStorage for other pages
+            localStorage.setItem('user', JSON.stringify({ ...user, studentId }));
+          }
+        } catch (profileErr) {
+          console.error('Error fetching profile fallback:', profileErr);
+          setError('Không thể tải thông tin học viên. Vui lòng làm mới trang.');
+          return;
+        }
+      }
+
+      if (!studentId) {
+        setError('Tài khoản của bạn chưa được liên kết với hồ sơ học viên. Vui lòng liên hệ Admin để được hỗ trợ.');
         return;
       }
 
-      // Add date parameter if selected
-      const params = selectedDate ? { date: selectedDate.format('YYYY-MM-DD') } : {};
-      const response = await studentsAPI.getSchedule(user.studentId, params);
-      
-      let scheduleData = [];
-      if (response.data && response.data.data) {
-        scheduleData = response.data.data;
-      } else if (response.data) {
-        scheduleData = Array.isArray(response.data) ? response.data : [];
-      }
+      // Lấy lịch học trong khoảng ngày đã chọn
+      const params = {
+        startDate: startDate.format('YYYY-MM-DD'),
+        endDate: endDate.format('YYYY-MM-DD'),
+        pageSize: 100
+      };
 
-      setSchedule(scheduleData);
+      const response = await studentsAPI.getSchedule(studentId, params);
+
+      const scheduleData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
+      const scheduleArray = Array.isArray(scheduleData) ? scheduleData : [];
+      setSchedule(scheduleArray);
+      
+      // Extract unique class names for filter
+      const uniqueClasses = [...new Set(scheduleArray.map(s => s.courseName || s.CourseName).filter(Boolean))];
+      setClassOptions(['all', ...uniqueClasses]);
     } catch (err) {
       console.error('Error loading schedule:', err);
-      setError('Không thể tải lịch học. Vui lòng thử lại sau.');
+      if (err.response?.status === 404) {
+        setError('Không tìm thấy thông tin học viên. Vui lòng liên hệ Admin để kiểm tra liên kết tài khoản.');
+      } else if (err.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        setError('Không thể tải lịch học. Vui lòng thử lại sau.');
+      }
       setSchedule([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDateChange = (date) => {
-    setSelectedDate(date);
+
+  const handleViewModeChange = (event, newMode) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
+    }
   };
 
-  const clearDateFilter = () => {
-    setSelectedDate(null);
+  // Filter schedule based on selected class
+  const getFilteredSchedule = () => {
+    if (selectedClass === 'all') {
+      return schedule;
+    }
+    return schedule.filter(item => 
+      (item.courseName || item.CourseName) === selectedClass
+    );
+  };
+
+  // Helper to group schedule by day of week
+  const getScheduleByDay = () => {
+    const filteredSchedule = getFilteredSchedule();
+    const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+    const timeSlots = ['08:00', '10:00', '14:00', '16:00', '18:00', '20:00'];
+
+    const scheduleMap = {};
+    timeSlots.forEach(time => {
+      scheduleMap[time] = {};
+      days.forEach(day => {
+        scheduleMap[time][day] = null;
+      });
+    });
+
+    filteredSchedule.forEach(item => {
+      if (item.date || item.Date) {
+        const date = dayjs(item.date || item.Date);
+        const dayOfWeek = days[date.day() === 0 ? 6 : date.day() - 1];
+        const startTime = item.startTime || item.StartTime;
+
+        // Find closest time slot
+        const slot = timeSlots.find(t => startTime >= t) || timeSlots[timeSlots.length - 1];
+        if (slot && dayOfWeek) {
+          scheduleMap[slot][dayOfWeek] = item;
+        }
+      }
+    });
+
+    return { days, timeSlots, scheduleMap };
   };
 
   if (loading) {
@@ -91,63 +187,315 @@ const StudentSchedule = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom fontWeight="bold">
-        Lịch Học Của Tôi
-      </Typography>
-      
+    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, sm: 3, md: 4 } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <CalendarMonth sx={{ fontSize: { xs: 24, sm: 28, md: 32 }, color: '#4F46E5' }} />
+        <Typography 
+          variant="h4" 
+          fontWeight="bold"
+          sx={{ 
+            fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
+            lineHeight: 1.2
+          }}
+        >
+          Thời Khóa Biểu
+        </Typography>
+      </Box>
+
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
-      {/* Filter Controls */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Grid container spacing={3} alignItems="center">
-          <Grid item xs={12} md={8}>
-            <Typography variant="h6">
-              {selectedDate 
+      {/* Enhanced Filter Controls */}
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+        {/* Mobile Layout - Stacked */}
+        <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+          {/* Filter Dropdown */}
+          <Box sx={{ mb: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Lọc theo lớp học</InputLabel>
+              <Select
+                value={selectedClass}
+                label="Lọc theo lớp học"
+                onChange={(e) => setSelectedClass(e.target.value)}
+              >
+                <MenuItem value="all">Tất cả lớp học</MenuItem>
+                {classOptions.slice(1).map((className) => (
+                  <MenuItem key={className} value={className}>
+                    {className}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+          
+          {/* Title */}
+          <Box sx={{ textAlign: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              {selectedDate
                 ? `Lịch học ngày ${selectedDate.format('DD/MM/YYYY')}`
                 : 'Tất cả lịch học'
               }
             </Typography>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Box display="flex" gap={2}>
-              {selectedDate && (
-                <Button variant="outlined" onClick={clearDateFilter}>
-                  Xóa bộ lọc
-                </Button>
-              )}
-              <Button variant="contained" startIcon={<Refresh />} onClick={loadSchedule}>
-                Làm mới
+          </Box>
+          
+          {/* Button Group - Horizontal Scroll */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1, 
+            overflowX: 'auto',
+            '&::-webkit-scrollbar': { height: '6px' },
+            '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
+            '&::-webkit-scrollbar-thumb': { background: '#c1c1c1', borderRadius: '3px' }
+          }}>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              size="small"
+            >
+              <Tooltip title="Danh sách">
+                <ToggleButton value="list">
+                  <ViewList />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Lịch tuần">
+                <ToggleButton value="table">
+                  <ViewModule />
+                </ToggleButton>
+              </Tooltip>
+            </ToggleButtonGroup>
+            
+            {selectedDate && (
+              <Button variant="outlined" onClick={clearDateFilter} size="small">
+                Xóa bộ lọc
               </Button>
-            </Box>
-          </Grid>
-        </Grid>
+            )}
+            
+            <Button 
+              variant="contained" 
+              startIcon={<Refresh />} 
+              onClick={loadSchedule}
+              size="small"
+              sx={{
+                background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #3730A3 0%, #4338CA 100%)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
+                },
+                transition: 'all 0.3s ease',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Làm mới
+            </Button>
+          </Box>
+        </Box>
+        
+        {/* Desktop Layout - Horizontal */}
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
+          {/* Left: Filter */}
+          <Box sx={{ minWidth: 200, flexShrink: 0 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Lọc theo lớp học</InputLabel>
+              <Select
+                value={selectedClass}
+                label="Lọc theo lớp học"
+                onChange={(e) => setSelectedClass(e.target.value)}
+              >
+                <MenuItem value="all">Tất cả lớp học</MenuItem>
+                {classOptions.slice(1).map((className) => (
+                  <MenuItem key={className} value={className}>
+                    {className}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+          
+          {/* Center: Title */}
+          <Box sx={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              {selectedDate
+                ? `Lịch học ngày ${selectedDate.format('DD/MM/YYYY')}`
+                : 'Tất cả lịch học'
+              }
+            </Typography>
+          </Box>
+          
+          {/* Right: Button Group */}
+          <Box display="flex" alignItems="center" gap={1.5} flexShrink={0}>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              size="small"
+            >
+              <Tooltip title="Danh sách">
+                <ToggleButton value="list">
+                  <ViewList />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Lịch tuần">
+                <ToggleButton value="table">
+                  <ViewModule />
+                </ToggleButton>
+              </Tooltip>
+            </ToggleButtonGroup>
+            
+            <Tooltip title="Đồng bộ Google Calendar">
+              <Button 
+                variant="outlined" 
+                startIcon={<Sync />}
+                onClick={() => {/* TODO: Implement Google Calendar sync */}}
+              >
+                Google Calendar
+              </Button>
+            </Tooltip>
+            
+            {selectedDate && (
+              <Button variant="outlined" onClick={clearDateFilter}>
+                Xóa bộ lọc
+              </Button>
+            )}
+            
+            <Button 
+              variant="contained" 
+              startIcon={<Refresh />} 
+              onClick={loadSchedule}
+              sx={{
+                background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #3730A3 0%, #4338CA 100%)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Làm mới
+            </Button>
+          </Box>
+        </Box>
       </Paper>
 
       {schedule.length === 0 ? (
         <Paper sx={{ p: 10, textAlign: 'center', border: '2px dashed', borderColor: 'grey.300', bgcolor: 'transparent' }}>
           <CalendarMonth sx={{ fontSize: 60, color: 'grey.300', mb: 2 }} />
           <Typography variant="h6" color="textSecondary">
-            {selectedDate 
+            {selectedDate
               ? 'Không có lịch học vào ngày này'
               : 'Không có lịch học nào'
             }
           </Typography>
           <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            {selectedDate 
+            {selectedDate
               ? 'Vui lòng chọn ngày khác để xem lịch học'
               : 'Liên hệ quản trị viên để được đăng ký lớp học'
             }
           </Typography>
         </Paper>
+      ) : viewMode === 'table' ? (
+        // Table View - Timetable
+        <>
+          <TableContainer component={Paper} sx={{ mb: 3 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'primary.main' }}>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', width: 80 }}>Tiết</TableCell>
+                  {getScheduleByDay().days.map(day => (
+                    <TableCell key={day} align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                      {day}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {getScheduleByDay().timeSlots.map((time, index) => (
+                  <TableRow key={time} sx={{ '&:nth-of-type(odd)': { bgcolor: 'grey.50' } }}>
+                    <TableCell sx={{ fontWeight: 'bold', bgcolor: 'primary.light', color: 'white' }}>
+                      {time}
+                    </TableCell>
+                    {getScheduleByDay().days.map(day => {
+                      const item = getScheduleByDay().scheduleMap[time][day];
+                      return (
+                        <TableCell key={`${time}-${day}`} align="center" sx={{ minWidth: 120, height: 80 }}>
+                          {item ? (
+                            <Box sx={{ p: 1, bgcolor: 'success.light', borderRadius: 1, color: 'white' }}>
+                              <Typography variant="caption" fontWeight="bold" display="block">
+                                {item.courseName}
+                              </Typography>
+                              <Typography variant="caption" display="block">
+                                {item.startTime}-{item.endTime}
+                              </Typography>
+                              <Typography variant="caption" display="block">
+                                Phòng: {item.roomName}
+                              </Typography>
+                              <Typography variant="caption" display="block">
+                                {item.teacherName}
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Typography variant="caption" color="textSecondary">-</Typography>
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Summary */}
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Tổng kết
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6} md={3}>
+                <Typography variant="body2" color="textSecondary">
+                  Tổng số buổi học
+                </Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  {schedule.length}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} md={3}>
+                <Typography variant="body2" color="textSecondary">
+                  Số giáo viên
+                </Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  {[...new Set(schedule.map(s => s.teacherName).filter(Boolean))].length}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} md={3}>
+                <Typography variant="body2" color="textSecondary">
+                  Số phòng học
+                </Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  {[...new Set(schedule.map(s => s.roomName).filter(Boolean))].length}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} md={3}>
+                <Typography variant="body2" color="textSecondary">
+                  Số khóa học
+                </Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  {[...new Set(schedule.map(s => s.courseName).filter(Boolean))].length}
+                </Typography>
+              </Grid>
+            </Grid>
+          </Paper>
+        </>
       ) : (
+        // List View (original cards)
         <>
           <Grid container spacing={3}>
-            {schedule
+            {getFilteredSchedule()
               .sort((a, b) => {
                 // Sắp xếp theo ngày và giờ
                 if (!a.Date || !b.Date) return 0;
@@ -210,11 +558,11 @@ const StudentSchedule = () => {
                         </Box>
                       )}
                       <Box sx={{ mt: 'auto', pt: 2 }}>
-                        <Chip 
-                          label={sessionItem.status || 'Scheduled'} 
-                          size="small" 
+                        <Chip
+                          label={sessionItem.status || 'Scheduled'}
+                          size="small"
                           color={sessionItem.status === 'Scheduled' ? 'success' : 'default'}
-                          variant="outlined" 
+                          variant="outlined"
                         />
                       </Box>
                     </CardContent>
@@ -222,7 +570,7 @@ const StudentSchedule = () => {
                 </Grid>
               ))}
           </Grid>
-          
+
           {/* Summary */}
           <Paper sx={{ p: 3, mt: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -234,7 +582,7 @@ const StudentSchedule = () => {
                   Tổng số buổi học
                 </Typography>
                 <Typography variant="h5" fontWeight="bold">
-                  {schedule.length}
+                  {getFilteredSchedule().length}
                 </Typography>
               </Grid>
               <Grid item xs={6} md={3}>
@@ -242,7 +590,7 @@ const StudentSchedule = () => {
                   Số giáo viên
                 </Typography>
                 <Typography variant="h5" fontWeight="bold">
-                  {[...new Set(schedule.map(s => s.teacherName).filter(Boolean))].length}
+                  {[...new Set(getFilteredSchedule().map(s => s.teacherName).filter(Boolean))].length}
                 </Typography>
               </Grid>
               <Grid item xs={6} md={3}>
@@ -250,7 +598,7 @@ const StudentSchedule = () => {
                   Số phòng học
                 </Typography>
                 <Typography variant="h5" fontWeight="bold">
-                  {[...new Set(schedule.map(s => s.roomName).filter(Boolean))].length}
+                  {[...new Set(getFilteredSchedule().map(s => s.roomName).filter(Boolean))].length}
                 </Typography>
               </Grid>
               <Grid item xs={6} md={3}>
@@ -258,7 +606,7 @@ const StudentSchedule = () => {
                   Số khóa học
                 </Typography>
                 <Typography variant="h5" fontWeight="bold">
-                  {[...new Set(schedule.map(s => s.courseName).filter(Boolean))].length}
+                  {[...new Set(getFilteredSchedule().map(s => s.courseName).filter(Boolean))].length}
                 </Typography>
               </Grid>
             </Grid>
