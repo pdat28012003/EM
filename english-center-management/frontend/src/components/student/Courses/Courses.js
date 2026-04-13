@@ -43,7 +43,7 @@ import {
 
 } from '@mui/icons-material';
 
-import { classesAPI, authAPI } from '../../../services/api';
+import { curriculumAPI, authAPI } from '../../../services/api';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -81,7 +81,7 @@ const StudentClasses = () => {
 
       if (!userData) {
 
-        setError('Vui lòng đăng nhập để xem lớp học');
+        setError('Vui lòng đăng nhập để xem khóa học');
 
         return;
 
@@ -141,19 +141,30 @@ const StudentClasses = () => {
 
       console.log('Fetching classes for studentId:', studentId);
 
-      const response = await classesAPI.getStudentClasses(studentId);
+      const response = await curriculumAPI.getCurriculumsByStudent(studentId);
 
       console.log('API Response:', response.data);
 
-      const classesData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
+      // Map curriculum data to class-like structure
+      const curriculumsData = response.data || [];
+      const mappedClasses = Array.isArray(curriculumsData) ? curriculumsData.map(c => ({
+        classId: c.curriculumId,
+        className: c.curriculumName,
+        courseName: c.courseName,
+        startDate: c.startDate,
+        endDate: c.endDate,
+        status: c.status,
+        roomName: c.roomName,
+        teacherName: c.teacherName
+      })) : [];
 
-      setClasses(Array.isArray(classesData) ? classesData : []);
+      setClasses(mappedClasses);
 
     } catch (err) {
 
       console.error('Error loading classes:', err);
 
-      setError('Không thể tải danh sách lớp học. Vui lòng thử lại sau.');
+      setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
 
     } finally {
 
@@ -214,13 +225,13 @@ const StudentClasses = () => {
 
           <Typography variant="h3" fontWeight="bold" gutterBottom>
 
-            Chương trình học
+            Khóa học của tôi
 
           </Typography>
 
           <Typography variant="h6" sx={{ opacity: 0.9 }}>
 
-            Quản lý các chương trình học bạn đang tham gia tại trung tâm
+            Quản lý các khóa học bạn đang tham gia tại trung tâm
 
           </Typography>
 
@@ -270,13 +281,13 @@ const StudentClasses = () => {
 
           <Typography variant="h5" color="textSecondary" gutterBottom>
 
-            Bạn chưa đăng ký lớp học nào
+            Bạn chưa đăng ký khóa học nào
 
           </Typography>
 
           <Typography variant="body1" color="textSecondary" sx={{ mb: 4 }}>
 
-            Hãy liên hệ với trung tâm để được tư vấn và đăng ký lớp học phù hợp.
+            Hãy liên hệ với trung tâm để được tư vấn và đăng ký khóa học phù hợp.
 
           </Typography>
 

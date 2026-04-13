@@ -4,6 +4,7 @@ using EnglishCenter.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnglishCenter.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260412150436_AddCurriculumStudents")]
+    partial class AddCurriculumStudents
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -138,14 +141,11 @@ namespace EnglishCenter.API.Migrations
                     b.Property<string>("AttachmentUrl")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("ClassId")
+                    b.Property<int>("ClassId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<int?>("CurriculumId")
-                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -183,8 +183,6 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("AssignmentId");
 
                     b.HasIndex("ClassId");
-
-                    b.HasIndex("CurriculumId");
 
                     b.HasIndex("SkillId");
 
@@ -1263,75 +1261,6 @@ namespace EnglishCenter.API.Migrations
                         });
                 });
 
-            modelBuilder.Entity("EnglishCenter.API.Models.SessionAttendance", b =>
-                {
-                    b.Property<int>("SessionAttendanceId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SessionAttendanceId"));
-
-                    b.Property<DateTime>("AttendanceDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("CurriculumSessionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int");
-
-                    b.HasKey("SessionAttendanceId");
-
-                    b.HasIndex("StudentId");
-
-                    b.HasIndex("CurriculumSessionId", "StudentId", "AttendanceDate")
-                        .IsUnique();
-
-                    b.ToTable("SessionAttendances");
-                });
-
-            modelBuilder.Entity("EnglishCenter.API.Models.SessionStudent", b =>
-                {
-                    b.Property<int>("SessionStudentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SessionStudentId"));
-
-                    b.Property<int>("CurriculumSessionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("RegistrationDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int");
-
-                    b.HasKey("SessionStudentId");
-
-                    b.HasIndex("StudentId");
-
-                    b.HasIndex("CurriculumSessionId", "StudentId")
-                        .IsUnique();
-
-                    b.ToTable("SessionStudents");
-                });
-
             modelBuilder.Entity("EnglishCenter.API.Models.Skill", b =>
                 {
                     b.Property<int>("SkillId")
@@ -2037,14 +1966,11 @@ namespace EnglishCenter.API.Migrations
 
             modelBuilder.Entity("EnglishCenter.API.Models.Assignment", b =>
                 {
-                    b.HasOne("EnglishCenter.API.Models.Class", null)
+                    b.HasOne("EnglishCenter.API.Models.Class", "Class")
                         .WithMany("Assignments")
-                        .HasForeignKey("ClassId");
-
-                    b.HasOne("EnglishCenter.API.Models.Curriculum", "Curriculum")
-                        .WithMany()
-                        .HasForeignKey("CurriculumId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("EnglishCenter.API.Models.Skill", "Skill")
                         .WithMany()
@@ -2056,7 +1982,7 @@ namespace EnglishCenter.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Curriculum");
+                    b.Navigation("Class");
 
                     b.Navigation("Skill");
 
@@ -2373,44 +2299,6 @@ namespace EnglishCenter.API.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("EnglishCenter.API.Models.SessionAttendance", b =>
-                {
-                    b.HasOne("EnglishCenter.API.Models.CurriculumSession", "CurriculumSession")
-                        .WithMany()
-                        .HasForeignKey("CurriculumSessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EnglishCenter.API.Models.Student", "Student")
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CurriculumSession");
-
-                    b.Navigation("Student");
-                });
-
-            modelBuilder.Entity("EnglishCenter.API.Models.SessionStudent", b =>
-                {
-                    b.HasOne("EnglishCenter.API.Models.CurriculumSession", "CurriculumSession")
-                        .WithMany("SessionStudents")
-                        .HasForeignKey("CurriculumSessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EnglishCenter.API.Models.Student", "Student")
-                        .WithMany("SessionStudents")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CurriculumSession");
-
-                    b.Navigation("Student");
-                });
-
             modelBuilder.Entity("EnglishCenter.API.Models.Student", b =>
                 {
                     b.HasOne("EnglishCenter.API.Models.User", "User")
@@ -2564,8 +2452,6 @@ namespace EnglishCenter.API.Migrations
             modelBuilder.Entity("EnglishCenter.API.Models.CurriculumSession", b =>
                 {
                     b.Navigation("Lessons");
-
-                    b.Navigation("SessionStudents");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Lesson", b =>
@@ -2602,8 +2488,6 @@ namespace EnglishCenter.API.Migrations
                     b.Navigation("Enrollments");
 
                     b.Navigation("Payments");
-
-                    b.Navigation("SessionStudents");
 
                     b.Navigation("Submissions");
 

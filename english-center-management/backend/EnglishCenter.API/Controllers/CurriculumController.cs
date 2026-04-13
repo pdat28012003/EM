@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Services;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -12,11 +13,13 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CurriculumController> _logger;
+        private readonly INotificationService _notificationService;
 
-        public CurriculumController(ApplicationDbContext context, ILogger<CurriculumController> logger)
+        public CurriculumController(ApplicationDbContext context, ILogger<CurriculumController> logger, INotificationService notificationService)
         {
             _context = context;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         /// <summary>
@@ -88,6 +91,9 @@ namespace EnglishCenter.API.Controllers
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Teacher)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.SessionStudents)
                     .Include(c => c.ParticipantTeachers)
                     .FirstOrDefaultAsync(c => c.CurriculumId == id);
 
@@ -1021,7 +1027,8 @@ namespace EnglishCenter.API.Controllers
                 TeacherName = curriculumSession.Teacher?.FullName ?? string.Empty,
                 DocumentId = curriculumSession.DocumentId,
                 DocumentTitle = curriculumSession.Document?.Title,
-                Lessons = curriculumSession.Lessons?.Select(l => MapLessonToDto(l)).ToList() ?? new List<LessonDto>()
+                Lessons = curriculumSession.Lessons?.Select(l => MapLessonToDto(l)).ToList() ?? new List<LessonDto>(),
+                StudentCount = curriculumSession.SessionStudents?.Count ?? 0
             };
         }
 
@@ -1038,6 +1045,535 @@ namespace EnglishCenter.API.Controllers
                 Resources = lesson.Resources,
                 Notes = lesson.Notes
             };
+        }
+
+        // ==================== CURRICULUM STUDENTS ====================
+
+        /// <summary>
+        /// Gets all students in a curriculum. (Lấy danh sách học viên trong chương trình học.)
+        /// </summary>
+        [HttpGet("{id}/students")]
+        public async Task<ActionResult<object>> GetCurriculumStudents(int id)
+        {
+            try
+            {
+                var curriculum = await _context.Curriculums
+                    .Include(c => c.ParticipantStudents)
+                    .FirstOrDefaultAsync(c => c.CurriculumId == id);
+
+                if (curriculum == null)
+                    return NotFound(new { message = "Curriculum not found" });
+
+                // Get session capacity info
+                var sessionCapacities = await _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .Include(cs => cs.AssignedRoom)
+                    .Where(cs => cs.CurriculumDay.CurriculumId == id && cs.RoomId.HasValue && cs.AssignedRoom != null)
+                    .Select(cs => new
+                    {
+                        cs.CurriculumSessionId,
+                        cs.SessionName,
+                        cs.CurriculumDay.ScheduleDate,
+                        RoomName = cs.AssignedRoom!.RoomName,
+                        RoomCapacity = cs.AssignedRoom!.Capacity
+                    })
+                    .ToListAsync();
+
+                var minCapacity = sessionCapacities.Any() ? sessionCapacities.Min(s => s.RoomCapacity) : (int?)null;
+                var totalCount = curriculum.ParticipantStudents.Count;
+
+                var students = curriculum.ParticipantStudents.Select(s => new
+                {
+                    s.StudentId,
+                    s.FullName,
+                    s.Email,
+                    s.PhoneNumber,
+                    s.Level,
+                    s.IsActive,
+                    s.DateOfBirth,
+                    s.Address,
+                    s.EnrollmentDate
+                }).ToList();
+
+                int? availableSlots = minCapacity.HasValue ? minCapacity.Value - totalCount : (int?)null;
+                
+                return Ok(new
+                {
+                    students,
+                    totalCount,
+                    maxCapacity = minCapacity,
+                    availableSlots,
+                    sessions = sessionCapacities
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error getting curriculum students", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Adds a student to a curriculum. (Thêm học viên vào chương trình học.)
+        /// </summary>
+        [HttpPost("{id}/students")]
+        public async Task<IActionResult> AddStudentToCurriculum(int id, [FromBody] AddStudentToCurriculumDto dto)
+        {
+            try
+            {
+                var curriculum = await _context.Curriculums
+                    .Include(c => c.ParticipantStudents)
+                    .FirstOrDefaultAsync(c => c.CurriculumId == id);
+
+                if (curriculum == null)
+                    return NotFound(new { message = "Curriculum not found" });
+
+                var student = await _context.Students.FindAsync(dto.StudentId);
+                if (student == null)
+                    return NotFound(new { message = "Student not found" });
+
+                if (curriculum.ParticipantStudents.Any(s => s.StudentId == dto.StudentId))
+                    return BadRequest(new { message = "Student already in this curriculum" });
+
+                // Check room capacity for each session
+                var sessionsWithRooms = await _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .Include(cs => cs.AssignedRoom)
+                    .Where(cs => cs.CurriculumDay.CurriculumId == id && cs.RoomId.HasValue && cs.AssignedRoom != null)
+                    .Select(cs => new
+                    {
+                        cs.CurriculumSessionId,
+                        cs.SessionName,
+                        cs.CurriculumDay.ScheduleDate,
+                        RoomName = cs.AssignedRoom!.RoomName,
+                        RoomCapacity = cs.AssignedRoom!.Capacity
+                    })
+                    .ToListAsync();
+
+                var currentStudentCount = curriculum.ParticipantStudents.Count;
+                var overCapacitySessions = sessionsWithRooms
+                    .Where(s => currentStudentCount >= s.RoomCapacity)
+                    .ToList();
+
+                if (overCapacitySessions.Any())
+                {
+                    var sessionInfo = string.Join(", ", overCapacitySessions.Select(s => $"{s.SessionName} ({s.RoomName} - {s.RoomCapacity} chỗ)"));
+                    return BadRequest(new
+                    {
+                        message = $"Không thể thêm học viên. Các buổi học sau sẽ vượt quá sức chứa: {sessionInfo}. Hiện tại có {currentStudentCount} học viên."
+                    });
+                }
+
+                curriculum.ParticipantStudents.Add(student);
+                await _context.SaveChangesAsync();
+
+                // Send notification to student
+                if (student.UserId.HasValue)
+                {
+                    await _notificationService.NotifyAsync(
+                        student.UserId.Value,
+                        null,
+                        student.StudentId,
+                        new
+                        {
+                            type = "curriculum_enrollment",
+                            title = "Bạn đã được thêm vào khóa học",
+                            message = $"Bạn đã được thêm vào chương trình: {curriculum.CurriculumName}",
+                            curriculumId = curriculum.CurriculumId,
+                            curriculumName = curriculum.CurriculumName,
+                            createdAt = DateTime.Now
+                        }
+                    );
+                }
+
+                // Send notification to teachers in curriculum
+                var teachers = await _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .Include(cs => cs.Teacher)
+                    .Where(cs => cs.CurriculumDay.CurriculumId == id && cs.TeacherId.HasValue && cs.Teacher != null)
+                    .Select(cs => cs.Teacher)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var teacher in teachers)
+                {
+                    if (teacher?.UserId.HasValue == true)
+                    {
+                        await _notificationService.NotifyAsync(
+                            teacher.UserId.Value,
+                            teacher.TeacherId,
+                            null,
+                            new
+                            {
+                                type = "student_joined",
+                                title = "Học viên mới tham gia",
+                                message = $"Học viên {student.FullName} vừa được thêm vào khóa {curriculum.CurriculumName}",
+                                curriculumId = curriculum.CurriculumId,
+                                curriculumName = curriculum.CurriculumName,
+                                studentId = student.StudentId,
+                                studentName = student.FullName,
+                                createdAt = DateTime.Now
+                            }
+                        );
+                    }
+                }
+
+                return Ok(new { message = "Student added to curriculum successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error adding student to curriculum", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Removes a student from a curriculum. (Xóa học viên khỏi chương trình học.)
+        /// </summary>
+        [HttpDelete("{id}/students/{studentId}")]
+        public async Task<IActionResult> RemoveStudentFromCurriculum(int id, int studentId)
+        {
+            try
+            {
+                var curriculum = await _context.Curriculums
+                    .Include(c => c.ParticipantStudents)
+                    .FirstOrDefaultAsync(c => c.CurriculumId == id);
+
+                if (curriculum == null)
+                    return NotFound(new { message = "Curriculum not found" });
+
+                var student = curriculum.ParticipantStudents.FirstOrDefault(s => s.StudentId == studentId);
+                if (student == null)
+                    return NotFound(new { message = "Student not found in this curriculum" });
+
+                curriculum.ParticipantStudents.Remove(student);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Student removed from curriculum successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error removing student from curriculum", error = ex.Message });
+            }
+        }
+
+        // ==================== SESSION STUDENTS ====================
+
+        /// <summary>
+        /// Gets all students registered for a specific session. (Lấy danh sách học viên đăng ký buổi học.)
+        /// </summary>
+        [HttpGet("session/{sessionId}/students")]
+        public async Task<ActionResult<object>> GetSessionStudents(int sessionId)
+        {
+            try
+            {
+                var session = await _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .Include(cs => cs.AssignedRoom)
+                    .Include(cs => cs.SessionStudents)
+                    .ThenInclude(ss => ss.Student)
+                    .FirstOrDefaultAsync(cs => cs.CurriculumSessionId == sessionId);
+
+                if (session == null)
+                    return NotFound(new { message = "Session not found" });
+
+                var students = session.SessionStudents.Select(ss => new
+                {
+                    ss.SessionStudentId,
+                    ss.Student.StudentId,
+                    ss.Student.FullName,
+                    ss.Student.Email,
+                    ss.Student.PhoneNumber,
+                    ss.Student.Level,
+                    ss.RegistrationDate,
+                    ss.Notes
+                }).ToList();
+
+                int? maxCapacity = session.AssignedRoom?.Capacity;
+                int totalCount = students.Count;
+                int? availableSlots = maxCapacity.HasValue ? maxCapacity.Value - totalCount : (int?)null;
+
+                return Ok(new
+                {
+                    sessionId = session.CurriculumSessionId,
+                    sessionName = session.SessionName,
+                    roomName = session.AssignedRoom?.RoomName,
+                    maxCapacity,
+                    totalCount,
+                    availableSlots,
+                    students
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error getting session students", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Registers a student to a specific session. (Đăng ký học viên vào buổi học.)
+        /// </summary>
+        [HttpPost("session/{sessionId}/students")]
+        public async Task<IActionResult> AddStudentToSession(int sessionId, [FromBody] AddStudentToSessionDto dto)
+        {
+            try
+            {
+                var session = await _context.CurriculumSessions
+                    .Include(cs => cs.AssignedRoom)
+                    .Include(cs => cs.SessionStudents)
+                    .FirstOrDefaultAsync(cs => cs.CurriculumSessionId == sessionId);
+
+                if (session == null)
+                    return NotFound(new { message = "Session not found" });
+
+                var student = await _context.Students.FindAsync(dto.StudentId);
+                if (student == null)
+                    return NotFound(new { message = "Student not found" });
+
+                // Check if already registered
+                if (session.SessionStudents.Any(ss => ss.StudentId == dto.StudentId))
+                    return BadRequest(new { message = "Student already registered for this session" });
+
+                // Check room capacity
+                if (session.AssignedRoom != null)
+                {
+                    var currentCount = session.SessionStudents.Count;
+                    if (currentCount >= session.AssignedRoom.Capacity)
+                    {
+                        return BadRequest(new
+                        {
+                            message = $"Cannot register. Room {session.AssignedRoom.RoomName} has reached capacity ({session.AssignedRoom.Capacity} students)."
+                        });
+                    }
+                }
+
+                var sessionStudent = new SessionStudent
+                {
+                    CurriculumSessionId = sessionId,
+                    StudentId = dto.StudentId,
+                    Notes = dto.Notes ?? string.Empty
+                };
+
+                _context.SessionStudents.Add(sessionStudent);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Student registered to session successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error registering student to session", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Removes a student from a specific session. (Hủy đăng ký học viên khỏi buổi học.)
+        /// </summary>
+        [HttpDelete("session/{sessionId}/students/{studentId}")]
+        public async Task<IActionResult> RemoveStudentFromSession(int sessionId, int studentId)
+        {
+            try
+            {
+                var sessionStudent = await _context.SessionStudents
+                    .FirstOrDefaultAsync(ss => ss.CurriculumSessionId == sessionId && ss.StudentId == studentId);
+
+                if (sessionStudent == null)
+                    return NotFound(new { message = "Student not found in this session" });
+
+                _context.SessionStudents.Remove(sessionStudent);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Student removed from session successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error removing student from session", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Gets available students for a session (not yet registered). (Lấy danh sách học viên chưa đăng ký buổi học.)
+        /// </summary>
+        [HttpGet("session/{sessionId}/available-students")]
+        public async Task<ActionResult<IEnumerable<object>>> GetAvailableStudentsForSession(int sessionId)
+        {
+            try
+            {
+                var session = await _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .ThenInclude(cd => cd.Curriculum)
+                    .FirstOrDefaultAsync(cs => cs.CurriculumSessionId == sessionId);
+
+                if (session == null)
+                    return NotFound(new { message = "Session not found" });
+
+                var curriculumId = session.CurriculumDay.CurriculumId;
+
+                // Get students registered for this session
+                var registeredIds = await _context.SessionStudents
+                    .Where(ss => ss.CurriculumSessionId == sessionId)
+                    .Select(ss => ss.StudentId)
+                    .ToListAsync();
+
+                // Get students in curriculum but not in this session
+                var curriculum = await _context.Curriculums
+                    .Include(c => c.ParticipantStudents)
+                    .FirstOrDefaultAsync(c => c.CurriculumId == curriculumId);
+
+                if (curriculum == null)
+                    return Ok(new List<object>());
+
+                var availableStudents = curriculum.ParticipantStudents
+                    .Where(s => !registeredIds.Contains(s.StudentId) && s.IsActive)
+                    .Select(s => new
+                    {
+                        s.StudentId,
+                        s.FullName,
+                        s.Email,
+                        s.PhoneNumber,
+                        s.Level
+                    });
+
+                return Ok(availableStudents);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error getting available students", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Gets all curriculums for a specific teacher. (Lấy danh sách khóa học của giảng viên.)
+        /// </summary>
+        [HttpGet("teacher/{teacherId}")]
+        public async Task<ActionResult<IEnumerable<object>>> GetCurriculumsByTeacher(int teacherId)
+        {
+            try
+            {
+                var curriculums = await _context.Curriculums
+                    .Include(c => c.Course)
+                    .Include(c => c.ParticipantStudents)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.AssignedRoom)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.Teacher)
+                    .Where(c => c.CurriculumDays.Any(cd => cd.CurriculumSessions.Any(cs => cs.TeacherId == teacherId)))
+                    .Select(c => new
+                    {
+                        curriculumId = c.CurriculumId,
+                        curriculumName = c.CurriculumName,
+                        courseName = c.Course.CourseName,
+                        startDate = c.StartDate,
+                        endDate = c.EndDate,
+                        status = c.Status,
+                        roomName = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Where(cs => cs.TeacherId == teacherId).Select(cs => cs.AssignedRoom!.RoomName).FirstOrDefault(),
+                        teacherName = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Where(cs => cs.TeacherId == teacherId).Select(cs => cs.Teacher!.FullName).FirstOrDefault(),
+                        currentStudents = c.ParticipantStudents.Count,
+                        maxStudents = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Where(cs => cs.TeacherId == teacherId && cs.AssignedRoom != null).Select(cs => cs.AssignedRoom!.Capacity).FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                return Ok(curriculums);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error getting teacher curriculums", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Gets students for sessions taught by a specific teacher. (Lấy danh sách học viên theo buổi giảng viên dạy.)
+        /// </summary>
+        [HttpGet("teacher/{teacherId}/students")]
+        public async Task<ActionResult<object>> GetStudentsByTeacherSessions(int teacherId)
+        {
+            try
+            {
+                // Get all sessions taught by this teacher
+                var teacherSessions = await _context.CurriculumSessions
+                    .Include(cs => cs.CurriculumDay)
+                    .Include(cs => cs.SessionStudents)
+                        .ThenInclude(ss => ss.Student)
+                    .Where(cs => cs.TeacherId == teacherId)
+                    .ToListAsync();
+
+                // Get unique students from all sessions
+                var students = teacherSessions
+                    .SelectMany(cs => cs.SessionStudents)
+                    .Select(ss => ss.Student)
+                    .Where(s => s != null)
+                    .DistinctBy(s => s!.StudentId)
+                    .Select(s => new
+                    {
+                        s!.StudentId,
+                        s.FullName,
+                        s.Email,
+                        s.PhoneNumber,
+                        s.Level,
+                        s.IsActive,
+                        s.DateOfBirth,
+                        s.Address,
+                        s.EnrollmentDate
+                    })
+                    .ToList();
+
+                // Get session info
+                var sessions = teacherSessions.Select(cs => new
+                {
+                    cs.CurriculumSessionId,
+                    cs.SessionName,
+                    scheduleDate = cs.CurriculumDay.ScheduleDate,
+                    studentCount = cs.SessionStudents.Count
+                }).ToList();
+
+                return Ok(new
+                {
+                    students,
+                    totalCount = students.Count,
+                    sessions
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error getting students by teacher sessions", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Gets all curriculums for a specific student. (Lấy danh sách khóa học của học viên.)
+        /// </summary>
+        [HttpGet("student/{studentId}")]
+        public async Task<ActionResult<IEnumerable<object>>> GetCurriculumsByStudent(int studentId)
+        {
+            try
+            {
+                var curriculums = await _context.Curriculums
+                    .Include(c => c.Course)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.AssignedRoom)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.Teacher)
+                    .Where(c => c.ParticipantStudents.Any(s => s.StudentId == studentId))
+                    .Select(c => new
+                    {
+                        curriculumId = c.CurriculumId,
+                        curriculumName = c.CurriculumName,
+                        courseName = c.Course.CourseName,
+                        startDate = c.StartDate,
+                        endDate = c.EndDate,
+                        status = c.Status,
+                        roomName = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Select(cs => cs.AssignedRoom!.RoomName).FirstOrDefault(),
+                        teacherName = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Select(cs => cs.Teacher!.FullName).FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                return Ok(curriculums);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error getting student curriculums", error = ex.Message });
+            }
         }
     }
 }

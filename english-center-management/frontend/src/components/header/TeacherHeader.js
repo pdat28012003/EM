@@ -178,7 +178,7 @@ const TeacherHeader = () => {
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
           >
-            Lớp học
+            Khóa học
           </Button>
           <Button 
             component={Link}

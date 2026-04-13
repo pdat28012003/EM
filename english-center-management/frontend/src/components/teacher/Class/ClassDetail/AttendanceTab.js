@@ -30,7 +30,7 @@ import {
   Schedule
 } from '@mui/icons-material';
 
-import { attendanceAPI, classesAPI } from '../../../../services/api';
+import { curriculumAPI, sessionAttendanceAPI } from '../../../../services/api';
 
 export default function AttendanceTab({ classId, classInfo }) {
   const [students, setStudents] = useState([]);
@@ -43,6 +43,8 @@ export default function AttendanceTab({ classId, classInfo }) {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
+  const [sessions, setSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
 
   // Check if selected date is today
   const isToday = selectedDate === new Date().toISOString().split('T')[0];
@@ -55,22 +57,65 @@ export default function AttendanceTab({ classId, classInfo }) {
     rate: 0
   });
 
+  // Load sessions
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsed = JSON.parse(userData);
+      const teacherId = parsed.teacherId || parsed.userId;
+      if (teacherId) {
+        curriculumAPI.getStudentsByTeacherSessions(teacherId)
+          .then(res => {
+            const data = res.data || {};
+            setSessions(data.sessions || []);
+          })
+          .catch(err => console.error('Error loading sessions:', err));
+      }
+    }
+  }, []);
+
+  // Auto select session based on selected date
+  useEffect(() => {
+    if (sessions.length > 0 && selectedDate) {
+      const selectedDateObj = new Date(selectedDate);
+      selectedDateObj.setHours(0, 0, 0, 0);
+      
+      // Find session for selected date
+      const sessionForDate = sessions.find(s => {
+        const sessionDate = new Date(s.scheduleDate);
+        sessionDate.setHours(0, 0, 0, 0);
+        return sessionDate.getTime() === selectedDateObj.getTime();
+      });
+      
+      setSelectedSession(sessionForDate || null);
+    }
+  }, [sessions, selectedDate]);
+
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classId, selectedDate, page, rowsPerPage]);
+  }, [classId, selectedDate, page, rowsPerPage, selectedSession]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const stuRes = await classesAPI.getStudents(classId, { page, pageSize: rowsPerPage });
-      const studentsData = stuRes.data?.data || stuRes.data || [];
-      const total = stuRes.data?.totalCount || stuRes.data?.TotalCount || 0;
+      // Load students from curriculum
+      const stuRes = await curriculumAPI.getStudents(classId);
+      const studentsData = stuRes.data?.students || stuRes.data?.data?.students || [];
+      const total = stuRes.data?.totalCount || stuRes.data?.data?.totalCount || studentsData.length;
       setStudents(studentsData);
       setTotalCount(total);
 
-      const attRes = await attendanceAPI.getAll({ lessonId: classId, date: selectedDate });
-      const attendance = attRes.data?.data?.data || attRes.data?.data || attRes.data || [];
+      // Load attendance by session (if selected)
+      let attendance = [];
+      if (selectedSession) {
+        const sessionId = selectedSession.curriculumSessionId || selectedSession;
+        const attRes = await sessionAttendanceAPI.getAll({ 
+          sessionId: sessionId, 
+          date: selectedDate 
+        });
+        attendance = attRes.data || [];
+      }
 
       const map = {};
       let p = 0, a = 0, l = 0;
@@ -137,43 +182,29 @@ export default function AttendanceTab({ classId, classInfo }) {
     setAttendanceData(prev => ({ ...prev, ...cleared }));
   };
 
-  // Save all attendance changes to API
+  // Save all attendance changes to API (by session)
   const handleSaveAll = async () => {
+    if (!selectedSession) {
+      alert('Vui lòng chọn buổi học trước khi lưu điểm danh!');
+      return;
+    }
+    
     setSaving(true);
     try {
       const today = selectedDate;
+      const sessionId = selectedSession.curriculumSessionId || selectedSession;
       
-      // Get existing attendance records
-      const existingRes = await attendanceAPI.getAll({
-        lessonId: classId,
-        date: today
-      });
-      const existingMap = new Map();
-      const existingData = existingRes.data?.data?.data || existingRes.data?.data || existingRes.data || [];
-      existingData.forEach(a => {
-        existingMap.set(a.studentId, a);
-      });
-
-      // Create promises for all changes
+      // Tạo promises cho tất cả operations - lưu theo session
       const promises = Object.entries(attendanceData).map(([studentId, data]) => {
         if (!data || !data.status) return Promise.resolve(); // Skip empty
         
-        const existing = existingMap.get(parseInt(studentId));
-        
-        if (existing) {
-          return attendanceAPI.update(existing.attendanceId || existing.AttendanceId, { 
-            status: data.status, 
-            notes: data.notes 
-          });
-        } else {
-          return attendanceAPI.create({
-            studentId: parseInt(studentId),
-            lessonId: classId,
-            attendanceDate: today,
-            status: data.status,
-            notes: data.notes
-          });
-        }
+        return sessionAttendanceAPI.create({
+          sessionId: sessionId,
+          studentId: parseInt(studentId),
+          date: today,
+          status: data.status,
+          notes: data.notes || ''
+        });
       });
 
       await Promise.all(promises);
@@ -208,6 +239,7 @@ export default function AttendanceTab({ classId, classInfo }) {
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {classInfo?.className} • Ngày {new Date(selectedDate).toLocaleDateString('vi-VN')}
+          {selectedSession && ` • ${selectedSession.sessionName}`}
         </Typography>
       </Box>
 
@@ -219,14 +251,13 @@ export default function AttendanceTab({ classId, classInfo }) {
           onChange={(e) => setSelectedDate(e.target.value)}
         />
         
-        {/* Save Button */}
         <Button
           variant="contained"
           color="success"
           startIcon={<Save />}
           onClick={handleSaveAll}
-          disabled={saving || unsavedCount === 0 || !isToday}
-          title={!isToday ? "Chỉ được sửa điểm danh trong ngày" : ""}
+          disabled={saving || unsavedCount === 0 || !isToday || !selectedSession}
+          title={!isToday ? "Chỉ được sửa điểm danh trong ngày" : !selectedSession ? "Vui lòng chọn buổi học" : ""}
         >
           {saving ? 'Đang lưu...' : `Lưu điểm danh (${unsavedCount})`}
         </Button>
@@ -236,6 +267,13 @@ export default function AttendanceTab({ classId, classInfo }) {
       {!isToday && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           Chỉ được sửa điểm danh trong ngày. Qua ngày khác chỉ có thể xem dữ liệu.
+        </Alert>
+      )}
+
+      {/* Warning if no session selected */}
+      {!selectedSession && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Vui lòng chọn buổi học để điểm danh.
         </Alert>
       )}
 

@@ -54,7 +54,7 @@ const NavigationMenu = ({
         <ListItemIcon>
           <Class fontSize="small" sx={{ color: '#7c3aed' }} />
         </ListItemIcon>
-        <Typography variant="body2">Lớp học</Typography>
+        <Typography variant="body2">Khóa học</Typography>
       </MenuItem>
 
       <MenuItem component={Link} to="/teacher/schedule" onClick={onClose}>
