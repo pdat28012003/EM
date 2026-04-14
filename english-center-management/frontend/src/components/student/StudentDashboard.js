@@ -28,10 +28,8 @@ import {
   PlayArrow,
   Star,
   Payment,
-  TrendingUp,
   NewReleases,
-  Announcement,
-  Grade
+  Announcement
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -53,7 +51,6 @@ const StudentDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState([]);
-  const [gradeHistory, setGradeHistory] = useState([]);
   const navigate = useNavigate();
   const hasLoaded = React.useRef(false);
 
@@ -221,17 +218,6 @@ const StudentDashboard = () => {
 
       // 5. Removed unused next class logic
 
-      // 6. Load grade history for chart
-      const gradeHistoryData = gradesData
-        .sort((a, b) => new Date(a.createdAt || a.CreatedAt) - new Date(b.createdAt || b.CreatedAt))
-        .slice(-10)
-        .map(g => ({
-          date: dayjs(g.createdAt || g.CreatedAt).format('DD/MM'),
-          score: g.score,
-          subject: g.assignmentName || g.AssignmentName || 'Bài tập'
-        }));
-      setGradeHistory(gradeHistoryData);
-
       let completedCount = 0;
       try {
         for (const cls of enrollmentsData.slice(0, 5)) { // Limit to 5 classes for performance
@@ -271,110 +257,6 @@ const StudentDashboard = () => {
       setLoading(false);
     }
   };
-
-  // Grade Progress Chart Component
-  const GradeProgressChart = () => {
-    if (gradeHistory.length === 0) {
-      return (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Grade sx={{ fontSize: 48, color: '#ccc', mb: 2 }} />
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Chưa có dữ liệu điểm số để hiển thị biểu đồ
-          </Typography>
-          <Button 
-            variant="contained" 
-            startIcon={<Assignment />}
-            onClick={() => navigate('/student/assignments')}
-            sx={{
-              background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #4338CA 0%, #4F46E5 100%)',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 8px 20px rgba(79, 70, 229, 0.3)'
-              },
-              transition: 'all 0.3s ease',
-              px: 3,
-              py: 1
-            }}
-          >
-            Làm bài tập ngay
-          </Button>
-        </Box>
-      );
-    }
-
-    const maxScore = Math.max(...gradeHistory.map(g => g.score), 10);
-    const minScore = Math.min(...gradeHistory.map(g => g.score), 0);
-    const range = maxScore - minScore || 1;
-
-    return (
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <TrendingUp sx={{ color: '#4F46E5' }} />
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>
-            Tiến bộ điểm s
-          </Typography>
-        </Box>
-        
-        {/* Simple Line Chart */}
-        <Box sx={{ height: 200, position: 'relative', bgcolor: 'rgba(79, 70, 229, 0.02)', borderRadius: 2, p: 2 }}>
-          <svg width="100%" height="100%" viewBox="0 0 400 160">
-            {/* Grid lines */}
-            {[0, 1, 2, 3, 4].map(i => (
-              <line
-                key={i}
-                x1="40"
-                y1={20 + i * 30}
-                x2="380"
-                y2={20 + i * 30}
-                stroke="#e0e0e0"
-                strokeWidth="1"
-              />
-            ))}
-            
-            {/* Progress line */}
-            <polyline
-              fill="none"
-              stroke="#4F46E5"
-              strokeWidth="3"
-              points={gradeHistory.map((grade, index) => {
-                const x = 40 + (index * (340 / Math.max(gradeHistory.length - 1, 1)));
-                const y = 140 - ((grade.score - minScore) / range) * 120;
-                return `${x},${y}`;
-              }).join(' ')}
-            />
-            
-            {/* Data points */}
-            {gradeHistory.map((grade, index) => {
-              const x = 40 + (index * (340 / Math.max(gradeHistory.length - 1, 1)));
-              const y = 140 - ((grade.score - minScore) / range) * 120;
-              return (
-                <g key={index}>
-                  <circle cx={x} cy={y} r="5" fill="#4F46E5" />
-                  <text x={x} y={y - 10} textAnchor="middle" fontSize="12" fill="#4F46E5" fontWeight="bold">
-                    {grade.score}
-                  </text>
-                  <text x={x} y={155} textAnchor="middle" fontSize="10" fill="#666">
-                    {grade.date}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </Box>
-        
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            Điểm trung bình: {(gradeHistory.reduce((acc, g) => acc + g.score, 0) / gradeHistory.length).toFixed(1)}/10
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Xu hướng: {gradeHistory.length > 1 && gradeHistory[gradeHistory.length - 1].score > gradeHistory[0].score ? '📈 Tăng' : '📉 Giảm'}
-          </Typography>
-        </Box>
-      </Box>
-    );
-  };
-
   const StatCard = ({ title, value, icon, color }) => {
     return (
       <Card
@@ -521,13 +403,13 @@ const StudentDashboard = () => {
       {/* Quick Actions */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b', mb: 2, ml: 0.5 }}>Truy cập nhanh</Typography>
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: { xs: 'center', md: 'flex-start' } }}>
           {menuItems.map((item, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
+            <Box key={index} sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(33.333% - 11px)', md: '1 1 calc(20% - 13px)' }, minWidth: { xs: 140, md: 180 }, maxWidth: { md: 220 } }}>
               <QuickActionCard item={item} />
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
 
       {/* Bottom Grid: Recent Classes, Activity & Grade Progress */}
@@ -625,12 +507,6 @@ const StudentDashboard = () => {
           </Paper>
         </Grid>
 
-        {/* Grade Progress Chart */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, height: '100%', borderRadius: 3, border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <GradeProgressChart />
-          </Paper>
-        </Grid>
       </Grid>
     </Container>
   );
