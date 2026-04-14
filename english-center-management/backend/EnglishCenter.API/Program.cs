@@ -388,7 +388,13 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-
+// Enable Swagger
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "English Center Management API V1");
+    c.RoutePrefix = "swagger";
+});
 
 app.MapControllers();
 

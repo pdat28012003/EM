@@ -7,19 +7,13 @@ import {
   Card,
   CardContent,
   Grid,
-  Button,
   Chip,
-  Tooltip,
-  LinearProgress,
-  TextField,
-  Paper
+  LinearProgress
 } from "@mui/material";
 
 import {
   People,
   Class,
-  AccessTime,
-  LocationOn,
   Assessment
 } from "@mui/icons-material";
 
@@ -101,12 +95,6 @@ const TeacherClasses = () => {
     if (status === "Active") return "success";
     if (status === "Completed") return "default";
     if (status === "Upcoming") return "warning";
-    return "error";
-  };
-
-  const getAttendanceColor = (attendance) => {
-    if (attendance >= 90) return "success";
-    if (attendance >= 75) return "warning";
     return "error";
   };
 

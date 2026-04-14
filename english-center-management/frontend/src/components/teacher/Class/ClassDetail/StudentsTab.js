@@ -22,9 +22,12 @@ export default function StudentsTab({ curriculumId, curriculumInfo }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const [maxCapacity, setMaxCapacity] = useState(null);
-  const [availableSlots, setAvailableSlots] = useState(null);
-  const [sessions, setSessions] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [maxCapacity] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [availableSlots] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [sessions] = useState([]);
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -49,14 +52,14 @@ export default function StudentsTab({ curriculumId, curriculumInfo }) {
         const data = response.data || {};
         setStudents(data.students || []);        
         setTotalCount(data.totalCount || 0);
-        setSessions(data.sessions || []);
+        // sessions data ignored - not used in UI
       } else {
         // Fallback: get all students in curriculum
         const response = await curriculumAPI.getStudents(curriculumId);
         const data = response.data || {};
         setStudents(data.students || []);        
         setTotalCount(data.totalCount || 0);
-        setSessions(data.sessions || []);
+        // sessions data ignored - not used in UI
       }
     } catch (error) {
       console.error('Error loading students:', error);

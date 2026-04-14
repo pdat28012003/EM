@@ -16,7 +16,7 @@ import {
   EventNote,
   ArrowBack,
 } from '@mui/icons-material';
-import { curriculumAPI, roomsAPI, teachersAPI, curriculumsAPI, documentsAPI, studentsAPI } from '../../../services/api';
+import { curriculumAPI, roomsAPI, teachersAPI, documentsAPI, studentsAPI } from '../../../services/api';
 
 const CurriculumDetail = () => {
   const { curriculumId } = useParams();
