@@ -755,8 +755,7 @@ namespace EnglishCenter.API.DTOs
         public string? code { get; set; }
         public string? content { get; set; }
         public string? transferType { get; set; }
-        public object? amount { get; set; }
-        public object? transferAmount { get; set; } // Backup
+        public string? amount { get; set; }
         public string? referenceCode { get; set; }
         public object? accumulated { get; set; }
         public string? subAccount { get; set; }

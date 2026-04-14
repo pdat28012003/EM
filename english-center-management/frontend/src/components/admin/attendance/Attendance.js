@@ -25,7 +25,6 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-// Icons imported as needed
 import { curriculumAPI, attendanceAPI } from '../../../services/api';
 
 const Attendance = () => {
@@ -91,6 +90,7 @@ const Attendance = () => {
     if (selectedLesson) {
       loadAttendance();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLesson]);
 
   const handleStatusChange = async (attendanceId, newStatus, studentId) => {

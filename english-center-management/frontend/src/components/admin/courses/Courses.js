@@ -66,6 +66,7 @@ const Courses = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel, filterLevel, searchTerm]);
 
   const loadCourses = async () => {

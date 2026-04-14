@@ -1,0 +1,43 @@
+version: '3.4'
+
+services:
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: english-center-db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrongPassword123!
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+
+  backend:
+    image: ${DOCKER_REGISTRY-}englishcenterapi
+    build:
+      context: ./english-center-management/backend/EnglishCenter.API
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=database;Database=EnglishCenterDB;User Id=sa;Password=YourStrongPassword123!;Encrypt=True;TrustServerCertificate=True;
+      - AppSettings__Token=your_super_secret_key_here
+    ports:
+      - "5000:8080"
+    depends_on:
+      - database
+
+  frontend:
+    image: ${DOCKER_REGISTRY-}englishcenterfrontend
+    build:
+      context: ./english-center-management/frontend
+      dockerfile: Dockerfile
+    environment:
+      - REACT_APP_API_URL=http://your-server-ip:5000/api
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  sql-data:

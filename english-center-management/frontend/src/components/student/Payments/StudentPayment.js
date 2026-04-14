@@ -122,7 +122,7 @@ const StudentPayment = () => {
 
     const handleStatusChange = (data) => {
       console.log('Received payment update:', data);
-      
+
       // Support both event formats and data structures
       const pId = data.paymentId || data.PaymentId;
       const status = data.status || data.Status;
@@ -221,7 +221,7 @@ const StudentPayment = () => {
       const response = await paymentAPI.createPayment(paymentData);
       setCurrentPayment(response.data);
       setPaymentDialog(false);
-      
+
       // Show QR dialog for bank transfer, or process immediately for other methods
       if (selectedPaymentMethod === 'bank_transfer') {
         setQrDialog(true);
@@ -301,20 +301,20 @@ const StudentPayment = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, sm: 3, md: 4 } }}>
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
         mb={3}
         sx={{
           flexDirection: { xs: 'column', sm: 'row' },
           gap: { xs: 2, sm: 0 }
         }}
       >
-        <Typography 
-          variant="h4" 
+        <Typography
+          variant="h4"
           fontWeight="bold"
-          sx={{ 
+          sx={{
             fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
             textAlign: { xs: 'center', sm: 'left' }
           }}
@@ -325,7 +325,7 @@ const StudentPayment = () => {
           variant="outlined"
           startIcon={<History />}
           onClick={() => setHistoryDialog(true)}
-          sx={{ 
+          sx={{
             minWidth: { xs: '100%', sm: 'auto' },
             fontSize: { xs: '0.875rem', sm: '1rem' }
           }}
@@ -348,11 +348,11 @@ const StudentPayment = () => {
             {/* Mobile Layout - Card View */}
             <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
               {enrolledCourses?.courses?.map((course) => (
-                <Paper 
-                  key={course.courseId} 
-                  sx={{ 
-                    p: 2, 
-                    mb: 2, 
+                <Paper
+                  key={course.courseId}
+                  sx={{
+                    p: 2,
+                    mb: 2,
                     border: course.isPaid ? '1px solid #e5e7eb' : '1px solid #fb923c',
                     opacity: course.isPaid ? 0.6 : 1
                   }}
@@ -372,9 +372,9 @@ const StudentPayment = () => {
                         Mã khóa: {course.courseCode}
                       </Typography>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
+                        <Typography
+                          variant="h6"
+                          sx={{
                             fontWeight: 'bold',
                             color: '#1e293b',
                             fontSize: '1.1rem'
@@ -408,7 +408,7 @@ const StudentPayment = () => {
                   </Box>
                 </Paper>
               ))}
-              
+
               {/* Mobile Select All */}
               <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
                 <Checkbox
@@ -489,10 +489,10 @@ const StudentPayment = () => {
                         <TableCell>{course.courseCode}</TableCell>
                         <TableCell>{course.courseName}</TableCell>
                         <TableCell align="right">
-                          <Typography 
-                            variant="body2" 
+                          <Typography
+                            variant="body2"
                             fontWeight="bold"
-                            sx={{ 
+                            sx={{
                               fontSize: { xs: '0.875rem', sm: '1rem' },
                               color: '#1e293b'
                             }}
@@ -533,18 +533,18 @@ const StudentPayment = () => {
         )}
       </Paper>
 
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
+      <Box
+        display="flex"
+        justifyContent="space-between"
         alignItems="center"
         sx={{
           flexDirection: { xs: 'column', sm: 'row' },
           gap: { xs: 2, sm: 0 }
         }}
       >
-        <Typography 
-          variant="h5" 
-          sx={{ 
+        <Typography
+          variant="h5"
+          sx={{
             fontWeight: 'bold',
             color: '#dc2626',
             fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
@@ -583,10 +583,10 @@ const StudentPayment = () => {
       <Dialog open={paymentMethodDialog} onClose={() => setPaymentMethodDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography>Chọn Phương Thức Thanh Toán</Typography>
-          <IconButton 
+          <IconButton
             onClick={() => setPaymentMethodDialog(false)}
-            sx={{ 
-              '&:hover': { 
+            sx={{
+              '&:hover': {
                 bgcolor: 'rgba(0, 0, 0, 0.04)',
                 color: 'text.secondary'
               }
@@ -599,15 +599,15 @@ const StudentPayment = () => {
           <Typography variant="body1" gutterBottom sx={{ mb: 3 }}>
             Vui lòng chọn phương thức thanh toán phù hợp:
           </Typography>
-          
+
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* Bank Transfer */}
-            <Paper 
-              sx={{ 
-                p: 2, 
-                border: '2px solid #10b981', 
+            <Paper
+              sx={{
+                p: 2,
+                border: '2px solid #10b981',
                 cursor: 'pointer',
-                '&:hover': { 
+                '&:hover': {
                   bgcolor: 'rgba(16, 185, 129, 0.05)',
                   transform: 'translateY(-2px)',
                   transition: 'all 0.3s ease'
@@ -627,12 +627,12 @@ const StudentPayment = () => {
             </Paper>
 
             {/* Mobile Money */}
-            <Paper 
-              sx={{ 
-                p: 2, 
-                border: '2px solid #f59e0b', 
+            <Paper
+              sx={{
+                p: 2,
+                border: '2px solid #f59e0b',
                 cursor: 'pointer',
-                '&:hover': { 
+                '&:hover': {
                   bgcolor: 'rgba(245, 158, 11, 0.05)',
                   transform: 'translateY(-2px)',
                   transition: 'all 0.3s ease'
@@ -652,12 +652,12 @@ const StudentPayment = () => {
             </Paper>
 
             {/* Cash */}
-            <Paper 
-              sx={{ 
-                p: 2, 
-                border: '2px solid #8b5cf6', 
+            <Paper
+              sx={{
+                p: 2,
+                border: '2px solid #8b5cf6',
                 cursor: 'pointer',
-                '&:hover': { 
+                '&:hover': {
                   bgcolor: 'rgba(139, 92, 246, 0.05)',
                   transform: 'translateY(-2px)',
                   transition: 'all 0.3s ease'
@@ -708,11 +708,11 @@ const StudentPayment = () => {
             </Typography>
           </Box>
           <Alert severity="info">
-            {selectedPaymentMethod === 'bank_transfer' 
+            {selectedPaymentMethod === 'bank_transfer'
               ? 'Sau khi xác nhận, mã QR sẽ được tạo để bạn quét thanh toán.'
               : selectedPaymentMethod === 'mobile_money'
-              ? 'Bạn sẽ được chuyển đến ứng dụng thanh toán.'
-              : 'Vui lòng đến trung tâm để thanh toán trong vòng 24-48h để giữ chỗ.'
+                ? 'Bạn sẽ được chuyển đến ứng dụng thanh toán.'
+                : 'Vui lòng đến trung tâm để thanh toán trong vòng 24-48h để giữ chỗ.'
             }
           </Alert>
         </DialogContent>
@@ -731,10 +731,10 @@ const StudentPayment = () => {
             <Money sx={{ color: '#8b5cf6', fontSize: 28 }} />
             <Typography>Hướng Dẫn Thanh Toán Tiền Mặt</Typography>
           </Box>
-          <IconButton 
+          <IconButton
             onClick={() => setPaymentDialog(false)}
-            sx={{ 
-              '&:hover': { 
+            sx={{
+              '&:hover': {
                 bgcolor: 'rgba(0, 0, 0, 0.04)',
                 color: 'text.secondary'
               }
@@ -750,7 +750,7 @@ const StudentPayment = () => {
                 Vui long den trung tm de thanh ton va giu cho khoa hc
               </Typography>
             </Alert>
-            
+
             <Typography variant="h6" gutterBottom fontWeight="bold" color="#8b5cf6">
               Dia chi trung tm:
             </Typography>
@@ -758,7 +758,7 @@ const StudentPayment = () => {
               123 Nguyen Van Linh, Phuong Tan Phong, Quan 7, TP.HCM<br />
               (Doi dien truong Dai hc RMIT Vit Nam)
             </Typography>
-            
+
             <Typography variant="h6" gutterBottom fontWeight="bold" color="#8b5cf6">
               Thoi gian lm vic:
             </Typography>
@@ -767,7 +767,7 @@ const StudentPayment = () => {
               Th 7: 8:00 - 17:00<br />
               Chu nhat: Ngh
             </Typography>
-            
+
             <Typography variant="h6" gutterBottom fontWeight="bold" color="#8b5cf6">
               Linh he:
             </Typography>
@@ -775,7 +775,7 @@ const StudentPayment = () => {
               Hotline: (028) 1234-5678<br />
               Email: support@english-center.edu.vn
             </Typography>
-            
+
             <Typography variant="h6" gutterBottom fontWeight="bold" color="#8b5cf6">
               Luu y quan trong:
             </Typography>
@@ -790,7 +790,7 @@ const StudentPayment = () => {
                 Nhân bien lai thanh ton sau khi hon tat giao dich
               </Typography>
             </Box>
-            
+
             <Alert severity="success">
               <Typography variant="body2">
                 Sau khi thanh ton, trang thai khoa hc se duoc cap nhat tu dong trong vong 1-2 gio lm vic.
@@ -800,9 +800,9 @@ const StudentPayment = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPaymentDialog(false)}>Huy</Button>
-          <Button 
-            onClick={handlePayment} 
-            variant="contained" 
+          <Button
+            onClick={handlePayment}
+            variant="contained"
             disabled={paymentProcessing}
             sx={{ bgcolor: '#8b5cf6', '&:hover': { bgcolor: '#7c3aed' } }}
           >
@@ -818,10 +818,10 @@ const StudentPayment = () => {
             <QrCodeScanner />
             <Typography>Thanh Toán Qua Mã QR</Typography>
           </Box>
-          <IconButton 
+          <IconButton
             onClick={() => setQrDialog(false)}
-            sx={{ 
-              '&:hover': { 
+            sx={{
+              '&:hover': {
                 bgcolor: 'rgba(0, 0, 0, 0.04)',
                 color: 'text.secondary'
               }
@@ -846,7 +846,7 @@ const StudentPayment = () => {
                   />
                 </Box>
               )}
-              
+
               <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic' }}>
                 📱 Mở ứng dụng Ngân hàng hoặc Ví điện tử để quét mã
               </Typography>
@@ -882,10 +882,10 @@ const StudentPayment = () => {
             <CheckCircle sx={{ color: '#10b981', fontSize: 28 }} />
             <Typography>Thanh Toán Thành Công!</Typography>
           </Box>
-          <IconButton 
+          <IconButton
             onClick={() => setSuccessDialog(false)}
-            sx={{ 
-              '&:hover': { 
+            sx={{
+              '&:hover': {
                 bgcolor: 'rgba(0, 0, 0, 0.04)',
                 color: 'text.secondary'
               }
@@ -896,15 +896,15 @@ const StudentPayment = () => {
         </DialogTitle>
         <DialogContent>
           <Box textAlign="center" py={3}>
-            <Box sx={{ 
-              width: 80, 
-              height: 80, 
-              bgcolor: '#10b981', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              mx: 'auto', 
+            <Box sx={{
+              width: 80,
+              height: 80,
+              bgcolor: '#10b981',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
               mb: 3,
               boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3)'
             }}>
@@ -914,14 +914,14 @@ const StudentPayment = () => {
               Thanh Toán Thành Công!
             </Typography>
             <Typography variant="body1" sx={{ mb: 2, fontSize: '1.1rem' }}>
-              Cám ôn ban da thanh toán thành công!
+              Chúc mừng giao dịch của bạn đã thành công!
             </Typography>
             <Typography variant="h6" sx={{ mb: 3, color: '#1e293b' }}>
-              Số tiền: <strong>{formatCurrency(calculateTotal())}</strong>
+              Số tiền: <strong>{formatCurrency(currentPayment?.amount || calculateTotal())}</strong>
             </Typography>
             <Alert severity="success" sx={{ mb: 2 }}>
               <Typography variant="body2">
-                {selectedPaymentMethod === 'cash' 
+                {selectedPaymentMethod === 'cash'
                   ? 'Vui lòng đến trung tâm trong vòng 24-48h để hoàn tất thủ tục.'
                   : 'Giao dịch đã được xác nhận và khóa học đã được kích hoạt.'
                 }
@@ -933,16 +933,16 @@ const StudentPayment = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
-          <Button 
+          <Button
             onClick={() => {
               setSuccessDialog(false);
               // Reset selection after successful payment
               setSelectedCourses([]);
-            }} 
+            }}
             variant="contained"
             size="large"
-            sx={{ 
-              bgcolor: '#10b981', 
+            sx={{
+              bgcolor: '#10b981',
               '&:hover': { bgcolor: '#059669' },
               px: 4,
               py: 1.5,
@@ -971,7 +971,7 @@ const StudentPayment = () => {
                 Vui lòng đến trung tâm để thanh toán và giữ chỗ khóa học
               </Typography>
             </Alert>
-            
+
             <Typography variant="h6" gutterBottom fontWeight="bold" color="#8b5cf6">
               📍 Địa chỉ trung tâm:
             </Typography>
@@ -979,7 +979,7 @@ const StudentPayment = () => {
               123 Nguyễn Văn Linh, Phường Tân Phong, Quận 7, TP.HCM<br />
               (Đối diện trường Đại học RMIT Việt Nam)
             </Typography>
-            
+
             <Typography variant="h6" gutterBottom fontWeight="bold" color="#8b5cf6">
               ⏰ Thời gian làm việc:
             </Typography>
@@ -988,7 +988,7 @@ const StudentPayment = () => {
               Thứ 7: 8:00 - 17:00<br />
               Chủ nhật: Nghỉ
             </Typography>
-            
+
             <Typography variant="h6" gutterBottom fontWeight="bold" color="#8b5cf6">
               📞 Liên hệ:
             </Typography>
@@ -996,7 +996,7 @@ const StudentPayment = () => {
               Hotline: (028) 1234-5678<br />
               Email: support@english-center.edu.vn
             </Typography>
-            
+
             <Typography variant="h6" gutterBottom fontWeight="bold" color="#8b5cf6">
               💡 Lưu ý quan trọng:
             </Typography>
@@ -1011,7 +1011,7 @@ const StudentPayment = () => {
                 Nhận biên lai thanh toán sau khi hoàn tất giao dịch
               </Typography>
             </Box>
-            
+
             <Alert severity="success">
               <Typography variant="body2">
                 Sau khi thanh toán, trạng thái khóa học sẽ được cập nhật tự động trong vòng 1-2 giờ làm việc.
@@ -1021,9 +1021,9 @@ const StudentPayment = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPaymentDialog(false)}>Hủy</Button>
-          <Button 
-            onClick={handlePayment} 
-            variant="contained" 
+          <Button
+            onClick={handlePayment}
+            variant="contained"
             disabled={paymentProcessing}
             sx={{ bgcolor: '#8b5cf6', '&:hover': { bgcolor: '#7c3aed' } }}
           >
