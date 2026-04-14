@@ -476,14 +476,6 @@ namespace EnglishCenter.API.Controllers
                     if (room == null)
                         return BadRequest(new { message = "Room not found" });
 
-                    // Check room availability hours
-                    if (createCurriculumSessionDto.StartTime < room.AvailableStartTime || createCurriculumSessionDto.EndTime > room.AvailableEndTime)
-                    {
-                        return BadRequest(new { 
-                            message = $"Room is only available between {room.AvailableStartTime:hh\\:mm} and {room.AvailableEndTime:hh\\:mm}" 
-                        });
-                    }
-
                     // Check for overlapping sessions in the same room on the same day
                     var overlappingSession = await _context.CurriculumSessions
                         .Include(cs => cs.CurriculumDay)
@@ -520,6 +512,23 @@ namespace EnglishCenter.API.Controllers
                     {
                         return BadRequest(new { 
                             message = $"Teacher is already teaching on {curriculumDay.ScheduleDate:yyyy-MM-dd} between {teachingConflict.StartTime:hh\\:mm} and {teachingConflict.EndTime:hh\\:mm}" 
+                        });
+                    }
+                    
+                    // STRICT: Check if teacher is teaching ANY session that overlaps (including through curriculum participation)
+                    var anyOverlap = await _context.CurriculumSessions
+                        .Include(cs => cs.CurriculumDay)
+                            .ThenInclude(cd => cd.Curriculum)
+                        .Where(cs => cs.CurriculumDay.ScheduleDate.Date == curriculumDay.ScheduleDate.Date)
+                        .Where(cs => cs.TeacherId == teacherId || 
+                                    cs.CurriculumDay.Curriculum.ParticipantTeachers.Any(pt => pt.TeacherId == teacherId))
+                        .Where(cs => (createCurriculumSessionDto.StartTime < cs.EndTime && createCurriculumSessionDto.EndTime > cs.StartTime))
+                        .FirstOrDefaultAsync();
+                        
+                    if (anyOverlap != null)
+                    {
+                        return BadRequest(new { 
+                            message = $"CONFLICT: Teacher already has a session on {curriculumDay.ScheduleDate:yyyy-MM-dd} from {anyOverlap.StartTime:hh\\:mm} to {anyOverlap.EndTime:hh\\:mm}. Cannot create overlapping schedule." 
                         });
                     }
 
@@ -670,14 +679,6 @@ namespace EnglishCenter.API.Controllers
                     var room = await _context.Rooms.FindAsync(updateCurriculumSessionDto.RoomId.Value);
                     if (room == null)
                         return BadRequest(new { message = "Room not found" });
-
-                    // Check room availability hours
-                    if (updateCurriculumSessionDto.StartTime < room.AvailableStartTime || updateCurriculumSessionDto.EndTime > room.AvailableEndTime)
-                    {
-                        return BadRequest(new { 
-                            message = $"Room is only available between {room.AvailableStartTime:hh\\:mm} and {room.AvailableEndTime:hh\\:mm}" 
-                        });
-                    }
 
                     // Check for overlapping sessions in the same room on the same day (excluding itself)
                     var overlappingSession = await _context.CurriculumSessions

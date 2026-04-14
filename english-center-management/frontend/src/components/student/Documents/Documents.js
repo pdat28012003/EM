@@ -41,7 +41,7 @@ import { useNavigate } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { documentsAPI, classesAPI } from '../../../services/api';
+import { documentsAPI, curriculumAPI } from '../../../services/api';
 
 const Documents = () => {
   const [student, setStudent] = useState(null);
@@ -99,7 +99,7 @@ const Documents = () => {
   const loadClasses = async (studentId) => {
     try {
       // Get student's enrolled classes
-      const response = await classesAPI.getStudentClasses(studentId);
+      const response = await curriculumAPI.getCurriculumsByStudent(studentId);
       const classesData = response.data?.data || response.data || [];
       setClasses(Array.isArray(classesData) ? classesData : []);
     } catch (error) {

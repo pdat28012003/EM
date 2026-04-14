@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { curriculumAPI } from '../../../../services/api';
 
-export default function StudentsTab({ classId, classInfo }) {
+export default function StudentsTab({ curriculumId, curriculumInfo }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -34,7 +34,7 @@ export default function StudentsTab({ classId, classInfo }) {
     if (hasLoaded.current && page === 1) return;
     hasLoaded.current = true;
     loadStudents();
-  }, [classId, page, rowsPerPage]);
+  }, [curriculumId, page, rowsPerPage]);
 
   const loadStudents = async () => {
     try {
@@ -52,7 +52,7 @@ export default function StudentsTab({ classId, classInfo }) {
         setSessions(data.sessions || []);
       } else {
         // Fallback: get all students in curriculum
-        const response = await curriculumAPI.getStudents(classId);
+        const response = await curriculumAPI.getStudents(curriculumId);
         const data = response.data || {};
         setStudents(data.students || []);        
         setTotalCount(data.totalCount || 0);
@@ -116,7 +116,7 @@ export default function StudentsTab({ classId, classInfo }) {
             Học viên
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {classInfo?.className}
+            {curriculumInfo?.curriculumName}
           </Typography>
         </Box>
         <Chip 

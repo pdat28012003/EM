@@ -34,7 +34,7 @@ import {
   PlayArrow
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { dashboardAPI, classesAPI, activityLogsAPI } from '../../../services/api';
+import { dashboardAPI, curriculumAPI, activityLogsAPI } from '../../../services/api';
 
 // Safe text render - no highlighting
 const HighlightText = ({ text }) => {
@@ -43,9 +43,9 @@ const HighlightText = ({ text }) => {
 
 const TeacherDashboard = () => {
   const [teacher, setTeacher] = useState(null);
-  const [recentClasses, setRecentClasses] = useState([]);
+  const [recentCurriculums, setRecentCurriculums] = useState([]);
   const [stats, setStats] = useState({
-    totalClasses: { currentValue: 0, changeFromLastWeek: 0, changeType: 'increase' },
+    totalCurriculums: { currentValue: 0, changeFromLastWeek: 0, changeType: 'increase' },
     totalStudents: { currentValue: 0, changeFromLastWeek: 0, changeType: 'increase' },
     pendingAssignments: { currentValue: 0, changeFromLastWeek: 0, changeType: 'increase' },
     weeklySchedule: { currentValue: 0, changeFromLastWeek: 0, changeType: 'increase' },
@@ -53,7 +53,7 @@ const TeacherDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState([]);
   const [menuBadges, setMenuBadges] = useState({
-    classes: 0,
+    curriculums: 0,
     documents: 0
   });
   const navigate = useNavigate();
@@ -123,16 +123,16 @@ const TeacherDashboard = () => {
       const statsResponse = await dashboardAPI.getTeacherDashboardStatistics(teacherId);
       setStats(statsResponse.data);
       
-      const classesResponse = await classesAPI.getAll({ teacherId, limit: 3 });
-      const classesData = classesResponse.data?.data || classesResponse.data?.Data || [];
-      const mappedClasses = Array.isArray(classesData) ? classesData.map(cls => ({
-        id: cls.classId,
-        name: cls.className || 'Lớp không tên',
-        students: cls.currentStudents || 0,
-        nextClass: cls.schedule || 'Chưa có lịch',
-        progress: cls.progress || 0
+      const curriculumsResponse = await curriculumAPI.getCurriculumsByTeacher(teacherId);
+      const curriculumsData = curriculumsResponse.data?.data || curriculumsResponse.data?.Data || [];
+      const mappedCurriculums = Array.isArray(curriculumsData) ? curriculumsData.map(curr => ({
+        id: curr.curriculumId,
+        name: curr.curriculumName || curr.courseName || 'Chương trình không tên',
+        students: curr.currentStudents || 0,
+        nextClass: curr.schedule || 'Chưa có lịch',
+        progress: curr.progress || 0
       })) : [];
-      setRecentClasses(mappedClasses);
+      setRecentCurriculums(mappedCurriculums);
       
       const activitiesResponse = await activityLogsAPI.getMyActivities({ limit: 10 });
       const activitiesData = activitiesResponse.data || [];
@@ -148,7 +148,7 @@ const TeacherDashboard = () => {
       
       // Load menu badges (mock for now - replace with real API)
       setMenuBadges({
-        classes: 3,
+        curriculums: 3,
         documents: 2
       });
     } catch (error) {
@@ -305,9 +305,9 @@ const TeacherDashboard = () => {
   const menuItems = [
     { 
       icon: <Class />,
-      title: 'Lớp học', 
-      subtitle: 'Quản lý và theo dõi lớp',
-      path: '/teacher/classes',
+      title: 'Chương trình', 
+      subtitle: 'Quản lý và theo dõi chương trình',
+      path: '/teacher/curriculums',
       color: '#4F46E5',
 
     },
@@ -317,13 +317,6 @@ const TeacherDashboard = () => {
       subtitle: 'Xem lịch giảng dạy',
       path: '/teacher/schedule',
       color: '#4F46E5'
-    },
-    { 
-      icon: <CalendarToday />, 
-      title: 'Đăng ký lịch rảnh', 
-      subtitle: 'Đăng ký thời gian có thể dạy',
-      path: '/teacher/availability',
-      color: '#2563eb'
     },
     { 
       icon: <Assessment />, 
@@ -343,10 +336,10 @@ const TeacherDashboard = () => {
 
   const statsCards = [
     { 
-      title: 'Tổng lớp học', 
-      value: stats.totalClasses.currentValue, 
-      change: stats.totalClasses.changeFromLastWeek,
-      changeType: stats.totalClasses.changeType,
+      title: 'Tổng chương trình', 
+      value: stats.totalCurriculums?.currentValue ?? 0, 
+      change: stats.totalCurriculums?.changeFromLastWeek ?? 0,
+      changeType: stats.totalCurriculums?.changeType ?? 'increase',
       icon: <School />, 
       color: '#4F46E5'
     },
@@ -525,15 +518,15 @@ const TeacherDashboard = () => {
         <Grid container spacing={2}>
           {menuItems.map((item, index) => (
             <Grid item xs={12} sm={6} md={2.4} key={index}>
-              <QuickActionCard item={item} badge={item.badgeKey ? (menuBadges[item.badgeKey] > 0 ? `${menuBadges[item.badgeKey]} ${item.badgeKey === 'classes' ? 'lớp mới' : 'chưa duyệt'}` : null) : null} />
+              <QuickActionCard item={item} badge={item.badgeKey ? (menuBadges[item.badgeKey] > 0 ? `${menuBadges[item.badgeKey]} ${item.badgeKey === 'curriculums' ? 'chương trình mới' : 'chưa duyệt'}` : null) : null} />
             </Grid>
           ))}
         </Grid>
       </Box>
 
-      {/* Recent Classes & Activities */}
+      {/* Recent Curriculums & Activities */}
       <Grid container spacing={3}>
-        {/* Recent Classes - Redesigned with less text */}
+        {/* Recent Curriculums - Redesigned with less text */}
         <Grid item xs={12} md={6}>
           <Paper 
             sx={{ 
@@ -548,13 +541,13 @@ const TeacherDashboard = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <School sx={{ color: '#4F46E5' }} />
                 <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                  Lớp học gần đây
+                  Chương trình gần đây
                 </Typography>
               </Box>
               <Button 
                 size="small"
                 endIcon={<ChevronRight />}
-                onClick={() => navigate('/teacher/classes')}
+                onClick={() => navigate('/teacher/curriculums')}
                 sx={{ textTransform: 'none', fontWeight: 600 }}
               >
                 Xem tất cả
@@ -562,9 +555,9 @@ const TeacherDashboard = () => {
             </Box>
             
             <Stack spacing={2}>
-              {recentClasses.map((classItem, index) => (
+              {recentCurriculums.map((curriculumItem, index) => (
                 <Card
-                  key={classItem.id}
+                  key={curriculumItem.id}
                   sx={{
                     cursor: 'pointer',
                     borderRadius: 2,
@@ -575,25 +568,25 @@ const TeacherDashboard = () => {
                     },
                     transition: 'all 0.3s ease',
                   }}
-                  onClick={() => navigate(`/teacher/classes/${classItem.id}`)}
+                  onClick={() => navigate(`/teacher/curriculums/${curriculumItem.id}`)}
                 >
                   <CardContent sx={{ p: 2.5 }}>
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                        {classItem.name}
+                        {curriculumItem.name}
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <People sx={{ fontSize: 16, color: 'text.secondary' }} />
                           <Typography variant="body2" color="text.secondary">
-                            {classItem.students} học viên
+                            {curriculumItem.students} học viên
                           </Typography>
                         </Box>
                         <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: 'divider' }} />
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <AccessTime sx={{ fontSize: 16, color: '#f57c00' }} />
                           <Typography variant="body2" color="text.secondary">
-                            {classItem.nextClass}
+                            {curriculumItem.nextClass}
                           </Typography>
                         </Box>
                       </Box>
@@ -606,19 +599,19 @@ const TeacherDashboard = () => {
                           Tiến độ khóa học
                         </Typography>
                         <Typography variant="caption" sx={{ fontWeight: 700, color: '#4F46E5' }}>
-                          {classItem.progress}%
+                          {curriculumItem.progress}%
                         </Typography>
                       </Box>
                       <LinearProgress
                         variant="determinate"
-                        value={classItem.progress}
+                        value={curriculumItem.progress}
                         sx={{
                           height: 10,
                           borderRadius: 5,
                           bgcolor: 'rgba(79, 70, 229, 0.1)',
                           '& .MuiLinearProgress-bar': {
                             borderRadius: 5,
-                            bgcolor: classItem.progress >= 80 ? '#4F46E5' : classItem.progress >= 50 ? '#6366F1' : '#9CA3AF',
+                            bgcolor: curriculumItem.progress >= 80 ? '#4F46E5' : curriculumItem.progress >= 50 ? '#6366F1' : '#9CA3AF',
                           },
                         }}
                       />

@@ -359,6 +359,7 @@ namespace EnglishCenter.API.Controllers
 
                 var scheduleDtos = sessions.Select(cs => new {
                     SessionId = cs.CurriculumSessionId,
+                    CurriculumId = cs.CurriculumDay.Curriculum.CurriculumId,
                     TeacherId = id,
                     Date = cs.CurriculumDay.ScheduleDate.ToString("yyyy-MM-dd"),
                     DayOfWeek = cs.CurriculumDay.ScheduleDate.DayOfWeek.ToString(),

@@ -36,7 +36,7 @@ import {
   CloudUpload,
   Edit
 } from '@mui/icons-material';
-import { documentsAPI, teachersAPI, classesAPI } from '../../../services/api';
+import { documentsAPI, teachersAPI, curriculumAPI } from '../../../services/api';
 import DocumentEditDialog from '../../../hooks/DocumentEditDialog';
 
 const Documents = () => {
@@ -122,7 +122,7 @@ const Documents = () => {
 
   const loadClasses = async () => {
     try {
-      const response = await classesAPI.getAll();
+      const response = await curriculumAPI.getAll();
       const classesData = response.data?.data || response.data || [];
       setClasses(Array.isArray(classesData) ? classesData : []);
     } catch (error) {

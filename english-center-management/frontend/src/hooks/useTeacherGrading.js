@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { assignmentsAPI, classesAPI } from '../services/api';
+import { assignmentsAPI, curriculumAPI } from '../services/api';
 
 export const GRADING_STEPS = ['Chọn lớp', 'Chọn bài tập', 'Chấm điểm'];
 
@@ -31,7 +31,7 @@ export const useTeacherGrading = () => {
     setError(null);
     
     try {
-      const classesRes = await classesAPI.getAll({ teacherId, status: 'Active' });
+      const classesRes = await curriculumAPI.getCurriculumsByTeacher(teacherId);
       const classesData = Array.isArray(classesRes.data?.data?.data)
         ? classesRes.data.data.data
         : Array.isArray(classesRes.data?.data)

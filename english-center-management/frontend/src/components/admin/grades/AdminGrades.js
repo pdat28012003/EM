@@ -19,40 +19,40 @@ import {
   Alert,
   Grid
 } from '@mui/material';
-import { gradesAPI, classesAPI } from '../../../services/api';
+import { gradesAPI, curriculumAPI } from '../../../services/api';
 
 const AdminGrades = () => {
-  const [classes, setClasses] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('');
+  const [curriculums, setCurriculums] = useState([]);
+  const [selectedCurriculum, setSelectedCurriculum] = useState('');
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    loadClasses();
+    loadCurriculums();
   }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (selectedClass) {
+    if (selectedCurriculum) {
       loadGrades();
     }
-  }, [selectedClass]);
+  }, [selectedCurriculum]);
 
-  const loadClasses = async () => {
+  const loadCurriculums = async () => {
     try {
-      const response = await classesAPI.getAll({ pageSize: 100 });
-      setClasses(response.data?.data || []);
+      const response = await curriculumAPI.getAll({ pageSize: 100 });
+      setCurriculums(response.data?.data || []);
     } catch (err) {
-      console.error('Error loading classes:', err);
-      setError('Không thể tải danh sách lớp học');
+      console.error('Error loading curriculums:', err);
+      setError('Không thể tải danh sách chương trình học');
     }
   };
 
   const loadGrades = async () => {
     setLoading(true);
     try {
-      const response = await gradesAPI.getByClass(selectedClass);
+      const response = await gradesAPI.getByCurriculum(selectedCurriculum);
       setGrades(response.data || []);
     } catch (err) {
       console.error('Error loading grades:', err);
@@ -81,18 +81,18 @@ const AdminGrades = () => {
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth>
-            <InputLabel>Chọn lớp học</InputLabel>
+            <InputLabel>Chọn chương trình</InputLabel>
             <Select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              label="Chọn lớp học"
+              value={selectedCurriculum}
+              onChange={(e) => setSelectedCurriculum(e.target.value)}
+              label="Chọn chương trình"
             >
               <MenuItem value="">
-                <em>-- Chọn lớp --</em>
+                <em>-- Chọn chương trình --</em>
               </MenuItem>
-              {classes.map((cls) => (
-                <MenuItem key={cls.classId} value={cls.classId}>
-                  {cls.className}
+              {curriculums.map((curr, index) => (
+                <MenuItem key={curr.curriculumId || `curriculum-${index}`} value={curr.curriculumId}>
+                  {curr.curriculumName || curr.courseName}
                 </MenuItem>
               ))}
             </Select>
@@ -123,12 +123,12 @@ const AdminGrades = () => {
               {grades.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center">
-                    {selectedClass ? 'Không có dữ liệu điểm số' : 'Vui lòng chọn lớp học'}
+                    {selectedCurriculum ? 'Không có dữ liệu điểm số' : 'Vui lòng chọn chương trình'}
                   </TableCell>
                 </TableRow>
               ) : (
-                grades.map((grade) => (
-                  <TableRow key={grade.gradeId}>
+                grades.map((grade, index) => (
+                  <TableRow key={grade.gradeId || `grade-${index}`}>
                     <TableCell>{grade.studentName}</TableCell>
                     <TableCell>{grade.assignmentTitle}</TableCell>
                     <TableCell>{grade.skillName}</TableCell>

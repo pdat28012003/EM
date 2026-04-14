@@ -177,8 +177,8 @@ const Dashboard = () => {
     totalStudents: 0,
     activeStudents: 0,
     totalTeachers: 0,
-    totalClasses: 0,
-    activeClasses: 0,
+    totalCurriculums: 0,
+    activeCurriculums: 0,
     totalRevenue: 0,
     monthlyRevenue: 0,
   });
@@ -275,8 +275,8 @@ const Dashboard = () => {
 
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Lớp Đang Mở"
-            value={`${stats.activeClasses}/${stats.totalClasses}`}
+            title="Khóa học Đang Mở"
+            value={`${stats.activeCurriculums}/${stats.totalCurriculums}`}
             icon={DoorOpen}
             color="#8b5cf6"
           />

@@ -39,7 +39,7 @@ import {
   VideoCameraFront
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { teachersAPI, classesAPI } from '../../../services/api';
+import { teachersAPI, curriculumAPI } from '../../../services/api';
 
 const TeacherSchedule = () => {
   const [teacher, setTeacher] = useState(null);
@@ -83,28 +83,33 @@ const TeacherSchedule = () => {
       console.log('Teacher schedule API response:', schedulesResponse.data);
       const schedulesData = schedulesResponse.data?.data || [];
       console.log('Schedule data:', schedulesData);
+      if (schedulesData.length > 0) {
+        console.log('First schedule item keys:', Object.keys(schedulesData[0]));
+        console.log('First schedule item:', schedulesData[0]);
+      }
       
       // Load classes for additional info
-      const classesResponse = await classesAPI.getAll({ teacherId });
+      const classesResponse = await curriculumAPI.getCurriculumsByTeacher(teacherId);
       const classesData = classesResponse.data?.data || classesResponse.data || [];
       
       // Map curriculum session data to match UI structure
       const mappedSchedules = Array.isArray(schedulesData) ? schedulesData.map(session => ({
-        id: session.sessionId,
-        classId: session.classId,
-        className: session.courseName, // Use courseName from curriculum
-        date: session.date, // Already has actual date
-        startTime: session.startTime,
-        endTime: session.endTime,
-        room: session.roomName || 'Not assigned',
-        status: session.status?.toLowerCase() || 'scheduled',
-        dayOfWeek: session.dayOfWeek,
-        teacherId: session.teacherId,
-        teacherName: session.teacherName,
-        curriculumName: session.curriculumName,
-        sessionName: session.sessionName,
-        sessionNumber: session.sessionNumber,
-        topic: session.topic
+        id: session.ScheduleId || session.scheduleId,
+        curriculumId: session.CurriculumId || session.curriculumId,
+        classId: session.ClassId || session.classId,
+        className: session.ClassName || session.className || session.courseName,
+        date: session.Date || session.date,
+        startTime: session.StartTime || session.startTime,
+        endTime: session.EndTime || session.endTime,
+        room: session.Room || session.room || session.roomName || 'Not assigned',
+        status: (session.Status || session.status)?.toLowerCase() || 'scheduled',
+        dayOfWeek: session.DayOfWeek || session.dayOfWeek,
+        teacherId: session.TeacherId || session.teacherId,
+        teacherName: session.TeacherName || session.teacherName,
+        curriculumName: session.CurriculumName || session.curriculumName,
+        sessionName: session.SessionName || session.sessionName,
+        sessionNumber: session.SessionNumber || session.sessionNumber,
+        topic: session.Topic || session.topic
       })) : [];
       
       setSchedules(mappedSchedules);
@@ -264,7 +269,7 @@ const TeacherSchedule = () => {
       <TableCell sx={{ border: '1px solid #e0e0e0', p: 1, verticalAlign: 'top', position: 'relative' }}>
         {schedules.map((schedule, index) => (
           <Box
-            key={schedule.id}
+            key={schedule.id || `schedule-${index}`}
             sx={{
               mb: 1,
               p: 1.5,
@@ -682,7 +687,13 @@ const TeacherSchedule = () => {
                     '&:hover': { bgcolor: '#059669' },
                     borderRadius: 2
                   }}
-                  onClick={() => navigate(`/teacher/classes/${selectedEvent.classId}`)}
+                  onClick={() => {
+                    console.log('Selected event:', selectedEvent);
+                    console.log('CurriculumId:', selectedEvent.curriculumId, 'ClassId:', selectedEvent.classId);
+                    const id = selectedEvent.curriculumId || selectedEvent.classId || selectedEvent.CurriculumId || selectedEvent.ClassId;
+                    console.log('Navigate to:', `/teacher/curriculums/${id}`);
+                    navigate(`/teacher/curriculums/${id}`);
+                  }}
                 >
                   Chi tiết lớp
                 </Button>

@@ -46,7 +46,7 @@ namespace EnglishCenter.API.Controllers
             {
                 var student = await _context.Students
                     .Include(s => s.Enrollments)
-                        .ThenInclude(e => e.Class)
+                        .ThenInclude(e => e.Curriculum)
                             .ThenInclude(c => c.Course)
                     .FirstOrDefaultAsync(s => s.StudentId == studentId);
 
@@ -61,8 +61,8 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 var courses = student.Enrollments
-                    .Where(e => e.Status != "Dropped" && e.Status != "Cancelled" && e.Class != null && e.Class.Course != null)
-                    .Select(e => e.Class.Course)
+                    .Where(e => e.Status != "Dropped" && e.Status != "Cancelled" && e.Curriculum != null && e.Curriculum.Course != null)
+                    .Select(e => e.Curriculum.Course)
                     .Distinct()
                     .Select(course => new CourseForPaymentDto
                     {

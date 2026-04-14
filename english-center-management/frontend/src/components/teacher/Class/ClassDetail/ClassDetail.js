@@ -39,9 +39,9 @@ function TabPanel({ children, value, index, ...other }) {
 }
 
 export default function ClassDetail() {
-  const { classId } = useParams();
+  const { curriculumId } = useParams();
   const [activeTab, setActiveTab] = useState(0);
-  const [classInfo, setClassInfo] = useState(null);
+  const [curriculumInfo, setCurriculumInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const formatDate = (dateString) => {
@@ -63,17 +63,17 @@ export default function ClassDetail() {
   };
 
   useEffect(() => {
-    loadClassInfo();
-  }, [classId]);
+    loadCurriculumInfo();
+  }, [curriculumId]);
 
-  const loadClassInfo = async () => {
+  const loadCurriculumInfo = async () => {
     try {
-      // Load class info from API
-      const response = await curriculumAPI.getById(classId);
-      setClassInfo(response.data);
+      // Load curriculum info from API
+      const response = await curriculumAPI.getById(curriculumId);
+      setCurriculumInfo(response.data);
     } catch (error) {
-      console.error('Error loading class info:', error);
-      setClassInfo(null);
+      console.error('Error loading curriculum info:', error);
+      setCurriculumInfo(null);
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export default function ClassDetail() {
     );
   }
 
-  if (!classInfo) {
+  if (!curriculumInfo) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error">
@@ -109,14 +109,14 @@ export default function ClassDetail() {
         <Paper sx={{ p: 3, borderRadius: 2 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h4" component="h1">
-              {classInfo.className}
+              {curriculumInfo.curriculumName}
             </Typography>
             <Box>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                {classInfo.courseName}
+                {curriculumInfo.courseName}
               </Typography>
               <Typography variant="body2">
-                {classInfo.currentStudents}/{classInfo.maxStudents} học viên
+                {curriculumInfo.currentStudents}/{curriculumInfo.maxStudents} học viên
               </Typography>
             </Box>
           </Box>
@@ -124,27 +124,27 @@ export default function ClassDetail() {
           <Box display="flex" gap={3} flexWrap="wrap">
             <Box>
               <Typography variant="body2" color="text.secondary">
-                <strong>Phòng học:</strong> {classInfo.room}
+                <strong>Phòng học:</strong> {curriculumInfo.room}
               </Typography>
             </Box>
             <Box>
               <Typography variant="body2" color="text.secondary">
-                <strong>Bắt đầu:</strong> {formatDate(classInfo.startDate)}
+                <strong>Bắt đầu:</strong> {formatDate(curriculumInfo.startDate)}
               </Typography>
             </Box>
             <Box>
               <Typography variant="body2" color="text.secondary">
-                <strong>Kết thúc:</strong> {formatDate(classInfo.endDate)}
+                <strong>Kết thúc:</strong> {formatDate(curriculumInfo.endDate)}
               </Typography>
             </Box>
             <Box>
               <Typography variant="body2" color="text.secondary">
                 <strong>Trạng thái:</strong>{' '}
                 <span style={{ 
-                  color: classInfo.status === 'Active' ? '#4caf50' : '#f44336',
+                  color: curriculumInfo.status === 'Active' ? '#4caf50' : '#f44336',
                   fontWeight: 'bold'
                 }}>
-                  {getStatusText(classInfo.status)}
+                  {getStatusText(curriculumInfo.status)}
                 </span>
               </Typography>
             </Box>
@@ -194,19 +194,19 @@ export default function ClassDetail() {
 
         {/* Tab Panels */}
         <TabPanel value={activeTab} index={0}>
-          <StudentsTab classId={classId} classInfo={classInfo} />
+          <StudentsTab curriculumId={curriculumId} curriculumInfo={curriculumInfo} />
         </TabPanel>
         
         <TabPanel value={activeTab} index={1}>
-          <AttendanceTab classId={classId} classInfo={classInfo} />
+          <AttendanceTab curriculumId={curriculumId} curriculumInfo={curriculumInfo} />
         </TabPanel>
         
         <TabPanel value={activeTab} index={2}>
-          <AssignmentsTab curriculumId={classId} curriculumInfo={classInfo} />
+          <AssignmentsTab curriculumId={curriculumId} curriculumInfo={curriculumInfo} />
         </TabPanel>
         
         <TabPanel value={activeTab} index={3}>
-          <DynamicGradesTab classId={classId} classInfo={classInfo} />
+          <DynamicGradesTab curriculumId={curriculumId} curriculumInfo={curriculumInfo} />
         </TabPanel>
       </Paper>
     </Container>

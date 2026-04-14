@@ -32,7 +32,7 @@ import {
 
 import { curriculumAPI, sessionAttendanceAPI } from '../../../../services/api';
 
-export default function AttendanceTab({ classId, classInfo }) {
+export default function AttendanceTab({ curriculumId, curriculumInfo }) {
   const [students, setStudents] = useState([]);
   const [attendanceData, setAttendanceData] = useState({});
   const [selectedDate, setSelectedDate] = useState(
@@ -94,13 +94,13 @@ export default function AttendanceTab({ classId, classInfo }) {
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classId, selectedDate, page, rowsPerPage, selectedSession]);
+  }, [curriculumId, selectedDate, page, rowsPerPage, selectedSession]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       // Load students from curriculum
-      const stuRes = await curriculumAPI.getStudents(classId);
+      const stuRes = await curriculumAPI.getStudents(curriculumId);
       const studentsData = stuRes.data?.students || stuRes.data?.data?.students || [];
       const total = stuRes.data?.totalCount || stuRes.data?.data?.totalCount || studentsData.length;
       setStudents(studentsData);
@@ -238,7 +238,7 @@ export default function AttendanceTab({ classId, classInfo }) {
           Điểm danh
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {classInfo?.className} • Ngày {new Date(selectedDate).toLocaleDateString('vi-VN')}
+          {curriculumInfo?.curriculumName} • Ngày {new Date(selectedDate).toLocaleDateString('vi-VN')}
           {selectedSession && ` • ${selectedSession.sessionName}`}
         </Typography>
       </Box>

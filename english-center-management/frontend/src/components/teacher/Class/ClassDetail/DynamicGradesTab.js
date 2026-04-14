@@ -41,9 +41,9 @@ import {
   Done,
   Close
 } from '@mui/icons-material';
-import { classesAPI, assignmentsAPI, skillsAPI, gradesAPI, assignmentSkillsAPI } from '../../../../services/api';
+import { assignmentsAPI, skillsAPI, gradesAPI, assignmentSkillsAPI } from '../../../../services/api';
 
-export default function DynamicGradesTab({ classId, classInfo }) {
+export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
   const [students, setStudents] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [skills, setSkills] = useState([]);
@@ -76,19 +76,21 @@ export default function DynamicGradesTab({ classId, classInfo }) {
       setLoading(true);
       
       // Load all data in parallel
-      const [studentsRes, assignmentsRes, skillsRes, gradesRes] = await Promise.all([
-        classesAPI.getStudents(classId),
-        assignmentsAPI.getAll({ classId }),
+      if (!curriculumId) {
+        setLoading(false);
+        return;
+      }
+      
+      const [assignmentsRes, skillsRes, gradesRes] = await Promise.all([
+        assignmentsAPI.getAll({ curriculumId }),
         skillsAPI.getAll(),
-        gradesAPI.getByClass(classId)
+        gradesAPI.getByCurriculum(curriculumId)
       ]);
 
-      const studentsData = studentsRes.data?.data || [];
       const assignmentsData = assignmentsRes.data?.data || [];
       const skillsData = Array.isArray(skillsRes.data) ? skillsRes.data : (skillsRes.data?.data || []);
       const gradesData = gradesRes.data || [];
 
-      setStudents(studentsData);
       setAssignments(assignmentsData);
       setSkills(skillsData);
       setGrades(gradesData);
@@ -98,7 +100,7 @@ export default function DynamicGradesTab({ classId, classInfo }) {
     } finally {
       setLoading(false);
     }
-  }, [classId]);
+  }, [curriculumId]);
 
   useEffect(() => {
     loadData();
@@ -270,8 +272,8 @@ export default function DynamicGradesTab({ classId, classInfo }) {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `BangDiem_${classInfo?.className || classId}.csv`;
-    link.click();
+    link.download = `BangDiem_${curriculumInfo?.curriculumName || curriculumId}.csv`;
+    link.click(); 
     URL.revokeObjectURL(link.href);
   };
 
@@ -317,7 +319,7 @@ export default function DynamicGradesTab({ classId, classInfo }) {
       <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={3}>
         <Box>
           <Typography variant="h6" fontWeight="bold">
-            Bảng điểm động - {classInfo?.className}
+            Bảng điểm động - {curriculumInfo?.curriculumName}
           </Typography>
           <Box display="flex" alignItems="center" gap={1} mt={1}>
             <Button

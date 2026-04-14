@@ -7,7 +7,8 @@ namespace EnglishCenter.API.DTOs
     public class TeacherScheduleDto
     {
         public int ScheduleId { get; set; }
-        public int ClassId { get; set; }
+        public int ClassId { get; set; }  // Deprecated, use CurriculumId
+        public int CurriculumId { get; set; }
         public string ClassName { get; set; } = string.Empty;
         public int TeacherId { get; set; }
         public string TeacherName { get; set; } = string.Empty;
@@ -250,8 +251,10 @@ namespace EnglishCenter.API.DTOs
         public int EnrollmentId { get; set; }
         public int StudentId { get; set; }
         public string StudentName { get; set; } = string.Empty;
-        public int ClassId { get; set; }
-        public string ClassName { get; set; } = string.Empty;
+        public int? ClassId { get; set; }  // Deprecated
+        public string? ClassName { get; set; }
+        public int CurriculumId { get; set; }
+        public string CurriculumName { get; set; } = string.Empty;
         public DateTime EnrollmentDate { get; set; }
         public string Status { get; set; } = string.Empty;
     }
@@ -259,7 +262,7 @@ namespace EnglishCenter.API.DTOs
     public class CreateEnrollmentDto
     {
         public int StudentId { get; set; }
-        public int ClassId { get; set; }
+        public int CurriculumId { get; set; }
     }
 
     
@@ -269,8 +272,8 @@ namespace EnglishCenter.API.DTOs
         public int TestScoreId { get; set; }
         public int StudentId { get; set; }
         public string StudentName { get; set; } = string.Empty;
-        public int ClassId { get; set; }
-        public string ClassName { get; set; } = string.Empty;
+        public int CurriculumId { get; set; }
+        public string CurriculumName { get; set; } = string.Empty;
         public string TestName { get; set; } = string.Empty;
         public decimal ListeningScore { get; set; }
         public decimal ReadingScore { get; set; }
@@ -284,7 +287,7 @@ namespace EnglishCenter.API.DTOs
     public class CreateTestScoreDto
     {
         public int StudentId { get; set; }
-        public int ClassId { get; set; }
+        public int CurriculumId { get; set; }
         public string TestName { get; set; } = string.Empty;
         public decimal ListeningScore { get; set; }
         public decimal ReadingScore { get; set; }
@@ -309,8 +312,6 @@ namespace EnglishCenter.API.DTOs
         public string RoomName { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int Capacity { get; set; }
-        public TimeSpan AvailableStartTime { get; set; }
-        public TimeSpan AvailableEndTime { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -319,8 +320,6 @@ namespace EnglishCenter.API.DTOs
         public string RoomName { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int Capacity { get; set; }
-        public TimeSpan AvailableStartTime { get; set; }
-        public TimeSpan AvailableEndTime { get; set; }
     }
 
     // Curriculum DTOs
@@ -507,8 +506,8 @@ namespace EnglishCenter.API.DTOs
         public int TotalStudents { get; set; }
         public int ActiveStudents { get; set; }
         public int TotalTeachers { get; set; }
-        public int TotalClasses { get; set; }
-        public int ActiveClasses { get; set; }
+        public int TotalCurriculums { get; set; }
+        public int ActiveCurriculums { get; set; }
         public decimal TotalRevenue { get; set; }
         public decimal MonthlyRevenue { get; set; }
     }
@@ -516,7 +515,7 @@ namespace EnglishCenter.API.DTOs
     // Dashboard Statistics with week-over-week comparison
     public class DashboardStatisticsDto
     {
-        public StatisticItem TotalClasses { get; set; } = new StatisticItem();
+        public StatisticItem TotalCurriculums { get; set; } = new StatisticItem();
         public StatisticItem TotalStudents { get; set; } = new StatisticItem();
         public StatisticItem PendingAssignments { get; set; } = new StatisticItem();
         public StatisticItem WeeklySchedule { get; set; } = new StatisticItem();

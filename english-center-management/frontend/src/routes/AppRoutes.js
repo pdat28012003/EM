@@ -29,7 +29,6 @@ import Profile from '../components/profile/Profile';
 import Dashboard from '../components/admin/Dashboard';
 import Students from '../components/admin/students/Students';
 import Teachers from '../components/admin/teachers/Teachers';
-import Classes from '../components/admin/classes/Classes';
 import Courses from '../components/admin/courses/Courses';
 import Skills from '../components/admin/skills/Skills';
 import Payments from '../components/admin/payments/Payments';
@@ -73,7 +72,7 @@ const AppRoutes = () => {
         </PrivateRoute>
       } />
 
-      <Route path="/student/courses/:classId" element={
+      <Route path="/student/courses/:curriculumId" element={
         <PrivateRoute allowedRoles={['student']}>
           <StudentLayout><StudentClassDetail /></StudentLayout>
         </PrivateRoute>
@@ -116,13 +115,13 @@ const AppRoutes = () => {
         </PrivateRoute>
       } />
 
-      <Route path="/teacher/classes" element={
+      <Route path="/teacher/curriculums" element={
         <PrivateRoute allowedRoles={['teacher']}>
           <TeacherLayout><TeacherClasses /></TeacherLayout>
         </PrivateRoute>
       } />
 
-      <Route path="/teacher/classes/:classId" element={
+      <Route path="/teacher/curriculums/:curriculumId" element={
         <PrivateRoute allowedRoles={['teacher']}>
           <TeacherLayout><ClassDetail /></TeacherLayout>
         </PrivateRoute>
@@ -179,10 +178,6 @@ const AppRoutes = () => {
 
       <Route path="/skills" element={
         <PrivateRoute><Layout><Skills /></Layout></PrivateRoute>
-      } />
-
-      <Route path="/classes" element={
-        <PrivateRoute><Layout><Classes /></Layout></PrivateRoute>
       } />
 
       <Route path="/payments" element={

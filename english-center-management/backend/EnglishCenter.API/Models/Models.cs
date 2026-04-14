@@ -88,7 +88,6 @@ namespace EnglishCenter.API.Models
         // Navigation properties
         [ForeignKey("UserId")]
         public User? User { get; set; }
-        public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
         public ICollection<Curriculum> ParticipatedCurriculums { get; set; } = new List<Curriculum>();
         public ICollection<Document> Documents { get; set; } = new List<Document>();
@@ -122,54 +121,8 @@ namespace EnglishCenter.API.Models
         public bool IsActive { get; set; } = true;
 
         // Navigation properties
-        public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<Curriculum> Curriculums { get; set; } = new List<Curriculum>();
         public ICollection<PaymentCourse> PaymentCourses { get; set; } = new List<PaymentCourse>();
-    }
-
-    public class Class
-    {
-        [Key]
-        public int ClassId { get; set; }
-
-        [Required]
-        [MaxLength(100)]
-        public string ClassName { get; set; } = string.Empty;
-
-        [Required]
-        public int CourseId { get; set; }
-
-        public int? TeacherId { get; set; }
-
-        public DateTime StartDate { get; set; }
-
-        public DateTime EndDate { get; set; }
-
-        public int MaxStudents { get; set; } = 20;
-
-        public int? RoomId { get; set; }
-
-        public int? CurriculumId { get; set; }
-
-        [MaxLength(50)]
-        public string Status { get; set; } = "Active"; // Active, Completed, Cancelled
-
-        // Navigation properties
-        [ForeignKey("CourseId")]
-        public Course Course { get; set; } = null!;
-
-        [ForeignKey("TeacherId")]
-        public Teacher? Teacher { get; set; }
-
-        [ForeignKey("RoomId")]
-        public Room? Room { get; set; }
-
-        [ForeignKey("CurriculumId")]
-        public Curriculum? Curriculum { get; set; }
-
-        public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
-        public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
-        public ICollection<Document> Documents { get; set; } = new List<Document>();
     }
 
     public class Enrollment
@@ -181,7 +134,7 @@ namespace EnglishCenter.API.Models
         public int StudentId { get; set; }
 
         [Required]
-        public int ClassId { get; set; }
+        public int CurriculumId { get; set; }
 
         public DateTime EnrollmentDate { get; set; }
 
@@ -192,8 +145,8 @@ namespace EnglishCenter.API.Models
         [ForeignKey("StudentId")]
         public Student Student { get; set; } = null!;
 
-        [ForeignKey("ClassId")]
-        public Class Class { get; set; } = null!;
+        [ForeignKey("CurriculumId")]
+        public Curriculum Curriculum { get; set; } = null!;
     }
 
     public class Payment
@@ -270,8 +223,10 @@ namespace EnglishCenter.API.Models
         [Required]
         public int StudentId { get; set; }
 
+        public int? ClassId { get; set; }  // Deprecated - use CurriculumId
+
         [Required]
-        public int ClassId { get; set; }
+        public int CurriculumId { get; set; }
 
         [Required]
         [MaxLength(100)]
@@ -301,8 +256,8 @@ namespace EnglishCenter.API.Models
         [ForeignKey("StudentId")]
         public Student Student { get; set; } = null!;
 
-        [ForeignKey("ClassId")]
-        public Class Class { get; set; } = null!;
+        [ForeignKey("CurriculumId")]
+        public Curriculum Curriculum { get; set; } = null!;
     }
 
     public class Room
@@ -318,10 +273,6 @@ namespace EnglishCenter.API.Models
         public string Description { get; set; } = string.Empty;
 
         public int Capacity { get; set; }
-
-        public TimeSpan AvailableStartTime { get; set; }
-
-        public TimeSpan AvailableEndTime { get; set; }
 
         public bool IsActive { get; set; } = true;
     }
@@ -359,8 +310,8 @@ namespace EnglishCenter.API.Models
         [ForeignKey("CourseId")]
         public Course Course { get; set; } = null!;
 
-        public ICollection<Class> Classes { get; set; } = new List<Class>();
         public ICollection<CurriculumDay> CurriculumDays { get; set; } = new List<CurriculumDay>();
+        public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
         public ICollection<Teacher> ParticipantTeachers { get; set; } = new List<Teacher>();
         public ICollection<Student> ParticipantStudents { get; set; } = new List<Student>();
         public ICollection<Document> Documents { get; set; } = new List<Document>();
