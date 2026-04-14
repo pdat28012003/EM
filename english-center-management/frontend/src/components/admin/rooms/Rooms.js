@@ -12,7 +12,6 @@ import {
   Box,
   IconButton,
   Chip,
-  Grid,
   Avatar,
   useTheme,
   Menu,
@@ -20,7 +19,6 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, Room, MoreVert } from '@mui/icons-material';
-import { alpha } from '@mui/material/styles';
 import { roomsAPI } from '../../../services/api';
 
 const Rooms = () => {

@@ -44,7 +44,7 @@ import {
 import { assignmentsAPI, skillsAPI, gradesAPI, assignmentSkillsAPI } from '../../../../services/api';
 
 export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
-  const [students, setStudents] = useState([]);
+  const [students] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [skills, setSkills] = useState([]);
   const [assignmentSkills, setAssignmentSkills] = useState([]);

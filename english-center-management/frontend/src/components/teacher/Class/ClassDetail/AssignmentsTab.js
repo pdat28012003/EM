@@ -120,6 +120,7 @@ export default function AssignmentsTab({ curriculumId, curriculumInfo }) {
     if (curriculumId) {
       loadAssignments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curriculumId, page, rowsPerPage]);
 
   const loadSkills = useCallback(async () => {
