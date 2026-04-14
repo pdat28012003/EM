@@ -12,7 +12,6 @@ namespace EnglishCenter.API.Data
         public DbSet<Student> Students { get; set; }
         public DbSet<Teacher> Teachers { get; set; }
         public DbSet<Course> Courses { get; set; }
-        public DbSet<Class> Classes { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<PaymentCourse> PaymentCourses { get; set; }
@@ -52,30 +51,6 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                 .HasKey(asg => new { asg.AssignmentId, asg.SkillId });
 
             // Configure relationships
-            modelBuilder.Entity<Class>()
-                .HasOne(c => c.Course)
-                .WithMany(co => co.Classes)
-                .HasForeignKey(c => c.CourseId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Class>()
-                .HasOne(c => c.Teacher)
-                .WithMany(t => t.Classes)
-                .HasForeignKey(c => c.TeacherId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Class>()
-                .HasOne(c => c.Room)
-                .WithMany()
-                .HasForeignKey(c => c.RoomId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Class>()
-                .HasOne(c => c.Curriculum)
-                .WithMany(cur => cur.Classes)
-                .HasForeignKey(c => c.CurriculumId)
-                .OnDelete(DeleteBehavior.SetNull);
-
             modelBuilder.Entity<Enrollment>()
                 .HasOne(e => e.Student)
                 .WithMany(s => s.Enrollments)
@@ -83,9 +58,9 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Enrollment>()
-                .HasOne(e => e.Class)
+                .HasOne(e => e.Curriculum)
                 .WithMany(c => c.Enrollments)
-                .HasForeignKey(e => e.ClassId)
+                .HasForeignKey(e => e.CurriculumId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Payment>()
@@ -425,8 +400,6 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                     RoomName = "Phòng 101",
                     Description = "Phòng học tiêu chuẩn 20 chỗ",
                     Capacity = 20,
-                    AvailableStartTime = new TimeSpan(7, 0, 0),
-                    AvailableEndTime = new TimeSpan(21, 0, 0),
                     IsActive = true
                 },
                 new Room
@@ -435,37 +408,7 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                     RoomName = "Phòng 102",
                     Description = "Phòng học nhỏ 15 chỗ",
                     Capacity = 15,
-                    AvailableStartTime = new TimeSpan(7, 0, 0),
-                    AvailableEndTime = new TimeSpan(21, 0, 0),
                     IsActive = true
-                }
-            );
-
-            // Seed Classes
-            modelBuilder.Entity<Class>().HasData(
-                new Class
-                {
-                    ClassId = 1,
-                    ClassName = "test",
-                    CourseId = 1,
-                    TeacherId = 1,
-                    StartDate = new DateTime(2024, 3, 1),
-                    EndDate = new DateTime(2024, 5, 31),
-                    MaxStudents = 20,
-                    RoomId = 1,
-                    Status = "Active"
-                },
-                new Class
-                {
-                    ClassId = 2,
-                    ClassName = "ENG101-A2",
-                    CourseId = 1,
-                    TeacherId = 2,
-                    StartDate = new DateTime(2024, 3, 15),
-                    EndDate = new DateTime(2024, 6, 15),
-                    MaxStudents = 15,
-                    RoomId = 2,
-                    Status = "Active"
                 }
             );
 
@@ -515,7 +458,7 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                 {
                     EnrollmentId = 1,
                     StudentId = 1,
-                    ClassId = 1,
+                    CurriculumId = 1,
                     EnrollmentDate = new DateTime(2024, 2, 28),
                     Status = "Active"
                 },
@@ -523,7 +466,7 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                 {
                     EnrollmentId = 2,
                     StudentId = 2,
-                    ClassId = 1,
+                    CurriculumId = 1,
                     EnrollmentDate = new DateTime(2024, 3, 1),
                     Status = "Active"
                 },
@@ -531,7 +474,7 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                 {
                     EnrollmentId = 3,
                     StudentId = 3,
-                    ClassId = 1,
+                    CurriculumId = 1,
                     EnrollmentDate = new DateTime(2024, 3, 5),
                     Status = "Active"
                 }
@@ -557,7 +500,7 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                 {
                     TestScoreId = 2,
                     StudentId = 1,
-                    ClassId = 1,
+                    CurriculumId = 1,
                     TestName = "Final Exam - Unit 1",
                     ListeningScore = 9.0m,
                     ReadingScore = 8.5m,
@@ -571,7 +514,7 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                 {
                     TestScoreId = 3,
                     StudentId = 2,
-                    ClassId = 1,
+                    CurriculumId = 1,
                     TestName = "Midterm Exam - Unit 1",
                     ListeningScore = 6.5m,
                     ReadingScore = 7.0m,
@@ -585,7 +528,7 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                 {
                     TestScoreId = 4,
                     StudentId = 2,
-                    ClassId = 1,
+                    CurriculumId = 1,
                     TestName = "Quiz - Grammar & Vocabulary",
                     ListeningScore = 7.2m,
                     ReadingScore = 8.0m,

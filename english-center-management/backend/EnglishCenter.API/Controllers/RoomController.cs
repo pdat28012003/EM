@@ -96,8 +96,6 @@ namespace EnglishCenter.API.Controllers
                     RoomName = createRoomDto.RoomName,
                     Description = createRoomDto.Description,
                     Capacity = createRoomDto.Capacity,
-                    AvailableStartTime = createRoomDto.AvailableStartTime,
-                    AvailableEndTime = createRoomDto.AvailableEndTime,
                     IsActive = true
                 };
 
@@ -136,8 +134,6 @@ namespace EnglishCenter.API.Controllers
                 room.RoomName = roomDto.RoomName;
                 room.Description = roomDto.Description;
                 room.Capacity = roomDto.Capacity;
-                room.AvailableStartTime = roomDto.AvailableStartTime;
-                room.AvailableEndTime = roomDto.AvailableEndTime;
                 room.IsActive = roomDto.IsActive;
 
                 _context.Rooms.Update(room);
@@ -186,8 +182,6 @@ namespace EnglishCenter.API.Controllers
                 RoomName = room.RoomName,
                 Description = room.Description,
                 Capacity = room.Capacity,
-                AvailableStartTime = room.AvailableStartTime,
-                AvailableEndTime = room.AvailableEndTime,
                 IsActive = room.IsActive
             };
         }

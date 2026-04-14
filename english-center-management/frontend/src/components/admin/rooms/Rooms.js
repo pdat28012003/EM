@@ -200,30 +200,6 @@ const Rooms = () => {
       ),
     },
     { 
-      field: 'availableHours', 
-      headerName: 'Khung Giờ', 
-      width: 180,
-      align: 'center',
-      headerAlign: 'center',
-      renderCell: (params) => (
-        <Box
-          sx={{
-            display: 'inline-block',
-            bgcolor: alpha(theme.palette.grey[500], 0.12),
-            border: '1px solid',
-            borderColor: alpha(theme.palette.grey[500], 0.25),
-            borderRadius: 1.5,
-            px: 1.5,
-            py: 0.5,
-          }}
-        >
-          <Typography variant="caption" fontWeight={700}>
-            {formatTimeHHmm(params.row.availableStartTime)} - {formatTimeHHmm(params.row.availableEndTime)}
-          </Typography>
-        </Box>
-      )
-    },
-    { 
       field: 'description', 
       headerName: 'Mô Tả', 
       width: 250,
@@ -401,32 +377,6 @@ const Rooms = () => {
               required
               fullWidth
             />
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  name="availableStartTime"
-                  label="Giờ Mở Cửa"
-                  type="time"
-                  value={formData.availableStartTime}
-                  onChange={handleInputChange}
-                  required
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  name="availableEndTime"
-                  label="Giờ Đóng Cửa"
-                  type="time"
-                  value={formData.availableEndTime}
-                  onChange={handleInputChange}
-                  required
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-            </Grid>
             <TextField
               name="description"
               label="Mô Tả"

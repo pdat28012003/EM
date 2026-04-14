@@ -148,7 +148,7 @@ const StudentClasses = () => {
       // Map curriculum data to class-like structure
       const curriculumsData = response.data || [];
       const mappedClasses = Array.isArray(curriculumsData) ? curriculumsData.map(c => ({
-        classId: c.curriculumId,
+        curriculumId: c.curriculumId,
         className: c.curriculumName,
         courseName: c.courseName,
         startDate: c.startDate,
@@ -305,11 +305,11 @@ const StudentClasses = () => {
 
           {classes.map((classItem) => (
 
-            <Grid item xs={12} md={6} lg={4} key={classItem.classId}>
+            <Grid item xs={12} md={6} lg={4} key={classItem.curriculumId}>
 
               <Card 
 
-                onClick={() => navigate(`/student/courses/${classItem.classId}`)}
+                onClick={() => navigate(`/student/courses/${classItem.curriculumId}`)}
 
                 sx={{ 
 
@@ -510,7 +510,7 @@ const StudentClasses = () => {
                       startIcon={<PlayArrow />}
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/student/courses/${classItem.classId}`);
+                        navigate(`/student/courses/${classItem.curriculumId}`);
                       }}
                       sx={{
                         background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',

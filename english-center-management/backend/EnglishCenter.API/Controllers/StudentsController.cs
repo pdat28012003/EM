@@ -369,16 +369,15 @@ namespace EnglishCenter.API.Controllers
 
                 var enrollments = await _context.Enrollments
                     .Include(e => e.Student)
-                    .Include(e => e.Class)
-                    .ThenInclude(c => c.Course)
+                    .Include(e => e.Curriculum)
                     .Where(e => e.StudentId == id)
                     .Select(e => new EnrollmentDto
                     {
                         EnrollmentId = e.EnrollmentId,
                         StudentId = e.StudentId,
                         StudentName = e.Student.FullName,
-                        ClassId = e.ClassId,
-                        ClassName = e.Class.ClassName,
+                        CurriculumId = e.CurriculumId,
+                        CurriculumName = e.Curriculum != null ? e.Curriculum.CurriculumName : "",
                         EnrollmentDate = e.EnrollmentDate,
                         Status = e.Status
                     })
@@ -408,37 +407,23 @@ namespace EnglishCenter.API.Controllers
                     return NotFound(new { message = "Student not found" });
                 }
 
-                var classes = await _context.Enrollments
-                    .Include(e => e.Class)
+                var curriculums = await _context.Enrollments
+                    .Include(e => e.Curriculum)
                     .ThenInclude(c => c.Course)
-                    .Include(e => e.Class)
-                    .ThenInclude(c => c.Teacher)
-                    .Include(e => e.Class)
-                    .ThenInclude(c => c.Room)
-                    .Include(e => e.Class)
-                    .ThenInclude(c => c.Curriculum)
                     .Where(e => e.StudentId == id)
-                    .Select(e => new ClassDto
+                    .Select(e => new CurriculumDto
                     {
-                        ClassId = e.Class.ClassId,
-                        ClassName = e.Class.ClassName,
-                        CourseId = e.Class.CourseId,
-                        CourseName = e.Class.Course.CourseName,
-                        CurriculumId = e.Class.CurriculumId,
-                        CurriculumName = e.Class.Curriculum != null ? e.Class.Curriculum.CurriculumName : string.Empty,
-                        TeacherId = e.Class.TeacherId,
-                        TeacherName = e.Class.Teacher != null ? e.Class.Teacher.FullName : "Not assigned",
-                        StartDate = e.Class.StartDate,
-                        EndDate = e.Class.EndDate,
-                        MaxStudents = e.Class.MaxStudents,
-                        CurrentStudents = e.Class.Enrollments.Count(en => en.Status == "Active"),
-                        RoomId = e.Class.RoomId,
-                        RoomName = e.Class.Room != null ? e.Class.Room.RoomName : string.Empty,
-                        Status = e.Class.Status
+                        CurriculumId = e.Curriculum.CurriculumId,
+                        CurriculumName = e.Curriculum.CurriculumName,
+                        CourseId = e.Curriculum.CourseId,
+                        CourseName = e.Curriculum.Course != null ? e.Curriculum.Course.CourseName : "",
+                        StartDate = e.Curriculum.StartDate,
+                        EndDate = e.Curriculum.EndDate,
+                        Status = e.Curriculum.Status
                     })
                     .ToListAsync();
 
-                return Ok(classes);
+                return Ok(curriculums);
             }
             catch (Exception)
             {
@@ -504,15 +489,15 @@ namespace EnglishCenter.API.Controllers
 
                 var testScores = await _context.TestScores
                     .Include(ts => ts.Student)
-                    .Include(ts => ts.Class)
+                    .Include(ts => ts.Curriculum)
                     .Where(ts => ts.StudentId == id)
                     .Select(ts => new TestScoreDto
                     {
                         TestScoreId = ts.TestScoreId,
                         StudentId = ts.StudentId,
                         StudentName = ts.Student.FullName,
-                        ClassId = ts.ClassId,
-                        ClassName = ts.Class.ClassName,
+                        CurriculumId = ts.CurriculumId,
+                        CurriculumName = ts.Curriculum != null ? ts.Curriculum.CurriculumName : "",
                         TestName = ts.TestName,
                         ListeningScore = ts.ListeningScore,
                         ReadingScore = ts.ReadingScore,
@@ -562,16 +547,15 @@ namespace EnglishCenter.API.Controllers
                 // Get active enrollments for this student
                 var activeEnrollments = await _context.Enrollments
                     .Where(e => e.StudentId == id && e.Status == "Active")
-                    .Select(e => e.ClassId)
+                    .Select(e => e.CurriculumId)
                     .ToListAsync();
 
-                // Get classes with their curriculums
-                var studentClasses = await _context.Classes
-                    .Where(c => activeEnrollments.Contains(c.ClassId) && c.Status == "Active")
-                    .Include(c => c.Curriculum)
+                // Get curriculums directly
+                var studentCurriculums = await _context.Curriculums
+                    .Where(c => activeEnrollments.Contains(c.CurriculumId) && c.Status == "Active")
                     .ToListAsync();
 
-                if (!studentClasses.Any())
+                if (!studentCurriculums.Any())
                 {
                     return Ok(new PagedResult<object>
                     {
@@ -584,9 +568,8 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 // Get curriculum IDs
-                var curriculumIds = studentClasses
-                    .Where(c => c.Curriculum != null)
-                    .Select(c => c.Curriculum!.CurriculumId)
+                var curriculumIds = studentCurriculums
+                    .Select(c => c.CurriculumId)
                     .ToList();
 
                 // Query curriculum sessions

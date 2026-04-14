@@ -9,11 +9,15 @@ const PrivateRoute = ({ children, allowedRoles = [] }) => {
   const userRole = (user?.role || '').toLowerCase();
   const normalizedAllowedRoles = allowedRoles.map((r) => r.toLowerCase());
   
+  console.log('PrivateRoute check:', { isAuthenticated, userRole, allowedRoles: normalizedAllowedRoles, path: window.location.pathname });
+  
   if (!isAuthenticated) {
+    console.log('Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
   if (normalizedAllowedRoles.length > 0 && !normalizedAllowedRoles.includes(userRole)) {
+    console.log('Role not allowed:', userRole, 'not in', normalizedAllowedRoles);
     return <Navigate to="/login" replace />;
   }
   

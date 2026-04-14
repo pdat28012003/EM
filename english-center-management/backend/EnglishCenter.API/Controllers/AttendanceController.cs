@@ -206,18 +206,18 @@ namespace EnglishCenter.API.Controllers
                 return BadRequest("Lesson is not properly associated with curriculum");
             }
 
-            // Get class and enrolled students
-            var classEntity = await _context.Classes
+            // Get curriculum and enrolled students
+            var curriculum = await _context.Curriculums
                 .Include(c => c.Enrollments)
                     .ThenInclude(e => e.Student)
-                .FirstOrDefaultAsync(c => c.ClassId == classId);
+                .FirstOrDefaultAsync(c => c.CurriculumId == lesson.CurriculumSession.CurriculumDay.CurriculumId);
 
-            if (classEntity == null)
+            if (curriculum == null)
             {
-                return NotFound("Class not found");
+                return NotFound("Curriculum not found");
             }
 
-            var enrolledStudents = classEntity.Enrollments
+            var enrolledStudents = curriculum.Enrollments
                 .Where(e => e.Student.IsActive)
                 .Where(e => (e.Status ?? string.Empty).ToLower() == "active")
                 .Select(e => e.Student)
@@ -225,7 +225,6 @@ namespace EnglishCenter.API.Controllers
                 .ToList();
 
             var attendances = await _context.Attendances
-                .Where(a => a.LessonId == lessonId)
                 .Include(a => a.Student)
                 .ToListAsync();
 

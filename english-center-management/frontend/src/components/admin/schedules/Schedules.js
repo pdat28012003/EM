@@ -12,7 +12,7 @@ import {
   Person,
   Add,
 } from '@mui/icons-material';
-import { studentsAPI, classesAPI, teachersAPI, roomsAPI } from '../../../services/api';
+import { studentsAPI, curriculumAPI, teachersAPI, roomsAPI } from '../../../services/api';
 import StudentSchedule from './StudentSchedule';
 import TeacherSchedule from './TeacherSchedule';
 import CreateSchedule from './CreateSchedule';
@@ -201,7 +201,7 @@ const Schedules = () => {
 
   const loadClasses = async () => {
     try {
-      const response = await classesAPI.getAll();
+      const response = await curriculumAPI.getAll();
       const classesData = Array.isArray(response.data?.data) ? response.data.data : [];
       setClasses(classesData);
     } catch (err) {

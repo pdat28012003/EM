@@ -35,7 +35,7 @@ import {
   PersonAdd,
   FilterList
 } from '@mui/icons-material';
-import { studentsAPI, enrollmentsAPI, classesAPI, UPLOAD_URL } from '../../../services/api';
+import { studentsAPI, enrollmentsAPI, curriculumAPI, UPLOAD_URL } from '../../../services/api';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -152,7 +152,7 @@ const Students = () => {
 
   const loadClasses = useCallback(async () => {
     try {
-      const response = await classesAPI.getAll({ status: 'Active' });
+      const response = await curriculumAPI.getAll({ status: 'Active' });
       const classesData = response.data?.Data || response.data?.data || response.data || [];
       setClasses(Array.isArray(classesData) ? classesData : []);
     } catch (error) {

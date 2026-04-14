@@ -37,7 +37,8 @@ namespace EnglishCenter.API.Controllers
             var scheduleDtos = schedules.Select(s => new TeacherScheduleDto
                 {
                     ScheduleId = s.CurriculumSessionId,
-                    ClassId = s.CurriculumDay.Curriculum.CourseId,
+                    ClassId = s.CurriculumDay.Curriculum.CourseId,  // Keep for backward compatibility
+                    CurriculumId = s.CurriculumDay.Curriculum.CurriculumId,
                     ClassName = s.CurriculumDay.Curriculum.Course.CourseName,
                     TeacherId = s.TeacherId ?? 0,
                     TeacherName = s.Teacher != null ? s.Teacher.FullName : "",
@@ -77,14 +78,14 @@ namespace EnglishCenter.API.Controllers
         {
             var enrollments = await _context.Enrollments
                 .Include(e => e.Student)
-                .Include(e => e.Class)
+                .Include(e => e.Curriculum)
                 .Select(e => new EnrollmentDto
                 {
                     EnrollmentId = e.EnrollmentId,
                     StudentId = e.StudentId,
                     StudentName = e.Student.FullName,
-                    ClassId = e.ClassId,
-                    ClassName = e.Class.ClassName,
+                    CurriculumId = e.CurriculumId,
+                    CurriculumName = e.Curriculum.CurriculumName,
                     EnrollmentDate = e.EnrollmentDate,
                     Status = e.Status
                 })
@@ -108,37 +109,39 @@ namespace EnglishCenter.API.Controllers
                 return NotFound(new { message = "Student not found" });
             }
 
-            // Check if class exists and has available slots
-            var classEntity = await _context.Classes
+            // Check if curriculum exists
+            var curriculum = await _context.Curriculums
                 .Include(c => c.Enrollments)
-                .FirstOrDefaultAsync(c => c.ClassId == dto.ClassId);
+                .FirstOrDefaultAsync(c => c.CurriculumId == dto.CurriculumId);
 
-            if (classEntity == null)
+            if (curriculum == null)
             {
-                return NotFound(new { message = "Class not found" });
+                return NotFound(new { message = "Curriculum not found" });
             }
 
-            var currentEnrollments = classEntity.Enrollments.Count(e => e.Status == "Active");
-            if (currentEnrollments >= classEntity.MaxStudents)
+            // Check capacity if defined
+            var currentEnrollments = curriculum.Enrollments.Count(e => e.Status == "Active");
+            var maxStudents = curriculum.ParticipantStudents?.Count ?? 50; // Default capacity
+            if (currentEnrollments >= maxStudents)
             {
-                return BadRequest(new { message = "Class is full" });
+                return BadRequest(new { message = "Curriculum is full" });
             }
 
             // Check if student is already enrolled
             var existingEnrollment = await _context.Enrollments
                 .FirstOrDefaultAsync(e => e.StudentId == dto.StudentId && 
-                                         e.ClassId == dto.ClassId && 
+                                         e.CurriculumId == dto.CurriculumId && 
                                          e.Status == "Active");
 
             if (existingEnrollment != null)
             {
-                return BadRequest(new { message = "Student is already enrolled in this class" });
+                return BadRequest(new { message = "Student is already enrolled in this curriculum" });
             }
 
             var enrollment = new Enrollment
             {
                 StudentId = dto.StudentId,
-                ClassId = dto.ClassId,
+                CurriculumId = dto.CurriculumId,
                 EnrollmentDate = DateTime.Now,
                 Status = "Active"
             };
@@ -146,17 +149,19 @@ namespace EnglishCenter.API.Controllers
             _context.Enrollments.Add(enrollment);
             await _context.SaveChangesAsync();
 
-            // Create notification for the teacher of the class
-            var classEntityWithTeacher = await _context.Classes
-                .FirstOrDefaultAsync(c => c.ClassId == dto.ClassId);
+            // Create notification for curriculum teachers
+            var curriculumTeachers = await _context.Curriculums
+                .Where(c => c.CurriculumId == dto.CurriculumId)
+                .SelectMany(c => c.ParticipantTeachers)
+                .ToListAsync();
             
-            if (classEntityWithTeacher?.TeacherId != null)
+            foreach (var teacher in curriculumTeachers)
             {
                 var notification = new Notification
                 {
-                    TeacherId = classEntityWithTeacher.TeacherId,
-                    Title = "Học viên mới được thêm vào lớp",
-                    Message = $"Học viên {student.FullName} vừa được thêm vào lớp {classEntityWithTeacher.ClassName}",
+                    TeacherId = teacher.TeacherId,
+                    Title = "Học viên mới đăng ký",
+                    Message = $"Học viên {student.FullName} vừa đăng ký khóa {curriculum.CurriculumName}",
                     Type = "NewEnrollment",
                     RelatedId = enrollment.EnrollmentId,
                     RelatedType = "Enrollment",
@@ -168,10 +173,10 @@ namespace EnglishCenter.API.Controllers
                 // CREATE ACTIVITY LOG for teacher
                 var teacherActivity = new ActivityLog
                 {
-                    TeacherId = classEntityWithTeacher.TeacherId,
+                    TeacherId = teacher.TeacherId,
                     Action = "ENROLL_STUDENT",
-                    Title = "Học viên mới được thêm vào lớp",
-                    Description = $"Học viên {student.FullName} vừa được thêm vào lớp {classEntityWithTeacher.ClassName}",
+                    Title = "Học viên mới đăng ký",
+                    Description = $"Học viên {student.FullName} vừa đăng ký khóa {curriculum.CurriculumName}",
                     IconType = "group_add",
                     Color = "success",
                     TargetId = enrollment.EnrollmentId,
@@ -179,36 +184,36 @@ namespace EnglishCenter.API.Controllers
                     CreatedAt = DateTime.UtcNow
                 };
                 _context.ActivityLogs.Add(teacherActivity);
-
-                // CREATE ACTIVITY LOG for student
-                var studentActivity = new ActivityLog
-                {
-                    StudentId = dto.StudentId,
-                    Action = "ENROLL_CLASS",
-                    Title = "Đã tham gia lớp học",
-                    Description = $"Bạn đã được thêm vào lớp {classEntityWithTeacher.ClassName}",
-                    IconType = "group_add",
-                    Color = "success",
-                    TargetId = enrollment.EnrollmentId,
-                    TargetType = "Enrollment",
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.ActivityLogs.Add(studentActivity);
-
-                await _context.SaveChangesAsync();
             }
+            
+            // CREATE ACTIVITY LOG for student
+            var studentActivity = new ActivityLog
+            {
+                StudentId = dto.StudentId,
+                Action = "ENROLL_CURRICULUM",
+                Title = "Đã tham gia khóa học",
+                Description = $"Bạn đã đăng ký khóa {curriculum.CurriculumName}",
+                IconType = "group_add",
+                Color = "success",
+                TargetId = enrollment.EnrollmentId,
+                TargetType = "Enrollment",
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.ActivityLogs.Add(studentActivity);
+
+            await _context.SaveChangesAsync();
 
             var enrollmentDto = await _context.Enrollments
                 .Include(e => e.Student)
-                .Include(e => e.Class)
+                .Include(e => e.Curriculum)
                 .Where(e => e.EnrollmentId == enrollment.EnrollmentId)
                 .Select(e => new EnrollmentDto
                 {
                     EnrollmentId = e.EnrollmentId,
                     StudentId = e.StudentId,
                     StudentName = e.Student.FullName,
-                    ClassId = e.ClassId,
-                    ClassName = e.Class.ClassName,
+                    CurriculumId = e.CurriculumId,
+                    CurriculumName = e.Curriculum.CurriculumName,
                     EnrollmentDate = e.EnrollmentDate,
                     Status = e.Status
                 })
@@ -389,8 +394,6 @@ namespace EnglishCenter.API.Controllers
                     RoomName = r.RoomName,
                     Description = r.Description,
                     Capacity = r.Capacity,
-                    AvailableStartTime = r.AvailableStartTime,
-                    AvailableEndTime = r.AvailableEndTime,
                     IsActive = r.IsActive
                 })
                 .ToListAsync();
@@ -411,8 +414,6 @@ namespace EnglishCenter.API.Controllers
                 RoomName = dto.RoomName,
                 Description = dto.Description,
                 Capacity = dto.Capacity,
-                AvailableStartTime = dto.AvailableStartTime,
-                AvailableEndTime = dto.AvailableEndTime,
                 IsActive = true
             };
 
@@ -425,8 +426,6 @@ namespace EnglishCenter.API.Controllers
                 RoomName = room.RoomName,
                 Description = room.Description,
                 Capacity = room.Capacity,
-                AvailableStartTime = room.AvailableStartTime,
-                AvailableEndTime = room.AvailableEndTime,
                 IsActive = room.IsActive
             };
 
@@ -475,8 +474,6 @@ namespace EnglishCenter.API.Controllers
                 RoomName = room.RoomName,
                 Date = date.ToString("yyyy-MM-dd"),
                 DayOfWeek = dayOfWeek,
-                AvailableStartTime = room.AvailableStartTime,
-                AvailableEndTime = room.AvailableEndTime,
                 Capacity = room.Capacity,
                 Schedules = scheduleDtos
             });
@@ -505,8 +502,8 @@ namespace EnglishCenter.API.Controllers
             var totalStudents = await _context.Students.CountAsync();
             var activeStudents = await _context.Students.CountAsync(s => s.IsActive);
             var totalTeachers = await _context.Teachers.CountAsync(t => t.IsActive);
-            var totalClasses = await _context.Classes.CountAsync();
-            var activeClasses = await _context.Classes.CountAsync(c => c.Status == "Active");
+            var totalCurriculums = await _context.Curriculums.CountAsync();
+            var activeCurriculums = await _context.Curriculums.CountAsync(c => c.Status == "Active");
             var totalRevenue = await _context.Payments
                 .Where(p => p.Status == "Completed")
                 .SumAsync(p => p.Amount);
@@ -524,8 +521,8 @@ namespace EnglishCenter.API.Controllers
                 TotalStudents = totalStudents,
                 ActiveStudents = activeStudents,
                 TotalTeachers = totalTeachers,
-                TotalClasses = totalClasses,
-                ActiveClasses = activeClasses,
+                TotalCurriculums = totalCurriculums,
+                ActiveCurriculums = activeCurriculums,
                 TotalRevenue = totalRevenue,
                 MonthlyRevenue = monthlyRevenue
             };

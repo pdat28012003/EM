@@ -39,7 +39,7 @@ import {
   AccessTime,
   Launch,
 } from '@mui/icons-material';
-import { classesAPI, gradesAPI, skillsAPI, assignmentsAPI } from '../../../services/api';
+import { curriculumAPI, gradesAPI, skillsAPI, assignmentsAPI } from '../../../services/api';
 import dayjs from 'dayjs';
 
 function TabPanel({ children, value, index, ...other }) {
@@ -56,10 +56,10 @@ function TabPanel({ children, value, index, ...other }) {
 }
 
 const StudentClassDetail = () => {
-  const { classId } = useParams();
+  const { curriculumId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
-  const [classInfo, setClassInfo] = useState(null);
+  const [curriculumInfo, setCurriculumInfo] = useState(null);
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
   const [skills, setSkills] = useState([]);
@@ -72,7 +72,7 @@ const StudentClassDetail = () => {
 
   useEffect(() => {
     loadClassData();
-  }, [classId]);
+  }, [curriculumId]);
 
   useEffect(() => {
     loadSkillsData();
@@ -90,14 +90,14 @@ const StudentClassDetail = () => {
     try {
       setLoading(true);
       const [classRes, studentsRes] = await Promise.all([
-        classesAPI.getById(classId),
-        classesAPI.getStudents(classId),
+        curriculumAPI.getById(curriculumId),
+        curriculumAPI.getStudents(curriculumId),
       ]);
 
       const classData = classRes.data?.Data || classRes.data?.data?.Data || classRes.data?.data?.data || classRes.data?.data || classRes.data;
       const studentsData = studentsRes.data?.Data || studentsRes.data?.data?.Data || studentsRes.data?.data?.data || studentsRes.data?.data || studentsRes.data || [];
 
-      setClassInfo(classData);
+      setCurriculumInfo(classData);
       setStudents(Array.isArray(studentsData) ? studentsData : []);
     } catch (err) {
       console.error('Error loading class data:', err);
@@ -113,7 +113,7 @@ const StudentClassDetail = () => {
 
   const loadGradesData = async () => {
     try {
-      const response = await gradesAPI.getByClass(classId);
+      const response = await gradesAPI.getByCurriculum(curriculumId);
       const gradesData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
       setGrades(Array.isArray(gradesData) ? gradesData : []);
     } catch (err) {
@@ -144,7 +144,7 @@ const StudentClassDetail = () => {
         const user = JSON.parse(userData);
         studentId = user.studentId;
       }
-      const response = await assignmentsAPI.getAll({ classId, studentId });
+      const response = await assignmentsAPI.getAll({ curriculumId, studentId });
       const assignmentsData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
       setAssignments(Array.isArray(assignmentsData) ? assignmentsData : []);
     } catch (err) {
@@ -216,7 +216,7 @@ const StudentClassDetail = () => {
     );
   }
 
-  if (!classInfo) {
+  if (!curriculumInfo) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error">Không tìm thấy thông tin lớp học</Alert>
@@ -256,15 +256,15 @@ const StudentClassDetail = () => {
           <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
             <Box>
               <Typography variant="h4" fontWeight="bold" gutterBottom>
-                {classInfo.className}
+                {curriculumInfo.curriculumName}
               </Typography>
               <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                {classInfo.courseName}
+                {curriculumInfo.courseName}
               </Typography>
             </Box>
             <Chip
-              label={getStatusLabel(classInfo.status)}
-              color={getStatusColor(classInfo.status)}
+              label={getStatusLabel(curriculumInfo.status)}
+              color={getStatusColor(curriculumInfo.status)}
               sx={{ fontWeight: 'bold', bgcolor: 'rgba(255,255,255,0.9)' }}
             />
           </Box>
@@ -274,7 +274,7 @@ const StudentClassDetail = () => {
               <Box display="flex" alignItems="center" gap={1}>
                 <CalendarMonth sx={{ opacity: 0.8 }} />
                 <Typography variant="body2">
-                  Bắt đầu: {dayjs(classInfo.startDate).format('DD/MM/YYYY')}
+                  Bắt đầu: {dayjs(curriculumInfo.startDate).format('DD/MM/YYYY')}
                 </Typography>
               </Box>
             </Grid>
@@ -282,7 +282,7 @@ const StudentClassDetail = () => {
               <Box display="flex" alignItems="center" gap={1}>
                 <CalendarMonth sx={{ opacity: 0.8 }} />
                 <Typography variant="body2">
-                  Kết thúc: {dayjs(classInfo.endDate).format('DD/MM/YYYY')}
+                  Kết thúc: {dayjs(curriculumInfo.endDate).format('DD/MM/YYYY')}
                 </Typography>
               </Box>
             </Grid>
@@ -290,7 +290,7 @@ const StudentClassDetail = () => {
               <Box display="flex" alignItems="center" gap={1}>
                 <LocationOn sx={{ opacity: 0.8 }} />
                 <Typography variant="body2">
-                  Phòng: {classInfo.roomName || classInfo.room || 'Chưa cập nhật'}
+                  Phòng: {curriculumInfo.roomName || curriculumInfo.room || 'Chưa cập nhật'}
                 </Typography>
               </Box>
             </Grid>
@@ -298,7 +298,7 @@ const StudentClassDetail = () => {
               <Box display="flex" alignItems="center" gap={1}>
                 <Person sx={{ opacity: 0.8 }} />
                 <Typography variant="body2">
-                  GV: {classInfo.teacherName || 'Chưa cập nhật'}
+                  GV: {curriculumInfo.teacherName || 'Chưa cập nhật'}
                 </Typography>
               </Box>
             </Grid>
