@@ -60,15 +60,13 @@ const Documents = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [filterClass, setFilterClass] = useState('all');
+  const [filterCurriculum, setFilterCurriculum] = useState('all');
   const [filterDate, setFilterDate] = useState(null);
-  const [classes, setClasses] = useState([]);
+  const [curriculums, setCurriculums] = useState([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [documentForm, setDocumentForm] = useState({
-    title: '',
-    description: '',
-    classId: '',
+    curriculumId: '',
     type: 'material'
   });
   const [anchorEl, setAnchorEl] = useState(null);
@@ -83,8 +81,8 @@ const Documents = () => {
       const parsedUser = JSON.parse(userData);
       setTeacher(parsedUser);
       if (parsedUser.teacherId || parsedUser.userId) {
+        loadCurriculums(parsedUser.teacherId || parsedUser.userId);
         loadDocuments(parsedUser.teacherId || parsedUser.userId);
-        loadClasses(parsedUser.teacherId || parsedUser.userId);
       }
     }
   }, []);
@@ -93,7 +91,7 @@ const Documents = () => {
     if (teacher) {
       loadDocuments(teacher.teacherId || teacher.userId);
     }
-  }, [searchTerm, filterType, filterClass, filterDate]);
+  }, [searchTerm, filterType, filterCurriculum, filterDate]);
 
   const loadDocuments = async (teacherId) => {
     try {
@@ -101,7 +99,7 @@ const Documents = () => {
       const params = {
         search: searchTerm,
         type: filterType !== 'all' ? filterType : undefined,
-        classId: filterClass !== 'all' ? filterClass : undefined,
+        curriculumId: filterCurriculum !== 'all' ? filterCurriculum : undefined,
         date: filterDate ? filterDate.format('YYYY-MM-DD') : undefined
       };
       
@@ -117,14 +115,14 @@ const Documents = () => {
     }
   };
 
-  const loadClasses = async (teacherId) => {
+  const loadCurriculums = async (teacherId) => {
     try {
       const response = await curriculumAPI.getCurriculumsByTeacher(teacherId);
-      const classesData = response.data?.data || response.data || [];
-      setClasses(Array.isArray(classesData) ? classesData : []);
+      const curriculumsData = response.data?.data || response.data || [];
+      setCurriculums(Array.isArray(curriculumsData) ? curriculumsData : []);
     } catch (error) {
-      console.error('Error loading classes:', error);
-      setClasses([]);
+      console.error('Error loading curriculums:', error);
+      setCurriculums([]);
     }
   };
 
@@ -151,10 +149,18 @@ const Documents = () => {
 
   const getFileExtension = (doc) => {
     if (!doc) return 'unknown';
-    if (doc.FileType) return doc.FileType.toLowerCase();
-    if (doc.OriginalFileName && doc.OriginalFileName.includes('.')) return doc.OriginalFileName.split('.').pop().toLowerCase();
-    if (doc.Title && doc.Title.includes('.')) return doc.Title.split('.').pop().toLowerCase();
+    if (doc.fileType) return doc.fileType.toLowerCase();
+    const fileName = doc.originalFileName || doc.fileName;
+    if (fileName && fileName.includes('.')) return fileName.split('.').pop().toLowerCase();
     return 'unknown';
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
   const getFileIcon = (doc) => {
@@ -236,7 +242,7 @@ const handleDownload = async (doc) => {
 
     const link = window.document.createElement('a');
     link.href = url;
-    link.download = doc.OriginalFileName || doc.Title || 'download';
+    link.download = doc.originalFileName || doc.fileName || 'download';
 
     window.document.body.appendChild(link);
     link.click();
@@ -269,9 +275,7 @@ const handleView = async (doc) => {
   const handleEdit = (document) => {
     setEditingDocument(document);
     setDocumentForm({
-      title: document.title || '',
-      description: document.description || '',
-      classId: document.classId || '',
+      curriculumId: document.curriculumId || '',
       type: document.type || 'material'
     });
     setEditDialogOpen(true);
@@ -297,9 +301,7 @@ const handleDelete = async (doc) => {
     setEditDialogOpen(false);
     setEditingDocument(null);
     setDocumentForm({
-      title: '',
-      description: '',
-      classId: '',
+      curriculumId: '',
       type: 'material'
     });
   };
@@ -309,10 +311,8 @@ const handleDelete = async (doc) => {
 
     try {
       const updateData = {
-        title: documentForm.title,
-        description: documentForm.description,
         type: documentForm.type,
-        classId: documentForm.classId ? parseInt(documentForm.classId) : null
+        curriculumId: documentForm.curriculumId ? parseInt(documentForm.curriculumId) : null
       };
 
       await documentsAPI.update(editingDocument.documentId, updateData);
@@ -337,9 +337,7 @@ const handleDelete = async (doc) => {
     setUploadDialogOpen(false);
     setSelectedFile(null);
     setDocumentForm({
-      title: '',
-      description: '',
-      classId: '',
+      curriculumId: '',
       type: 'material'
     });
   };
@@ -354,9 +352,7 @@ const handleUpload = async () => {
   try {
     const formData = new FormData();
     formData.append('file', selectedFile);
-    formData.append('title', documentForm.title);
-    formData.append('description', documentForm.description);
-    formData.append('classId', documentForm.classId);
+    formData.append('curriculumId', documentForm.curriculumId);
     formData.append('type', documentForm.type);
     formData.append('teacherId', teacher.teacherId || teacher.userId);
 
@@ -490,25 +486,7 @@ const handleUpload = async () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ color: '#7c4dff', p: 1, borderRadius: 1, bgcolor: 'rgba(124,77,255,0.1)' }}>
-                    <Folder sx={{ fontSize: 32 }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" fontWeight="bold">
-                      {classes.length}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Lớp học
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+       
         </Grid>
 
         {/* Filters and Search */}
@@ -558,16 +536,16 @@ const handleUpload = async () => {
             </Grid>
             <Grid item xs={12} md={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Lớp học</InputLabel>
+                <InputLabel>Chương trình</InputLabel>
                 <Select
-                  value={filterClass}
-                  onChange={(e) => setFilterClass(e.target.value)}
-                  label="Lớp học"
+                  value={filterCurriculum}
+                  onChange={(e) => setFilterCurriculum(e.target.value)}
+                  label="Chương trình"
                 >
                   <MenuItem value="all">Tất cả</MenuItem>
-                  {classes.map(cls => (
-                    <MenuItem key={cls.classId} value={cls.classId}>
-                      {cls.className}
+                  {curriculums.map(curr => (
+                    <MenuItem key={curr.curriculumId} value={curr.curriculumId}>
+                      {curr.curriculumName}
                     </MenuItem>
                   ))}
                 </Select>
@@ -589,7 +567,7 @@ const handleUpload = async () => {
                 onClick={() => {
                   setSearchTerm('');
                   setFilterType('all');
-                  setFilterClass('all');
+                  setFilterCurriculum('all');
                   setFilterDate(null);
                 }}
                 fullWidth
@@ -609,31 +587,18 @@ const handleUpload = async () => {
                 <Typography variant="h6">
                   Danh sách tài liệu
                 </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<CloudUpload />}
-                  onClick={handleUploadOpen}
-                  sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%)',
-                    }
-                  }}
-                >
-                  Thêm tài liệu
-                </Button>
+                
               </Box>
               
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Tên tài liệu</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Tên file</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Loại</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Lớp học</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Quyền xem</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Ngày tải</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Chương trình</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="right">Dung lượng</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="center">Ngày tải</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="center">Lượt tải</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="center">Thao tác</TableCell>
                     </TableRow>
@@ -653,41 +618,29 @@ const handleUpload = async () => {
                       </TableRow>
                     ) : (
                       documents.map((document, index) => (
-                        <TableRow key={document.DocumentId || index} hover sx={{ '& td': { py: 1.5 }, transition: '0.2s' }}>
+                        <TableRow key={document.documentId || index} hover sx={{ '& td': { py: 1.5 }, transition: '0.2s' }}>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                               {getFileIcon(document)}
                               <Box>
                                 <Typography variant="body1" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                                  {document.Title}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{getFileExtension(document)}</span>
-                                  <span>•</span>
-                                  <span>{document.FileSize || 'Không rõ'}</span>
+                                  {document.originalFileName}
                                 </Typography>
                               </Box>
                             </Box>
                           </TableCell>
                           <TableCell>
                             <Chip 
-                              label={getTypeLabel(document.Type)} 
-                              color={getTypeColor(document.Type)}
+                              label={getTypeLabel(document.type)} 
+                              color={getTypeColor(document.type)}
                               size="small"
                               sx={{ fontWeight: 500 }}
                             />
                           </TableCell>
-                          <TableCell>{document.ClassName || 'Dùng chung'}</TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary">
-                              <Visibility sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'text-bottom' }} /> 
-                              {document.Visibility || 'Học viên'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>{document.UploadDate}</TableCell>
-                          <TableCell align="center">
-                            <Chip label={document.DownloadCount || 0} size="small" variant="outlined" />
-                          </TableCell>
+                          <TableCell>{document.curriculumName || 'Dùng chung'}</TableCell>
+                          <TableCell align="right">{formatFileSize(document.fileSize)}</TableCell>
+                          <TableCell align="center">{new Date(document.uploadDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' })}</TableCell>
+                          <TableCell align="center">{document.downloadCount || 0}</TableCell>
                           <TableCell align="center">
                             <IconButton
                               size="small"
@@ -736,22 +689,6 @@ const handleUpload = async () => {
           <DialogTitle>Tải lên tài liệu mới</DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 2 }}>
-              <TextField
-                fullWidth
-                label="Tên tài liệu"
-                value={documentForm.title}
-                onChange={(e) => setDocumentForm(prev => ({ ...prev, title: e.target.value }))}
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                fullWidth
-                label="Mô tả"
-                value={documentForm.description}
-                onChange={(e) => setDocumentForm(prev => ({ ...prev, description: e.target.value }))}
-                multiline
-                rows={3}
-                sx={{ mb: 2 }}
-              />
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Loại tài liệu</InputLabel>
                 <Select
@@ -767,15 +704,15 @@ const handleUpload = async () => {
                 </Select>
               </FormControl>
               <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Lớp học</InputLabel>
+                <InputLabel>Chương trình</InputLabel>
                 <Select
-                  value={documentForm.classId}
-                  onChange={(e) => setDocumentForm(prev => ({ ...prev, classId: e.target.value }))}
-                  label="Lớp học"
+                  value={documentForm.curriculumId}
+                  onChange={(e) => setDocumentForm(prev => ({ ...prev, curriculumId: e.target.value }))}
+                  label="Chương trình"
                 >
-                  {classes.map(cls => (
-                    <MenuItem key={cls.classId} value={cls.classId}>
-                      {cls.className}
+                  {curriculums.map(curr => (
+                    <MenuItem key={curr.curriculumId} value={curr.curriculumId}>
+                      {curr.curriculumName}
                     </MenuItem>
                   ))}
                 </Select>
@@ -831,7 +768,7 @@ const handleUpload = async () => {
           </DialogContent>
           <DialogActions>
             <Button onClick={handleUploadClose}>Hủy</Button>
-            <Button onClick={handleUpload} variant="contained" disabled={!selectedFile || !documentForm.title}>
+            <Button onClick={handleUpload} variant="contained" disabled={!selectedFile}>
               Tải lên
             </Button>
           </DialogActions>
@@ -843,7 +780,7 @@ const handleUpload = async () => {
           onSave={handleEditSave}
           documentForm={documentForm}
           setDocumentForm={setDocumentForm}
-          classes={classes}
+          curriculums={curriculums}
           dialogTitle="Chỉnh sửa tài liệu"
         />
       </Container>

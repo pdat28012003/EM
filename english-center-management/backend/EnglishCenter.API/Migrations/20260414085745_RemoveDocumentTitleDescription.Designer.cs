@@ -4,6 +4,7 @@ using EnglishCenter.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnglishCenter.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260414085745_RemoveDocumentTitleDescription")]
+    partial class RemoveDocumentTitleDescription
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -587,6 +590,9 @@ namespace EnglishCenter.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<int?>("TeacherId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -598,6 +604,8 @@ namespace EnglishCenter.API.Migrations
                     b.HasKey("DocumentId");
 
                     b.HasIndex("CurriculumId");
+
+                    b.HasIndex("TeacherId");
 
                     b.ToTable("Documents");
                 });
@@ -2077,6 +2085,10 @@ namespace EnglishCenter.API.Migrations
                         .HasForeignKey("CurriculumId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("EnglishCenter.API.Models.Teacher", null)
+                        .WithMany("Documents")
+                        .HasForeignKey("TeacherId");
+
                     b.Navigation("Curriculum");
                 });
 
@@ -2458,6 +2470,8 @@ namespace EnglishCenter.API.Migrations
             modelBuilder.Entity("EnglishCenter.API.Models.Teacher", b =>
                 {
                     b.Navigation("Assignments");
+
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.User", b =>

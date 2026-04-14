@@ -312,7 +312,7 @@ const StudentDashboard = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <TrendingUp sx={{ color: '#4F46E5' }} />
           <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>
-            Tiến bộ điểm số
+            Tiến bộ điểm s
           </Typography>
         </Box>
         

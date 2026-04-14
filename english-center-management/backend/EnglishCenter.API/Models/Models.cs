@@ -90,7 +90,6 @@ namespace EnglishCenter.API.Models
         public User? User { get; set; }
         public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
         public ICollection<Curriculum> ParticipatedCurriculums { get; set; } = new List<Curriculum>();
-        public ICollection<Document> Documents { get; set; } = new List<Document>();
     }
 
     public class Course
@@ -562,13 +561,6 @@ namespace EnglishCenter.API.Models
     {
         [Key]
         public int DocumentId { get; set; }
-
-        [Required]
-        [MaxLength(200)]
-        public string Title { get; set; } = string.Empty;
-
-        [MaxLength(1000)]
-        public string Description { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(50)]

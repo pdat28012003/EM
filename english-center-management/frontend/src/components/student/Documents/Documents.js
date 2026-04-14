@@ -196,7 +196,7 @@ const Documents = () => {
       const url = window.URL.createObjectURL(blob);
       const link = window.document.createElement('a');
       link.href = url;
-      link.download = doc.OriginalFileName || doc.Title || 'download';
+      link.download = doc.originalFileName || doc.fileName || 'download';
       window.document.body.appendChild(link);
       link.click();
       window.document.body.removeChild(link);
@@ -213,7 +213,7 @@ const Documents = () => {
       const url = window.URL.createObjectURL(blob);
       
       // Get file extension
-      const fileName = doc.OriginalFileName || doc.Title || 'download';
+      const fileName = doc.originalFileName || doc.fileName || 'download';
       const fileExtension = fileName.split('.').pop().toLowerCase();
       
       // For PDF and images, try to open in preview
@@ -340,7 +340,7 @@ const Documents = () => {
                   </Box>
                   <Box>
                     <Typography variant="h4" fontWeight="bold">
-                      {documents.reduce((sum, doc) => sum + (doc.DownloadCount || 0), 0)}
+                      {documents.reduce((sum, doc) => sum + (doc.downloadCount || 0), 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Lượt tải
@@ -489,20 +489,19 @@ const Documents = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Tên tài liệu</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Tên file</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Loại</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Lớp học</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Giáo viên</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Kích thước</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Ngày tải</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Lượt tải</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Thao tác</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Chương trình</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="right">Dung lượng</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="center">Ngày tải</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="center">Lượt tải</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="center">Thao tác</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {documents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                        <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                           <Description sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                           <Typography variant="h6" color="textSecondary">
                             Chưa có tài liệu nào
@@ -514,24 +513,21 @@ const Documents = () => {
                       </TableRow>
                     ) : (
                       documents.map((doc, index) => (
-                        <TableRow key={doc.DocumentId || index} hover>
+                        <TableRow key={doc.documentId || index} hover>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              {getFileIcon(doc.FileName?.split('.').pop().toLowerCase())}
+                              {getFileIcon((doc.originalFileName || doc.fileName)?.split('.').pop().toLowerCase())}
                               <Box>
                                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                  {doc.Title}
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                  {doc.Description}
+                                  {doc.originalFileName || doc.fileName}
                                 </Typography>
                               </Box>
                             </Box>
                           </TableCell>
                           <TableCell>
                             <Chip 
-                              label={getTypeLabel(doc.Type)} 
-                              color={getTypeColor(doc.Type)}
+                              label={getTypeLabel(doc.type)} 
+                              color={getTypeColor(doc.type)}
                               size="small"
                               sx={{
                                 px: 1.5,
@@ -541,11 +537,10 @@ const Documents = () => {
                               }}
                             />
                           </TableCell>
-                          <TableCell>{doc.ClassName}</TableCell>
-                          <TableCell>{doc.TeacherName}</TableCell>
-                          <TableCell>{formatFileSize(doc.FileSize)}</TableCell>
-                          <TableCell>{formatDate(doc.UploadDate)}</TableCell>
-                          <TableCell>{doc.DownloadCount}</TableCell>
+                          <TableCell>{doc.curriculumName || doc.className || 'Dùng chung'}</TableCell>
+                          <TableCell align="right">{formatFileSize(doc.fileSize)}</TableCell>
+                          <TableCell align="center">{new Date(doc.uploadDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' })}</TableCell>
+                          <TableCell align="center">{doc.downloadCount || 0}</TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                               <Tooltip title="Xem">
