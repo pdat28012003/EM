@@ -31,22 +31,6 @@ const DocumentEditDialog = ({
       <DialogTitle>{dialogTitle}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 2 }}>
-          <TextField
-            fullWidth
-            label="Tên tài liệu"
-            value={documentForm.title || ''}
-            onChange={handleInputChange('title')}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Mô tả"
-            value={documentForm.description || ''}
-            onChange={handleInputChange('description')}
-            multiline
-            rows={3}
-            sx={{ mb: 2 }}
-          />
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Loại tài liệu</InputLabel>
             <Select
@@ -82,7 +66,7 @@ const DocumentEditDialog = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Hủy</Button>
-        <Button onClick={onSave} variant="contained" disabled={!documentForm.title}>
+        <Button onClick={onSave} variant="contained">
           Lưu
         </Button>
       </DialogActions>

@@ -1027,7 +1027,7 @@ namespace EnglishCenter.API.Controllers
                 TeacherId = curriculumSession.TeacherId,
                 TeacherName = curriculumSession.Teacher?.FullName ?? string.Empty,
                 DocumentId = curriculumSession.DocumentId,
-                DocumentTitle = curriculumSession.Document?.Title,
+                DocumentTitle = curriculumSession.Document?.OriginalFileName,
                 Lessons = curriculumSession.Lessons?.Select(l => MapLessonToDto(l)).ToList() ?? new List<LessonDto>(),
                 StudentCount = curriculumSession.SessionStudents?.Count ?? 0
             };

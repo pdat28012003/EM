@@ -70,7 +70,7 @@ namespace EnglishCenter.API.Controllers
                 // Apply filters
                 if (!string.IsNullOrEmpty(search))
                 {
-                    query = query.Where(d => d.Title.Contains(search) || d.Description.Contains(search));
+                    query = query.Where(d => d.OriginalFileName.Contains(search) || d.FileName.Contains(search));
                 }
 
                 if (!string.IsNullOrEmpty(type))
@@ -98,8 +98,6 @@ namespace EnglishCenter.API.Controllers
                     .Select(d => new DocumentDto
                     {
                         DocumentId = d.DocumentId,
-                        Title = d.Title,
-                        Description = d.Description,
                         Type = d.Type,
                         FileName = d.FileName,
                         OriginalFileName = d.OriginalFileName,
@@ -135,6 +133,7 @@ namespace EnglishCenter.API.Controllers
         /// <param name="studentId">Student ID (ID sinh viên)</param>
         /// <param name="search">Search term (Tìm kiếm)</param>
         /// <param name="type">Document type (Loại tài liệu)</param>
+        /// <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
         /// <param name="date">Upload date (Ngày tải lên)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
@@ -144,6 +143,7 @@ namespace EnglishCenter.API.Controllers
             int studentId,
             [FromQuery] string? search = null,
             [FromQuery] string? type = null,
+            [FromQuery] int? curriculumId = null,
             [FromQuery] DateTime? date = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
@@ -155,12 +155,17 @@ namespace EnglishCenter.API.Controllers
                 // Apply filters
                 if (!string.IsNullOrEmpty(search))
                 {
-                    query = query.Where(d => d.Title.Contains(search) || d.Description.Contains(search));
+                    query = query.Where(d => d.OriginalFileName.Contains(search) || d.FileName.Contains(search));
                 }
 
                 if (!string.IsNullOrEmpty(type))
                 {
                     query = query.Where(d => d.Type == type);
+                }
+
+                if (curriculumId.HasValue)
+                {
+                    query = query.Where(d => d.CurriculumId == curriculumId.Value);
                 }
 
                 if (date.HasValue)
@@ -171,21 +176,22 @@ namespace EnglishCenter.API.Controllers
                 var totalCount = await query.CountAsync();
 
                 var documents = await query
+                    .Include(d => d.Curriculum)
                     .OrderByDescending(d => d.UploadDate)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .Select(d => new DocumentDto
                     {
                         DocumentId = d.DocumentId,
-                        Title = d.Title,
-                        Description = d.Description,
                         Type = d.Type,
                         FileName = d.FileName,
                         OriginalFileName = d.OriginalFileName,
                         FileSize = d.FileSize,
                         FilePath = d.FilePath,
                         UploadDate = d.UploadDate,
-                        DownloadCount = d.DownloadCount
+                        DownloadCount = d.DownloadCount,
+                        CurriculumId = d.CurriculumId,
+                        CurriculumName = d.Curriculum != null ? d.Curriculum.CurriculumName : null
                     })
                     .ToListAsync();
 
@@ -212,6 +218,7 @@ namespace EnglishCenter.API.Controllers
         /// <param name="teacherId">Teacher ID (ID giáo viên)</param>
         /// <param name="search">Search term (Tìm kiếm)</param>
         /// <param name="type">Document type (Loại tài liệu)</param>
+        /// <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
         /// <param name="date">Upload date (Ngày tải lên)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
@@ -221,6 +228,7 @@ namespace EnglishCenter.API.Controllers
             int teacherId,
             [FromQuery] string? search = null,
             [FromQuery] string? type = null,
+            [FromQuery] int? curriculumId = null,
             [FromQuery] DateTime? date = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
@@ -232,12 +240,17 @@ namespace EnglishCenter.API.Controllers
                 // Apply filters
                 if (!string.IsNullOrEmpty(search))
                 {
-                    query = query.Where(d => d.Title.Contains(search) || d.Description.Contains(search));
+                    query = query.Where(d => d.OriginalFileName.Contains(search) || d.FileName.Contains(search));
                 }
 
                 if (!string.IsNullOrEmpty(type))
                 {
                     query = query.Where(d => d.Type == type);
+                }
+
+                if (curriculumId.HasValue)
+                {
+                    query = query.Where(d => d.CurriculumId == curriculumId.Value);
                 }
 
                 if (date.HasValue)
@@ -248,21 +261,22 @@ namespace EnglishCenter.API.Controllers
                 var totalCount = await query.CountAsync();
 
                 var documents = await query
+                    .Include(d => d.Curriculum)
                     .OrderByDescending(d => d.UploadDate)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .Select(d => new DocumentDto
                     {
                         DocumentId = d.DocumentId,
-                        Title = d.Title,
-                        Description = d.Description,
                         Type = d.Type,
                         FileName = d.FileName,
                         OriginalFileName = d.OriginalFileName,
                         FileSize = d.FileSize,
                         FilePath = d.FilePath,
                         UploadDate = d.UploadDate,
-                        DownloadCount = d.DownloadCount
+                        DownloadCount = d.DownloadCount,
+                        CurriculumId = d.CurriculumId,
+                        CurriculumName = d.Curriculum != null ? d.Curriculum.CurriculumName : null
                     })
                     .ToListAsync();
 
@@ -286,16 +300,12 @@ namespace EnglishCenter.API.Controllers
         /// Uploads a new document. (Tải lên tài liệu mới.)
         /// </summary>
         /// <param name="file">File to upload (File cần tải)</param>
-        /// <param name="title">Document title (Tiêu đề tài liệu)</param>
-        /// <param name="description">Document description (Mô tả tài liệu)</param>
         /// <param name="type">Document type (Loại tài liệu)</param>
         /// <param name="curriculumId">Curriculum ID (ID chương trình học - optional)</param>
         /// <returns>Uploaded document info (Thông tin tài liệu đã tải)</returns>
         [HttpPost("upload")]
         public async Task<ActionResult<DocumentDto>> UploadDocument(
             [FromForm] IFormFile file,
-            [FromForm] string title,
-            [FromForm] string description,
             [FromForm] string type,
             [FromForm] int? curriculumId = null)
         {
@@ -304,11 +314,6 @@ namespace EnglishCenter.API.Controllers
                 if (file == null || file.Length == 0)
                 {
                     return BadRequest(new { message = "Không có file được chọn" });
-                }
-
-                if (string.IsNullOrEmpty(title))
-                {
-                    return BadRequest(new { message = "Tiêu đề tài liệu không được để trống" });
                 }
 
                 // Get current user from token (for audit purposes only)
@@ -379,8 +384,6 @@ namespace EnglishCenter.API.Controllers
                 // Create document record with optional curriculum association
                 var document = new Document
                 {
-                    Title = title,
-                    Description = description,
                     Type = type,
                     FileName = uniqueFileName,
                     OriginalFileName = file.FileName,
@@ -398,8 +401,6 @@ namespace EnglishCenter.API.Controllers
                 var documentDto = new DocumentDto
                 {
                     DocumentId = document.DocumentId,
-                    Title = document.Title,
-                    Description = document.Description,
                     Type = document.Type,
                     FileName = document.FileName,
                     OriginalFileName = document.OriginalFileName,
@@ -410,7 +411,7 @@ namespace EnglishCenter.API.Controllers
                     CurriculumId = document.CurriculumId
                 };
 
-                _logger.LogInformation($"Document uploaded successfully: {document.DocumentId} - {document.Title} by User {currentUser.UserId}");
+                _logger.LogInformation($"Document uploaded successfully: {document.DocumentId} - {document.OriginalFileName} by User {currentUser.UserId}");
 
                 return Ok(documentDto);
             }
@@ -505,16 +506,6 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 // Update fields
-                if (!string.IsNullOrEmpty(request.Title))
-                {
-                    document.Title = request.Title;
-                }
-
-                if (!string.IsNullOrEmpty(request.Description))
-                {
-                    document.Description = request.Description;
-                }
-
                 if (!string.IsNullOrEmpty(request.Type))
                 {
                     document.Type = request.Type;
@@ -537,8 +528,6 @@ namespace EnglishCenter.API.Controllers
                 var documentDto = new DocumentDto
                 {
                     DocumentId = document.DocumentId,
-                    Title = document.Title,
-                    Description = document.Description,
                     Type = document.Type,
                     FileName = document.FileName,
                     OriginalFileName = document.OriginalFileName,
@@ -549,7 +538,7 @@ namespace EnglishCenter.API.Controllers
                     CurriculumId = document.CurriculumId
                 };
 
-                _logger.LogInformation($"Document updated successfully: {document.DocumentId} - {document.Title}");
+                _logger.LogInformation($"Document updated successfully: {document.DocumentId} - {document.OriginalFileName}");
 
                 return Ok(documentDto);
             }
@@ -594,7 +583,7 @@ namespace EnglishCenter.API.Controllers
                 _context.Documents.Remove(document);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Document deleted successfully: {document.DocumentId} - {document.Title}");
+                _logger.LogInformation($"Document deleted successfully: {document.DocumentId} - {document.OriginalFileName}");
 
                 return NoContent();
             }

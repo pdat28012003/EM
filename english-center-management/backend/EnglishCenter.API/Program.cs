@@ -210,9 +210,7 @@ if (isPostgres)
 
         Database = database,
 
-        SslMode = SslMode.Require,
-
-        TrustServerCertificate = true
+        SslMode = SslMode.Require
 
     };
 
