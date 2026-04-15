@@ -84,7 +84,7 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets grades by curriculum. (Lấy điểm theo chương trình)
+        /// Gets grades by curriculum. (Lây theo chuong trnh)
         /// </summary>
         [HttpGet("curriculum/{curriculumId}")]
         public async Task<ActionResult<IEnumerable<GradeDto>>> GetGradesByCurriculum(int curriculumId)
@@ -93,7 +93,8 @@ namespace EnglishCenter.API.Controllers
                 .Include(g => g.Student)
                 .Include(g => g.Assignment)
                 .Include(g => g.Skill)
-                .Where(g => g.Assignment != null && g.Assignment.CurriculumId == curriculumId)
+                .Where(g => g.Student != null && _context.Enrollments
+                    .Any(e => e.StudentId == g.StudentId && e.CurriculumId == curriculumId && e.Status == "Active"))
                 .Select(g => new GradeDto
                 {
                     GradeId = g.GradeId,

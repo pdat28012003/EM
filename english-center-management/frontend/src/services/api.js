@@ -232,7 +232,7 @@ export const curriculumAPI = {
   removeStudentFromSession: (sessionId, studentId) => api.delete(`/curriculum/session/${sessionId}/students/${studentId}`),
   getAvailableStudentsForSession: (sessionId) => api.get(`/curriculum/session/${sessionId}/available-students`),
   getCurriculumsByStudent: (studentId) => api.get(`/curriculum/student/${studentId}`),
-  getCurriculumsByTeacher: (teacherId) => api.get(`/curriculum/teacher/${teacherId}`),
+  getCurriculumsByTeacher: (teacherId) => api.get(`/curriculum/by-teacher/${teacherId}`),
   getStudentsByTeacherSessions: (teacherId) => api.get(`/curriculum/teacher/${teacherId}/students`),
 };
 
@@ -346,6 +346,9 @@ export const paymentAPI = {
   create: (data) => api.post('/payments', data),
   update: (id, data) => api.put(`/payments/${id}`, data),
   delete: (id) => api.delete(`/payments/${id}`),
+
+  // Poll payment status (fallback for SignalR)
+  getPaymentStatus: (id) => api.get(`/payment/${id}/status`),
 };
 
 export default api;

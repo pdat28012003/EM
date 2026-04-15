@@ -144,6 +144,54 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
+        /// Gets curriculums for a specific teacher. (Lây danh sách khung ch trình c giáo viên)
+        /// </summary>
+        /// <param name="teacherId">Teacher ID (ID giáo viên)</param>
+        /// <returns>List of curriculums (Danh sách khung ch trình)</returns>
+        [HttpGet("by-teacher/{teacherId}")]
+        public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetTeacherCurriculums(int teacherId)
+        {
+            try
+            {
+                // Get curriculums where teacher is either assigned to sessions or is a participant
+                var teacherCurriculums = await _context.CurriculumSessions
+                    .Where(cs => cs.TeacherId == teacherId)
+                    .Select(cs => cs.CurriculumDay.Curriculum)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Also get curriculums where teacher is a participant
+                var participantCurriculums = await _context.Curriculums
+                    .Where(c => c.ParticipantTeachers.Any(pt => pt.TeacherId == teacherId))
+                    .ToListAsync();
+
+                // Combine and remove duplicates
+                var allCurriculums = teacherCurriculums.Concat(participantCurriculums)
+                    .GroupBy(c => c.CurriculumId)
+                    .Select(g => g.First())
+                    .ToList();
+
+                // Load related data
+                var curriculumIds = allCurriculums.Select(c => c.CurriculumId).ToList();
+                var curriculumsWithDetails = await _context.Curriculums
+                    .Where(c => curriculumIds.Contains(c.CurriculumId))
+                    .Include(c => c.Course)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                            .ThenInclude(cs => cs.Teacher)
+                    .Include(c => c.ParticipantTeachers)
+                    .ToListAsync();
+
+                return Ok(curriculumsWithDetails.Select(c => MapCurriculumToDto(c)));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting curriculums for teacher {teacherId}");
+                return StatusCode(500, new { message = "Error retrieving teacher curriculums", error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Creates a new curriculum. (Tạo khung chương trình mới.)
         /// </summary>
         /// <param name="createCurriculumDto">Curriculum creation data (Dữ liệu tạo khung chương trình)</param>

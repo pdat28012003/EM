@@ -24,6 +24,7 @@ import Documents from '../components/teacher/Documents/Documents';
 import StudentDocuments from '../components/student/Documents/Documents';
 import StudentSchedule from '../components/student/Schedule/Schedule';
 import StudentPayment from '../components/student/Payments/StudentPayment';
+import StudentGrades from '../components/student/Grades/StudentGrades';
 import AdminDocuments from '../components/admin/documents/Documents';
 import Profile from '../components/profile/Profile';
 import Dashboard from '../components/admin/Dashboard';
@@ -102,6 +103,12 @@ const AppRoutes = () => {
           </StudentLayout>
         </PrivateRoute>
       } />
+      <Route path="/student/grades" element={
+        <PrivateRoute allowedRoles={['student']}>
+          <StudentLayout><StudentGrades /></StudentLayout>
+        </PrivateRoute>
+      } />
+
       {/* Teacher Routes */}
       <Route path="/teacher/dashboard" element={
         <PrivateRoute allowedRoles={['teacher']}>

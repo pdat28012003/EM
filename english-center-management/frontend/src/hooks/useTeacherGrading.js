@@ -25,22 +25,20 @@ export const useTeacherGrading = () => {
 
   const loadTeacherClasses = useCallback(async (teacherId, options = {}) => {
     if (!teacherId) return;
-    
+
     const { onSuccess, onError } = options;
     setLoading(true);
     setError(null);
-    
+
     try {
       const classesRes = await curriculumAPI.getCurriculumsByTeacher(teacherId);
-      const classesData = Array.isArray(classesRes.data?.data?.data)
-        ? classesRes.data.data.data
-        : Array.isArray(classesRes.data?.data)
-        ? classesRes.data.data
+      const classesData = Array.isArray(classesRes.data)
+        ? classesRes.data
         : [];
 
       const mappedClasses = classesData.map((cls) => ({
-        classId: cls.classId,
-        className: cls.className || 'Lớp không tên',
+        classId: cls.curriculumId,
+        className: cls.curriculumName || 'Lớp không tên',
         courseName: cls.courseName || '',
         students: cls.currentStudents || 0,
       }));
@@ -58,11 +56,11 @@ export const useTeacherGrading = () => {
 
   const loadAssignments = useCallback(async (classId, options = {}) => {
     if (!classId) return;
-    
+
     const { onSuccess, onError } = options;
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await assignmentsAPI.getAll({ classId });
       const data = Array.isArray(response.data?.data) ? response.data.data : [];
@@ -79,11 +77,11 @@ export const useTeacherGrading = () => {
 
   const loadSubmissions = useCallback(async (assignmentId, options = {}) => {
     if (!assignmentId) return;
-    
+
     const { onSuccess, onError } = options;
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await assignmentsAPI.getSubmissions(assignmentId);
       const data = Array.isArray(response.data?.data) ? response.data.data : [];
@@ -146,7 +144,7 @@ export const useTeacherGrading = () => {
     loading,
     error,
     teacher,
-    
+
     // Actions
     setActiveStep,
     loadTeacherClasses,
