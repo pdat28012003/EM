@@ -672,7 +672,7 @@ const CurriculumDetail = () => {
           <div style={{ flex: 1, paddingRight: '20px' }}>
             <h2>{curriculum.curriculumName}</h2>
             <p style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><School fontSize="small" color="primary" /> {curriculum.courseName}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><School fontSize="small" color="primary" /> {curriculum.courses?.map(c => c.courseName).join(', ') || 'Chưa có khóa học'}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><EventNote fontSize="small" color="action" /> {new Date(curriculum.startDate).toLocaleDateString()} - {new Date(curriculum.endDate).toLocaleDateString()}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', background: curriculum.status === 'Active' ? '#d4edda' : '#f8d7da', color: curriculum.status === 'Active' ? '#155724' : '#721c24', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
                 {curriculum.status === 'Active' ? 'Đang hoạt động' : curriculum.status}

@@ -386,6 +386,9 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
+// Enable static file serving for uploads
+app.UseStaticFiles();
+
 // Enable Swagger
 app.UseSwagger();
 app.UseSwaggerUI(c =>

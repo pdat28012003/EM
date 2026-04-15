@@ -35,7 +35,8 @@ namespace EnglishCenter.API.Controllers
             {
                 var totalCount = await _context.Curriculums.CountAsync();
                 var curriculums = await _context.Curriculums
-                    .Include(c => c.Course)
+                    .Include(c => c.CurriculumCourses)
+                        .ThenInclude(cc => cc.Course)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Lessons)
@@ -81,7 +82,8 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var curriculum = await _context.Curriculums
-                    .Include(c => c.Course)
+                    .Include(c => c.CurriculumCourses)
+                        .ThenInclude(cc => cc.Course)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Lessons)
@@ -120,8 +122,9 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var curriculums = await _context.Curriculums
-                    .Where(c => c.CourseId == courseId)
-                    .Include(c => c.Course)
+                    .Where(c => c.CurriculumCourses.Any(cc => cc.CourseId == courseId))
+                    .Include(c => c.CurriculumCourses)
+                        .ThenInclude(cc => cc.Course)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Lessons)
@@ -175,7 +178,8 @@ namespace EnglishCenter.API.Controllers
                 var curriculumIds = allCurriculums.Select(c => c.CurriculumId).ToList();
                 var curriculumsWithDetails = await _context.Curriculums
                     .Where(c => curriculumIds.Contains(c.CurriculumId))
-                    .Include(c => c.Course)
+                    .Include(c => c.CurriculumCourses)
+                        .ThenInclude(cc => cc.Course)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Teacher)
@@ -201,10 +205,18 @@ namespace EnglishCenter.API.Controllers
         {
             try
             {
-                // Validate course exists
-                var courseExists = await _context.Courses.AnyAsync(c => c.CourseId == createCurriculumDto.CourseId);
-                if (!courseExists)
-                    return BadRequest(new { message = "Course not found" });
+                // Validate courses exist
+                if (createCurriculumDto.Courses != null && createCurriculumDto.Courses.Any())
+                {
+                    var courseIds = createCurriculumDto.Courses.Select(c => c.CourseId).ToList();
+                    var existingCourses = await _context.Courses
+                        .Where(c => courseIds.Contains(c.CourseId))
+                        .Select(c => c.CourseId)
+                        .ToListAsync();
+                    
+                    if (existingCourses.Count != courseIds.Count)
+                        return BadRequest(new { message = "One or more courses not found" });
+                }
 
                 // Validate dates
                 if (createCurriculumDto.StartDate >= createCurriculumDto.EndDate)
@@ -213,13 +225,22 @@ namespace EnglishCenter.API.Controllers
                 var curriculum = new Curriculum
                 {
                     CurriculumName = createCurriculumDto.CurriculumName,
-                    CourseId = createCurriculumDto.CourseId,
                     StartDate = createCurriculumDto.StartDate,
                     EndDate = createCurriculumDto.EndDate,
                     Description = createCurriculumDto.Description,
                     Status = "Active",
                     CreatedDate = DateTime.Now
                 };
+
+                // Add courses
+                if (createCurriculumDto.Courses != null && createCurriculumDto.Courses.Any())
+                {
+                    curriculum.CurriculumCourses = createCurriculumDto.Courses.Select(c => new CurriculumCourse
+                    {
+                        CourseId = c.CourseId,
+                        OrderIndex = c.OrderIndex
+                    }).ToList();
+                }
 
                 if (createCurriculumDto.ParticipantTeacherIds != null && createCurriculumDto.ParticipantTeacherIds.Any())
                 {
@@ -234,7 +255,8 @@ namespace EnglishCenter.API.Controllers
 
                 // Re-load to include related data for mapping
                 var savedCurriculum = await _context.Curriculums
-                    .Include(c => c.Course)
+                    .Include(c => c.CurriculumCourses)
+                        .ThenInclude(cc => cc.Course)
                     .Include(c => c.ParticipantTeachers)
                     .FirstOrDefaultAsync(c => c.CurriculumId == curriculum.CurriculumId);
 
@@ -260,6 +282,7 @@ namespace EnglishCenter.API.Controllers
             {
                 var curriculum = await _context.Curriculums
                     .Include(c => c.ParticipantTeachers)
+                    .Include(c => c.CurriculumCourses)
                     .FirstOrDefaultAsync(c => c.CurriculumId == id);
                 if (curriculum == null)
                     return NotFound(new { message = "Curriculum not found" });
@@ -274,6 +297,30 @@ namespace EnglishCenter.API.Controllers
                 curriculum.Description = updateCurriculumDto.Description;
                 curriculum.Status = updateCurriculumDto.Status;
                 curriculum.ModifiedDate = DateTime.Now;
+
+                // Update courses
+                if (updateCurriculumDto.Courses != null)
+                {
+                    // Validate courses exist
+                    var courseIds = updateCurriculumDto.Courses.Select(c => c.CourseId).ToList();
+                    var existingCourses = await _context.Courses
+                        .Where(c => courseIds.Contains(c.CourseId))
+                        .ToListAsync();
+                    
+                    if (existingCourses.Count != courseIds.Count)
+                        return BadRequest(new { message = "One or more courses not found" });
+
+                    // Remove existing courses and add new ones
+                    curriculum.CurriculumCourses.Clear();
+                    foreach (var courseItem in updateCurriculumDto.Courses)
+                    {
+                        curriculum.CurriculumCourses.Add(new CurriculumCourse
+                        {
+                            CourseId = courseItem.CourseId,
+                            OrderIndex = courseItem.OrderIndex
+                        });
+                    }
+                }
 
                 // Update participant teachers
                 if (updateCurriculumDto.ParticipantTeacherIds != null)
@@ -1021,14 +1068,19 @@ namespace EnglishCenter.API.Controllers
             {
                 CurriculumId = curriculum.CurriculumId,
                 CurriculumName = curriculum.CurriculumName,
-                CourseId = curriculum.CourseId,
-                CourseName = curriculum.Course?.CourseName ?? string.Empty,
                 StartDate = curriculum.StartDate,
                 EndDate = curriculum.EndDate,
                 Description = curriculum.Description,
                 CreatedDate = curriculum.CreatedDate,
                 ModifiedDate = curriculum.ModifiedDate,
                 Status = curriculum.Status,
+                Courses = curriculum.CurriculumCourses?.Select(cc => new CurriculumCourseInfoDto
+                {
+                    CourseId = cc.Course.CourseId,
+                    CourseName = cc.Course.CourseName,
+                    CourseCode = cc.Course.CourseCode,
+                    OrderIndex = cc.OrderIndex
+                }).ToList() ?? new List<CurriculumCourseInfoDto>(),
                 CurriculumDays = curriculum.CurriculumDays?.Select(cd => MapCurriculumDayToDto(cd)).ToList() ?? new List<CurriculumDayDto>(),
                 ParticipantTeachers = curriculum.ParticipantTeachers?.Select(t => new TeacherDto
                 {
@@ -1497,7 +1549,8 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var curriculums = await _context.Curriculums
-                    .Include(c => c.Course)
+                    .Include(c => c.CurriculumCourses)
+                        .ThenInclude(cc => cc.Course)
                     .Include(c => c.ParticipantStudents)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
@@ -1510,7 +1563,7 @@ namespace EnglishCenter.API.Controllers
                     {
                         curriculumId = c.CurriculumId,
                         curriculumName = c.CurriculumName,
-                        courseName = c.Course.CourseName,
+                        courseName = string.Join(", ", c.CurriculumCourses.Select(cc => cc.Course.CourseName)),
                         startDate = c.StartDate,
                         endDate = c.EndDate,
                         status = c.Status,
@@ -1596,7 +1649,8 @@ namespace EnglishCenter.API.Controllers
             try
             {
                 var curriculums = await _context.Curriculums
-                    .Include(c => c.Course)
+                    .Include(c => c.CurriculumCourses)
+                        .ThenInclude(cc => cc.Course)
                     .Include(c => c.CurriculumDays)
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.AssignedRoom)
@@ -1608,7 +1662,7 @@ namespace EnglishCenter.API.Controllers
                     {
                         curriculumId = c.CurriculumId,
                         curriculumName = c.CurriculumName,
-                        courseName = c.Course.CourseName,
+                        courseName = string.Join(", ", c.CurriculumCourses.Select(cc => cc.Course.CourseName)),
                         startDate = c.StartDate,
                         endDate = c.EndDate,
                         status = c.Status,

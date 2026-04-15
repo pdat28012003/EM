@@ -30,16 +30,17 @@ namespace EnglishCenter.API.Controllers
                 .Where(s => s.TeacherId == teacherId)
                 .Include(s => s.CurriculumDay)
                 .ThenInclude(cd => cd.Curriculum)
-                .ThenInclude(c => c.Course)
+                .ThenInclude(c => c.CurriculumCourses)
+                .ThenInclude(cc => cc.Course)
                 .Include(s => s.AssignedRoom)
                 .ToListAsync();
 
             var scheduleDtos = schedules.Select(s => new TeacherScheduleDto
                 {
                     ScheduleId = s.CurriculumSessionId,
-                    ClassId = s.CurriculumDay.Curriculum.CourseId,  // Keep for backward compatibility
+                    ClassId = s.CurriculumDay.Curriculum.CurriculumCourses.FirstOrDefault()?.CourseId ?? 0,  // Keep for backward compatibility
                     CurriculumId = s.CurriculumDay.Curriculum.CurriculumId,
-                    ClassName = s.CurriculumDay.Curriculum.Course.CourseName,
+                    ClassName = string.Join(", ", s.CurriculumDay.Curriculum.CurriculumCourses.Select(cc => cc.Course.CourseName)),
                     TeacherId = s.TeacherId ?? 0,
                     TeacherName = s.Teacher != null ? s.Teacher.FullName : "",
                     DayOfWeek = s.CurriculumDay.ScheduleDate.DayOfWeek.ToString(),
@@ -451,7 +452,8 @@ namespace EnglishCenter.API.Controllers
             var schedules = await _context.CurriculumSessions
                 .Include(cs => cs.CurriculumDay)
                 .ThenInclude(cd => cd.Curriculum)
-                .ThenInclude(c => c.Course)
+                .ThenInclude(c => c.CurriculumCourses)
+                .ThenInclude(cc => cc.Course)
                 .Include(cs => cs.Teacher)
                 .Where(cs => cs.RoomId == roomId 
                            && cs.CurriculumDay.ScheduleDate.Date == date.Date)
@@ -462,7 +464,7 @@ namespace EnglishCenter.API.Controllers
                     cs.CurriculumSessionId,
                     cs.StartTime,
                     cs.EndTime,
-                    ClassName = cs.CurriculumDay.Curriculum.Course.CourseName,
+                    ClassName = string.Join(", ", cs.CurriculumDay.Curriculum.CurriculumCourses.Select(cc => cc.Course.CourseName)),
                     TeacherName = cs.Teacher != null ? cs.Teacher.FullName : ""
                 })
                 .OrderBy(cs => cs.StartTime)

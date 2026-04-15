@@ -11,6 +11,12 @@ import {
   Menu,
   MenuItem,
   Fade,
+  FormControl,
+  InputLabel,
+  Select,
+  OutlinedInput,
+  Checkbox,
+  ListItemText,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Add, Edit, Delete, Info, People, MapOutlined, MoreVert } from '@mui/icons-material';
@@ -34,7 +40,7 @@ const Curriculum = () => {
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
   const [formData, setFormData] = useState({
     curriculumName: '',
-    courseId: '',
+    courses: [], // Array of { courseId, orderIndex }
     startDate: '',
     endDate: '',
     description: ''
@@ -68,7 +74,7 @@ const Curriculum = () => {
         params = { page: 1, pageSize: 1000 }; // Load many items
         const response = await curriculumAPI.getAll(params);
         allData = Array.isArray(response.data?.data) ? response.data.data : [];
-        allData = allData.filter(c => c.courseId === parseInt(selectedCourseFilter));
+        allData = allData.filter(c => c.courses?.some(course => course.courseId === parseInt(selectedCourseFilter)));
         
         // Apply pagination to filtered data
         const startIndex = paginationModel.page * paginationModel.pageSize;
@@ -146,8 +152,8 @@ const Curriculum = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.curriculumName || !formData.courseId || !formData.startDate || !formData.endDate) {
-      alert('Please fill in all required fields');
+    if (!formData.curriculumName || formData.courses.length === 0 || !formData.startDate || !formData.endDate) {
+      alert('Vui lòng điền đầy đủ thông tin (tên chương trình, ít nhất 1 khóa học, ngày bắt đầu/kết thúc)');
       return;
     }
 
@@ -160,6 +166,7 @@ const Curriculum = () => {
       if (editingCurriculum) {
         await curriculumAPI.update(editingCurriculum.curriculumId, {
           CurriculumName: formData.curriculumName,
+          Courses: formData.courses.map((c, index) => ({ courseId: c.courseId, orderIndex: index })),
           StartDate: formData.startDate,
           EndDate: formData.endDate,
           Description: formData.description,
@@ -169,7 +176,7 @@ const Curriculum = () => {
       } else {
         await curriculumAPI.create({
           CurriculumName: formData.curriculumName,
-          CourseId: parseInt(formData.courseId),
+          Courses: formData.courses.map((c, index) => ({ courseId: c.courseId, orderIndex: index })),
           StartDate: formData.startDate,
           EndDate: formData.endDate,
           Description: formData.description,
@@ -192,7 +199,7 @@ const Curriculum = () => {
     setEditingCurriculum(curriculum);
     setFormData({
       curriculumName: curriculum.curriculumName,
-      courseId: curriculum.courseId,
+      courses: curriculum.courses || [],
       startDate: curriculum.startDate.split('T')[0],
       endDate: curriculum.endDate.split('T')[0],
       description: curriculum.description
@@ -288,7 +295,7 @@ const Curriculum = () => {
   const resetForm = () => {
     setFormData({
       curriculumName: '',
-      courseId: '',
+      courses: [],
       startDate: '',
       endDate: '',
       description: ''
@@ -325,7 +332,7 @@ const Curriculum = () => {
               {params.row.curriculumName}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {params.row.courseName}
+              {params.row.courses?.map(c => c.courseName).join(', ') || 'Chưa có khóa học'}
             </Typography>
           </Box>
         </Box>
@@ -549,24 +556,50 @@ const Curriculum = () => {
                 />
               </div>
 
-              {!editingCurriculum && (
-                <div className="form-group">
-                  <label>Khóa học *</label>
-                  <select
-                    name="courseId"
-                    value={formData.courseId}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">Chọn khóa học</option>
-                    {courses.map((c) => (
-                      <option key={c.courseId} value={c.courseId}>
-                        {c.courseName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="courses-select-label">Khóa học *</InputLabel>
+                <Select
+                  labelId="courses-select-label"
+                  id="courses-select"
+                  multiple
+                  value={formData.courses.map(c => c.courseId)}
+                  onChange={(e) => {
+                    const selectedIds = e.target.value;
+                    const selectedCourses = selectedIds.map(id => ({
+                      courseId: id,
+                      courseName: courses.find(c => c.courseId === id)?.courseName || ''
+                    }));
+                    setFormData({ ...formData, courses: selectedCourses });
+                  }}
+                  input={<OutlinedInput label="Khóa học *" />}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((value) => (
+                        <Chip 
+                          key={value} 
+                          label={courses.find(c => c.courseId === value)?.courseName} 
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                  )}
+                  MenuProps={{
+                    disablePortal: true,
+                    PaperProps: {
+                      sx: { zIndex: 1300, maxHeight: 300 }
+                    }
+                  }}
+                >
+                  {courses.map((course) => (
+                    <MenuItem key={course.courseId} value={course.courseId}>
+                      <Checkbox checked={formData.courses.some(c => c.courseId === course.courseId)} />
+                      <ListItemText primary={course.courseName} />
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
               <div className="form-group">
                 <label>Ngày bắt đầu *</label>

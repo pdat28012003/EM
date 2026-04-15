@@ -392,12 +392,12 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets student's enrolled classes. (Lấy danh sách lớp học của học viên.)
+        /// Gets student's enrolled curriculums. (Lấy danh sách chương trình học của học viên.)
         /// </summary>
         /// <param name="id">Student ID (ID học viên)</param>
-        /// <returns>List of classes (Danh sách lớp học)</returns>
-        [HttpGet("{id}/classes")]
-        public async Task<ActionResult<IEnumerable<ClassDto>>> GetStudentClasses(int id)
+        /// <returns>List of curriculums (Danh sách chương trình học)</returns>
+        [HttpGet("{id}/curriculums")]
+        public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetStudentCurriculums(int id)
         {
             try
             {
@@ -409,17 +409,26 @@ namespace EnglishCenter.API.Controllers
 
                 var curriculums = await _context.Enrollments
                     .Include(e => e.Curriculum)
-                    .ThenInclude(c => c.Course)
+                    .ThenInclude(c => c.CurriculumCourses)
+                    .ThenInclude(cc => cc.Course)
                     .Where(e => e.StudentId == id)
                     .Select(e => new CurriculumDto
                     {
                         CurriculumId = e.Curriculum.CurriculumId,
                         CurriculumName = e.Curriculum.CurriculumName,
-                        CourseId = e.Curriculum.CourseId,
-                        CourseName = e.Curriculum.Course != null ? e.Curriculum.Course.CourseName : "",
                         StartDate = e.Curriculum.StartDate,
                         EndDate = e.Curriculum.EndDate,
-                        Status = e.Curriculum.Status
+                        Status = e.Curriculum.Status,
+                        Courses = e.Curriculum.CurriculumCourses
+                            .OrderBy(cc => cc.OrderIndex)
+                            .Select(cc => new CurriculumCourseInfoDto
+                            {
+                                CourseId = cc.Course.CourseId,
+                                CourseName = cc.Course.CourseName,
+                                CourseCode = cc.Course.CourseCode,
+                                OrderIndex = cc.OrderIndex
+                            })
+                            .ToList()
                     })
                     .ToListAsync();
 
@@ -576,7 +585,8 @@ namespace EnglishCenter.API.Controllers
                 var query = _context.CurriculumSessions
                     .Include(cs => cs.CurriculumDay)
                     .ThenInclude(cd => cd.Curriculum)
-                    .ThenInclude(c => c.Course)
+                    .ThenInclude(c => c.CurriculumCourses)
+                    .ThenInclude(cc => cc.Course)
                     .Include(cs => cs.AssignedRoom)
                     .Include(cs => cs.Teacher)
                     .Where(cs => curriculumIds.Contains(cs.CurriculumDay.CurriculumId));
@@ -617,7 +627,7 @@ namespace EnglishCenter.API.Controllers
                     DayOfWeek = cs.CurriculumDay.ScheduleDate.DayOfWeek.ToString(),
                     StartTime = cs.StartTime.ToString(@"hh\:mm"),
                     EndTime = cs.EndTime.ToString(@"hh\:mm"),
-                    CourseName = cs.CurriculumDay.Curriculum.Course.CourseName,
+                    CourseName = string.Join(", ", cs.CurriculumDay.Curriculum.CurriculumCourses.Select(cc => cc.Course.CourseName)),
                     CurriculumName = cs.CurriculumDay.Curriculum.CurriculumName,
                     SessionName = cs.SessionName,
                     SessionNumber = cs.SessionNumber,

@@ -17,6 +17,7 @@ namespace EnglishCenter.API.Data
         public DbSet<PaymentCourse> PaymentCourses { get; set; }
         public DbSet<TestScore> TestScores { get; set; }
         public DbSet<Curriculum> Curriculums { get; set; }
+        public DbSet<CurriculumCourse> CurriculumCourses { get; set; }
         public DbSet<CurriculumDay> CurriculumDays { get; set; }
         public DbSet<CurriculumSession> CurriculumSessions { get; set; }
         public DbSet<Lesson> Lessons { get; set; }
@@ -186,11 +187,18 @@ public DbSet<SessionAttendance> SessionAttendances { get; set; }
                 .HasForeignKey(a => a.StudentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            modelBuilder.Entity<Curriculum>()
-                .HasOne(c => c.Course)
-                .WithMany(co => co.Curriculums)
-                .HasForeignKey(c => c.CourseId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Configure many-to-many relationship between Curriculum and Course
+            modelBuilder.Entity<CurriculumCourse>()
+                .HasOne(cc => cc.Curriculum)
+                .WithMany(c => c.CurriculumCourses)
+                .HasForeignKey(cc => cc.CurriculumId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CurriculumCourse>()
+                .HasOne(cc => cc.Course)
+                .WithMany(c => c.CurriculumCourses)
+                .HasForeignKey(cc => cc.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<CurriculumDay>()
                 .HasOne(cd => cd.Curriculum)

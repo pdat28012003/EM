@@ -311,7 +311,7 @@ const Teachers = () => {
     },
     { 
       field: 'specialization', 
-      headerName: 'Kỹ Năng', 
+      headerName: 'Chuyên môn', 
       flex: 1.5,
       minWidth: 200,
       renderCell: (params) => {

@@ -490,12 +490,12 @@ const handleDownload = async (doc) => {
                 onChange={(e) => setFilterType(e.target.value)}
                 label="Loại tài liệu"
               >
-                <MenuItem value="all">Tất cả</MenuItem>
-                <MenuItem value="material">Tài liệu</MenuItem>
-                <MenuItem value="exercise">Bài tập</MenuItem>
-                <MenuItem value="presentation">Trình chiếu</MenuItem>
-                <MenuItem value="audio">Audio</MenuItem>
-                <MenuItem value="video">Video</MenuItem>
+                <MenuItem key="all" value="all">Tất cả</MenuItem>
+                <MenuItem key="material" value="material">Tài liệu</MenuItem>
+                <MenuItem key="exercise" value="exercise">Bài tập</MenuItem>
+                <MenuItem key="presentation" value="presentation">Trình chiếu</MenuItem>
+                <MenuItem key="audio" value="audio">Audio</MenuItem>
+                <MenuItem key="video" value="video">Video</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -507,7 +507,7 @@ const handleDownload = async (doc) => {
                 onChange={(e) => setFilterCurriculum(e.target.value)}
                 label="Chương trình"
               >
-                <MenuItem value="all">Tất cả</MenuItem>
+                <MenuItem key="all-curriculum" value="all">Tất cả</MenuItem>
                 {curriculums.map(curr => (
                   <MenuItem key={curr.curriculumId} value={curr.curriculumId}>
                     {curr.curriculumName}

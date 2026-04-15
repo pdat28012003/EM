@@ -18,7 +18,10 @@ const getRoleInfo = (role) => {
 
 const ProfileCard = ({ user, avatarPreview, uploading, fileInputRef, onAvatarClick, onFileChange }) => {
   const roleInfo = getRoleInfo(user?.role);
+  const [imgError, setImgError] = React.useState(false);
 
+  const avatarSrc = avatarPreview || user?.avatar;
+  
   return (
     <Card sx={{ height: '100%', borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
       <CardContent sx={{ textAlign: 'center', p: 4 }}>
@@ -32,9 +35,11 @@ const ProfileCard = ({ user, avatarPreview, uploading, fileInputRef, onAvatarCli
               fontSize: '3.5rem',
               cursor: 'pointer',
               border: '4px solid #f0f0f0',
+              '& img': { objectFit: 'cover' }
             }}
-            src={avatarPreview || user?.avatar}
+            src={!imgError ? avatarSrc : undefined}
             onClick={onAvatarClick}
+            onError={() => setImgError(true)}
           >
             {user?.fullName?.charAt(0) || 'U'}
           </Avatar>

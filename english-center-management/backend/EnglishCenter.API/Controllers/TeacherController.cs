@@ -323,7 +323,8 @@ namespace EnglishCenter.API.Controllers
                 var query = _context.CurriculumSessions
                     .Include(cs => cs.CurriculumDay)
                     .ThenInclude(cd => cd.Curriculum)
-                    .ThenInclude(c => c.Course)
+                    .ThenInclude(c => c.CurriculumCourses)
+                    .ThenInclude(cc => cc.Course)
                     .Include(cs => cs.AssignedRoom)
                     .Include(cs => cs.Teacher)
                     .Where(cs => cs.TeacherId == id);
@@ -365,7 +366,7 @@ namespace EnglishCenter.API.Controllers
                     DayOfWeek = cs.CurriculumDay.ScheduleDate.DayOfWeek.ToString(),
                     StartTime = cs.StartTime.ToString(@"hh\:mm"),
                     EndTime = cs.EndTime.ToString(@"hh\:mm"),
-                    CourseName = cs.CurriculumDay.Curriculum.Course.CourseName,
+                    CourseName = string.Join(", ", cs.CurriculumDay.Curriculum.CurriculumCourses.Select(cc => cc.Course.CourseName)),
                     CurriculumName = cs.CurriculumDay.Curriculum.CurriculumName,
                     SessionName = cs.SessionName,
                     SessionNumber = cs.SessionNumber,

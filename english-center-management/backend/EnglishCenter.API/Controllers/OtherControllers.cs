@@ -299,10 +299,17 @@ namespace EnglishCenter.API.Controllers
             var weeklyScheduleThisWeek = await _context.CurriculumSessions
                 .Include(cs => cs.CurriculumDay)
                 .ThenInclude(cd => cd.Curriculum)
-                .ThenInclude(c => c.Course)
+                .ThenInclude(c => c.CurriculumCourses)
+                .ThenInclude(cc => cc.Course)
                 .Where(cs => cs.TeacherId == teacherId)
                 .CountAsync();
-            var weeklyScheduleLastWeek = weeklyScheduleThisWeek; // Same schedules as last week for now
+            var weeklyScheduleLastWeek = await _context.CurriculumSessions
+                .Include(cs => cs.CurriculumDay)
+                .ThenInclude(cd => cd.Curriculum)
+                .ThenInclude(c => c.CurriculumCourses)
+                .ThenInclude(cc => cc.Course)
+                .Where(cs => cs.TeacherId == teacherId && cs.CurriculumDay.ScheduleDate >= startOfLastWeek && cs.CurriculumDay.ScheduleDate <= endOfLastWeek)
+                .CountAsync();
 
             var statistics = new DashboardStatisticsDto
             {
