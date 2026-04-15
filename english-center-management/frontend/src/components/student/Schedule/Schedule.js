@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -47,8 +47,9 @@ const StudentSchedule = () => {
   const [selectedDate, setSelectedDate] = useState(null);
 
   // Calculate start and end dates based on week offset
-  const startDate = dayjs().startOf('week').add(1, 'day').add(weekOffset, 'week');
-  const endDate = dayjs().endOf('week').add(1, 'day').add(weekOffset, 'week');
+  // In Vietnam, week starts on Monday (day 1)
+  const startDate = dayjs().day(1).add(weekOffset, 'week');
+  const endDate = dayjs().day(7).add(weekOffset, 'week');
 
   const clearDateFilter = () => {
     setSelectedDate(null);
@@ -107,8 +108,15 @@ const StudentSchedule = () => {
 
       const scheduleData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
       const scheduleArray = Array.isArray(scheduleData) ? scheduleData : [];
+
+      // Debug logs
+      console.log('Schedule API Response:', response.data);
+      console.log('Schedule Data:', scheduleData);
+      console.log('Schedule Array:', scheduleArray);
+      console.log('Date Range:', startDate.format('YYYY-MM-DD'), 'to', endDate.format('YYYY-MM-DD'));
+
       setSchedule(scheduleArray);
-      
+
     } catch (err) {
       console.error('Error loading schedule:', err);
       if (err.response?.status === 404) {
@@ -160,7 +168,7 @@ const StudentSchedule = () => {
   };
 
   // Helper to group schedule by day of week
-  const getScheduleByDay = () => {
+  const getScheduleByDay = useMemo(() => {
     const filteredSchedule = schedule;
     const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
     const timeSlots = ['Sáng', 'Chiều', 'Tối'];
@@ -173,6 +181,8 @@ const StudentSchedule = () => {
       });
     });
 
+    console.log('Processing schedule items:', filteredSchedule);
+
     filteredSchedule.forEach(item => {
       if (item.date || item.Date) {
         const date = dayjs(item.date || item.Date);
@@ -180,14 +190,23 @@ const StudentSchedule = () => {
         const startTime = item.startTime || item.StartTime;
         const period = getTimePeriod(startTime);
 
+        console.log('Processing item:', {
+          date: item.date || item.Date,
+          dayOfWeek,
+          startTime,
+          period,
+          courseName: item.courseName || item.CourseName
+        });
+
         if (period && dayOfWeek) {
           scheduleMap[period][dayOfWeek] = item;
         }
       }
     });
 
+    console.log('Final schedule map:', scheduleMap);
     return { days, timeSlots, scheduleMap };
-  };
+  }, [schedule]);
 
   if (loading) {
     return (
@@ -203,10 +222,10 @@ const StudentSchedule = () => {
     <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, sm: 3, md: 4 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <CalendarMonth sx={{ fontSize: { xs: 24, sm: 28, md: 32 }, color: '#4F46E5' }} />
-        <Typography 
-          variant="h4" 
+        <Typography
+          variant="h4"
           fontWeight="bold"
-          sx={{ 
+          sx={{
             fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
             lineHeight: 1.2
           }}
@@ -223,10 +242,10 @@ const StudentSchedule = () => {
 
       {/* Week Navigation */}
       <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           flexDirection: { xs: 'column', sm: 'row' },
-          alignItems: 'center', 
+          alignItems: 'center',
           justifyContent: 'space-between',
           gap: 2
         }}>
@@ -315,7 +334,7 @@ const StudentSchedule = () => {
               <TableHead>
                 <TableRow sx={{ bgcolor: 'primary.main' }}>
                   <TableCell sx={{ color: 'white', fontWeight: 'bold', width: 80 }}>Tiết</TableCell>
-                  {getScheduleByDay().days.map(day => (
+                  {getScheduleByDay.days.map(day => (
                     <TableCell key={day} align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
                       {day}
                     </TableCell>
@@ -323,13 +342,13 @@ const StudentSchedule = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {getScheduleByDay().timeSlots.map((time, index) => (
+                {getScheduleByDay.timeSlots.map((time, index) => (
                   <TableRow key={time} sx={{ '&:nth-of-type(odd)': { bgcolor: 'grey.50' } }}>
                     <TableCell sx={{ fontWeight: 'bold', bgcolor: 'primary.light', color: 'white' }}>
                       {time}
                     </TableCell>
-                    {getScheduleByDay().days.map(day => {
-                      const item = getScheduleByDay().scheduleMap[time][day];
+                    {getScheduleByDay.days.map(day => {
+                      const item = getScheduleByDay.scheduleMap[time][day];
                       return (
                         <TableCell key={`${time}-${day}`} align="center" sx={{ minWidth: 120, height: 80 }}>
                           {item ? (
@@ -387,82 +406,82 @@ const StudentSchedule = () => {
               </Typography>
             </Paper>
           ) : (
-          <Grid container spacing={3}>
-            {schedule
-              .sort((a, b) => {
-                // Sắp xếp theo ngày và giờ
-                if (!a.Date || !b.Date) return 0;
-                const dateA = new Date(a.Date);
-                const dateB = new Date(b.Date);
-                if (dateA.getTime() !== dateB.getTime()) return dateA - dateB;
-                return (a.StartTime || '').localeCompare(b.StartTime || '');
-              })
-              .map((sessionItem) => (
-                <Grid item xs={12} sm={6} md={4} key={sessionItem.sessionId}>
-                  <Card variant="outlined" sx={{ borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 2 }}>
-                      <Typography variant="h6" fontWeight="bold">
-                        {dayjs(sessionItem.Date).format('DD/MM/YYYY')}
-                      </Typography>
-                      <Typography variant="body2">
-                        {sessionItem.CourseName}
-                      </Typography>
-                      {sessionItem.CurriculumName && (
-                        <Typography variant="caption">
-                          {sessionItem.CurriculumName}
+            <Grid container spacing={3}>
+              {schedule
+                .sort((a, b) => {
+                  // Sắp xếp theo ngày và giờ
+                  if (!a.Date || !b.Date) return 0;
+                  const dateA = new Date(a.Date);
+                  const dateB = new Date(b.Date);
+                  if (dateA.getTime() !== dateB.getTime()) return dateA - dateB;
+                  return (a.StartTime || '').localeCompare(b.StartTime || '');
+                })
+                .map((sessionItem) => (
+                  <Grid item xs={12} sm={6} md={4} key={sessionItem.sessionId}>
+                    <Card variant="outlined" sx={{ borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 2 }}>
+                        <Typography variant="h6" fontWeight="bold">
+                          {dayjs(sessionItem.Date).format('DD/MM/YYYY')}
                         </Typography>
-                      )}
-                    </Box>
-                    <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <AccessTime fontSize="small" color="action" />
-                        <Typography variant="body1" fontWeight="bold">
-                          {sessionItem.startTime} - {sessionItem.endTime}
-                        </Typography>
-                      </Box>
-                      {sessionItem.sessionName && (
-                        <Box display="flex" alignItems="center" gap={1} mb={1}>
-                          <Topic fontSize="small" color="action" />
-                          <Typography variant="body2">
-                            Buổi {sessionItem.sessionNumber}: {sessionItem.sessionName}
-                          </Typography>
-                        </Box>
-                      )}
-                      {sessionItem.topic && (
-                        <Box display="flex" alignItems="center" gap={1} mb={1}>
-                          <CalendarMonth fontSize="small" color="action" />
-                          <Typography variant="body2">
-                            Chủ đề: {sessionItem.topic}
-                          </Typography>
-                        </Box>
-                      )}
-                      <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <Room fontSize="small" color="action" />
                         <Typography variant="body2">
-                          Phòng: {sessionItem.roomName}
+                          {sessionItem.CourseName}
                         </Typography>
+                        {sessionItem.CurriculumName && (
+                          <Typography variant="caption">
+                            {sessionItem.CurriculumName}
+                          </Typography>
+                        )}
                       </Box>
-                      {sessionItem.teacherName && (
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Person fontSize="small" color="action" />
-                          <Typography variant="body2">
-                            Giáo viên: {sessionItem.teacherName}
+                      <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <Box display="flex" alignItems="center" gap={1} mb={1}>
+                          <AccessTime fontSize="small" color="action" />
+                          <Typography variant="body1" fontWeight="bold">
+                            {sessionItem.startTime} - {sessionItem.endTime}
                           </Typography>
                         </Box>
-                      )}
-                      <Box sx={{ mt: 'auto', pt: 2 }}>
-                        <Chip
-                          label={sessionItem.status || 'Scheduled'}
-                          size="small"
-                          color={sessionItem.status === 'Scheduled' ? 'success' : 'default'}
-                          variant="outlined"
-                        />
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-          </Grid>
+                        {sessionItem.sessionName && (
+                          <Box display="flex" alignItems="center" gap={1} mb={1}>
+                            <Topic fontSize="small" color="action" />
+                            <Typography variant="body2">
+                              Buổi {sessionItem.sessionNumber}: {sessionItem.sessionName}
+                            </Typography>
+                          </Box>
+                        )}
+                        {sessionItem.topic && (
+                          <Box display="flex" alignItems="center" gap={1} mb={1}>
+                            <CalendarMonth fontSize="small" color="action" />
+                            <Typography variant="body2">
+                              Chủ đề: {sessionItem.topic}
+                            </Typography>
+                          </Box>
+                        )}
+                        <Box display="flex" alignItems="center" gap={1} mb={1}>
+                          <Room fontSize="small" color="action" />
+                          <Typography variant="body2">
+                            Phòng: {sessionItem.roomName}
+                          </Typography>
+                        </Box>
+                        {sessionItem.teacherName && (
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Person fontSize="small" color="action" />
+                            <Typography variant="body2">
+                              Giáo viên: {sessionItem.teacherName}
+                            </Typography>
+                          </Box>
+                        )}
+                        <Box sx={{ mt: 'auto', pt: 2 }}>
+                          <Chip
+                            label={sessionItem.status || 'Scheduled'}
+                            size="small"
+                            color={sessionItem.status === 'Scheduled' ? 'success' : 'default'}
+                            variant="outlined"
+                          />
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+            </Grid>
           )}
 
         </>
