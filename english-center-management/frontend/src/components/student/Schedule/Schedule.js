@@ -115,6 +115,19 @@ const StudentSchedule = () => {
       console.log('Schedule Array:', scheduleArray);
       console.log('Date Range:', startDate.format('YYYY-MM-DD'), 'to', endDate.format('YYYY-MM-DD'));
 
+      // Log each schedule item for debugging
+      scheduleArray.forEach((item, index) => {
+        console.log(`Schedule Item ${index}:`, {
+          sessionId: item.SessionId || item.sessionId,
+          date: item.Date || item.date,
+          courseName: item.CourseName || item.courseName,
+          roomName: item.RoomName || item.roomName,
+          teacherName: item.TeacherName || item.teacherName,
+          startTime: item.StartTime || item.startTime,
+          endTime: item.EndTime || item.endTime
+        });
+      });
+
       setSchedule(scheduleArray);
 
     } catch (err) {
@@ -356,6 +369,11 @@ const StudentSchedule = () => {
                               <Typography variant="caption" fontWeight="bold" display="block">
                                 {item.courseName}
                               </Typography>
+                              {item.curriculumName && (
+                                <Typography variant="caption" display="block" sx={{ fontSize: '10px', opacity: 0.9 }}>
+                                  {item.curriculumName}
+                                </Typography>
+                              )}
                               <Typography variant="caption" display="block">
                                 {item.startTime}-{item.endTime}
                               </Typography>
@@ -421,22 +439,22 @@ const StudentSchedule = () => {
                     <Card variant="outlined" sx={{ borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 2 }}>
                         <Typography variant="h6" fontWeight="bold">
-                          {dayjs(sessionItem.Date).format('DD/MM/YYYY')}
+                          {dayjs(sessionItem.Date || sessionItem.date).format('DD/MM/YYYY')}
                         </Typography>
                         <Typography variant="body2">
-                          {sessionItem.CourseName}
+                          {sessionItem.CourseName || sessionItem.courseName}
                         </Typography>
-                        {sessionItem.CurriculumName && (
+                        {sessionItem.CurriculumName || sessionItem.curriculumName ? (
                           <Typography variant="caption">
-                            {sessionItem.CurriculumName}
+                            {sessionItem.CurriculumName || sessionItem.curriculumName}
                           </Typography>
-                        )}
+                        ) : null}
                       </Box>
                       <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                         <Box display="flex" alignItems="center" gap={1} mb={1}>
                           <AccessTime fontSize="small" color="action" />
                           <Typography variant="body1" fontWeight="bold">
-                            {sessionItem.startTime} - {sessionItem.endTime}
+                            {sessionItem.StartTime || sessionItem.startTime} - {sessionItem.EndTime || sessionItem.endTime}
                           </Typography>
                         </Box>
                         {sessionItem.sessionName && (
