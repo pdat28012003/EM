@@ -120,7 +120,7 @@ namespace EnglishCenter.API.Models
         public bool IsActive { get; set; } = true;
 
         // Navigation properties
-        public ICollection<Curriculum> Curriculums { get; set; } = new List<Curriculum>();
+        public ICollection<CurriculumCourse> CurriculumCourses { get; set; } = new List<CurriculumCourse>();
         public ICollection<PaymentCourse> PaymentCourses { get; set; } = new List<PaymentCourse>();
     }
 
@@ -305,15 +305,36 @@ namespace EnglishCenter.API.Models
         [MaxLength(50)]
         public string Status { get; set; } = "Active"; // Active, Completed, Draft
 
-        // Navigation properties
-        [ForeignKey("CourseId")]
-        public Course Course { get; set; } = null!;
+        // Navigation properties - Many-to-many with Courses
+        public ICollection<CurriculumCourse> CurriculumCourses { get; set; } = new List<CurriculumCourse>();
 
         public ICollection<CurriculumDay> CurriculumDays { get; set; } = new List<CurriculumDay>();
         public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
         public ICollection<Teacher> ParticipantTeachers { get; set; } = new List<Teacher>();
         public ICollection<Student> ParticipantStudents { get; set; } = new List<Student>();
         public ICollection<Document> Documents { get; set; } = new List<Document>();
+    }
+
+    // Entity for many-to-many relationship between Curriculum and Course
+    public class CurriculumCourse
+    {
+        [Key]
+        public int CurriculumCourseId { get; set; }
+
+        [Required]
+        public int CurriculumId { get; set; }
+
+        [Required]
+        public int CourseId { get; set; }
+
+        public int OrderIndex { get; set; } = 0; // Thứ tự khóa học trong chương trình
+
+        // Navigation properties
+        [ForeignKey("CurriculumId")]
+        public Curriculum Curriculum { get; set; } = null!;
+
+        [ForeignKey("CourseId")]
+        public Course Course { get; set; } = null!;
     }
 
     public class CurriculumDay

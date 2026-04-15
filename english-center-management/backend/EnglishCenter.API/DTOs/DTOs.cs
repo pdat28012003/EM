@@ -322,27 +322,41 @@ namespace EnglishCenter.API.DTOs
         public int Capacity { get; set; }
     }
 
+    // Course info for Curriculum
+    public class CurriculumCourseInfoDto
+    {
+        public int CourseId { get; set; }
+        public string CourseName { get; set; } = string.Empty;
+        public string CourseCode { get; set; } = string.Empty;
+        public int OrderIndex { get; set; }
+    }
+
     // Curriculum DTOs
     public class CurriculumDto
     {
         public int CurriculumId { get; set; }
         public string CurriculumName { get; set; } = string.Empty;
-        public int CourseId { get; set; }
-        public string CourseName { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string Description { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
         public string Status { get; set; } = string.Empty;
+        public List<CurriculumCourseInfoDto> Courses { get; set; } = new List<CurriculumCourseInfoDto>();
         public List<CurriculumDayDto> CurriculumDays { get; set; } = new List<CurriculumDayDto>();
         public List<TeacherDto> ParticipantTeachers { get; set; } = new List<TeacherDto>();
+    }
+
+    public class CreateCurriculumCourseItemDto
+    {
+        public int CourseId { get; set; }
+        public int OrderIndex { get; set; } = 0;
     }
 
     public class CreateCurriculumDto
     {
         public string CurriculumName { get; set; } = string.Empty;
-        public int CourseId { get; set; }
+        public List<CreateCurriculumCourseItemDto> Courses { get; set; } = new List<CreateCurriculumCourseItemDto>();
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string Description { get; set; } = string.Empty;
@@ -352,6 +366,7 @@ namespace EnglishCenter.API.DTOs
     public class UpdateCurriculumDto
     {
         public string CurriculumName { get; set; } = string.Empty;
+        public List<CreateCurriculumCourseItemDto> Courses { get; set; } = new List<CreateCurriculumCourseItemDto>();
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string Description { get; set; } = string.Empty;

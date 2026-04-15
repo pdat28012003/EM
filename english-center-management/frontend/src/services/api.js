@@ -90,6 +90,7 @@ export const studentsAPI = {
   update: (id, data) => api.put(`/students/${id}`, data),
   delete: (id) => api.delete(`/students/${id}`),
   getEnrollments: (id) => api.get(`/students/${id}/enrollments`),
+  getCurriculums: (id) => api.get(`/students/${id}/curriculums`),
   getPayments: (id) => api.get(`/students/${id}/payments`),
   getTestScores: (id) => api.get(`/students/${id}/testscores`),
   getSchedule: (id, params) => api.get(`/students/${id}/schedule`, { params }),

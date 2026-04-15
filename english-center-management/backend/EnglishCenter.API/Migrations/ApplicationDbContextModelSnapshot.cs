@@ -464,9 +464,33 @@ namespace EnglishCenter.API.Migrations
 
                     b.HasKey("CurriculumId");
 
+                    b.ToTable("Curriculums");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.CurriculumCourse", b =>
+                {
+                    b.Property<int>("CurriculumCourseId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CurriculumCourseId"));
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CurriculumId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.HasKey("CurriculumCourseId");
+
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Curriculums");
+                    b.HasIndex("CurriculumId");
+
+                    b.ToTable("CurriculumCourses");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.CurriculumDay", b =>
@@ -2018,15 +2042,23 @@ namespace EnglishCenter.API.Migrations
                     b.Navigation("Student");
                 });
 
-            modelBuilder.Entity("EnglishCenter.API.Models.Curriculum", b =>
+            modelBuilder.Entity("EnglishCenter.API.Models.CurriculumCourse", b =>
                 {
                     b.HasOne("EnglishCenter.API.Models.Course", "Course")
-                        .WithMany("Curriculums")
+                        .WithMany("CurriculumCourses")
                         .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnglishCenter.API.Models.Curriculum", "Curriculum")
+                        .WithMany("CurriculumCourses")
+                        .HasForeignKey("CurriculumId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Course");
+
+                    b.Navigation("Curriculum");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.CurriculumDay", b =>
@@ -2382,13 +2414,15 @@ namespace EnglishCenter.API.Migrations
 
             modelBuilder.Entity("EnglishCenter.API.Models.Course", b =>
                 {
-                    b.Navigation("Curriculums");
+                    b.Navigation("CurriculumCourses");
 
                     b.Navigation("PaymentCourses");
                 });
 
             modelBuilder.Entity("EnglishCenter.API.Models.Curriculum", b =>
                 {
+                    b.Navigation("CurriculumCourses");
+
                     b.Navigation("CurriculumDays");
 
                     b.Navigation("Documents");

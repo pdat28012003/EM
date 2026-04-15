@@ -403,12 +403,12 @@ const Documents = () => {
                 onChange={(e) => setFilterType(e.target.value)}
                 label="Loại tài liệu"
               >
-                <MenuItem value="all">Tất cả</MenuItem>
-                <MenuItem value="material">Tài liệu</MenuItem>
-                <MenuItem value="exercise">Bài tập</MenuItem>
-                <MenuItem value="presentation">Trình chiếu</MenuItem>
-                <MenuItem value="audio">Audio</MenuItem>
-                <MenuItem value="video">Video</MenuItem>
+                <MenuItem key="all" value="all">Tất cả</MenuItem>
+                <MenuItem key="material" value="material">Tài liệu</MenuItem>
+                <MenuItem key="exercise" value="exercise">Bài tập</MenuItem>
+                <MenuItem key="presentation" value="presentation">Trình chiếu</MenuItem>
+                <MenuItem key="audio" value="audio">Audio</MenuItem>
+                <MenuItem key="video" value="video">Video</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -420,9 +420,9 @@ const Documents = () => {
                 onChange={(e) => setFilterClass(e.target.value)}
                 label="Lớp học"
               >
-                <MenuItem value="all">Tất cả</MenuItem>
-                {classes.map(cls => (
-                  <MenuItem key={cls.classId} value={cls.classId}>
+                <MenuItem key="all-classes" value="all">Tất cả</MenuItem>
+                {classes.map((cls, index) => (
+                  <MenuItem key={cls.classId || `class-${index}`} value={cls.classId}>
                     {cls.className}
                   </MenuItem>
                 ))}

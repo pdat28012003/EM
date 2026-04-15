@@ -537,7 +537,7 @@ const handleUpload = async () => {
                   onChange={(e) => setFilterCurriculum(e.target.value)}
                   label="Chương trình"
                 >
-                  <MenuItem value="all">Tất cả</MenuItem>
+                  <MenuItem key="all" value="all">Tất cả</MenuItem>
                   {curriculums.map(curr => (
                     <MenuItem key={curr.curriculumId} value={curr.curriculumId}>
                       {curr.curriculumName}

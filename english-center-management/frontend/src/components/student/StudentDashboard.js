@@ -162,15 +162,17 @@ const StudentDashboard = () => {
 
   const loadStudentDashboardData = async (studentId) => {
     try {
-      // 1. Load Enrollments (Classes)
-      const enrollmentsRes = await studentsAPI.getEnrollments(studentId);
-      const enrollmentsData = enrollmentsRes.data || [];
-      setRecentClasses(enrollmentsData.slice(0, 3).map(e => ({
-        id: e.classId,
-        name: e.className,
-        courseName: 'Khóa học tiếng Anh', // EnrollmentDto doesn't have courseName
-        progress: Math.floor(Math.random() * 100), // Random progress for now as it's not in DTO
-        nextSession: 'Thứ 2, 08:00'
+      // 1. Load Curriculums (with Course info)
+      const curriculumsRes = await studentsAPI.getCurriculums(studentId);
+      const curriculumsData = curriculumsRes.data || [];
+      setRecentClasses(curriculumsData.slice(0, 3).map(c => ({
+        id: c.curriculumId,
+        name: c.curriculumName,
+        courseName: c.courses?.length > 0 
+          ? c.courses.map(course => course.courseName).join(', ')
+          : 'Khóa học tiếng Anh',
+        progress: Math.floor(Math.random() * 100), // TODO: Calculate from attendance
+        nextSession: 'Thứ 2, 08:00' // TODO: Get from schedule
       })));
 
       // 2. Load Grades for Stats
@@ -220,10 +222,10 @@ const StudentDashboard = () => {
 
       let completedCount = 0;
       try {
-        for (const cls of enrollmentsData.slice(0, 5)) { // Limit to 5 classes for performance
-          const classId = cls.classId;
-          if (!classId) continue;
-          const res = await assignmentsAPI.getAll({ classId, studentId, pageSize: 100 });
+        for (const curr of curriculumsData.slice(0, 5)) { // Limit to 5 curriculums for performance
+          const curriculumId = curr.curriculumId;
+          if (!curriculumId) continue;
+          const res = await assignmentsAPI.getAll({ classId: curriculumId, studentId, pageSize: 100 });
           const assignmentsData = res.data?.data || res.data || [];
           const classAssignments = Array.isArray(assignmentsData) ? assignmentsData : [];
           completedCount += classAssignments.filter(a => 
@@ -241,7 +243,7 @@ const StudentDashboard = () => {
 
       // Update Stats
       setStats({
-        totalCourses: { currentValue: enrollmentsData.length, change: 0, changeType: 'increase' },
+        totalCourses: { currentValue: curriculumsData.length, change: 0, changeType: 'increase' },
         sessionsThisWeek: { 
           currentValue: thisWeekSessions, 
           change: Math.abs(sessionChange), 
