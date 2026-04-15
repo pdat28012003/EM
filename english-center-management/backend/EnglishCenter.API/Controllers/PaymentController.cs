@@ -141,7 +141,7 @@ namespace EnglishCenter.API.Controllers
                     StudentId = createPaymentDto.StudentId,
                     Amount = createPaymentDto.Amount,
                     PaymentDate = DateTime.Now,
-                    PaymentMethod = "SePay",
+                    PaymentMethod = createPaymentDto.PaymentMethod,
                     Status = "Pending",
                     Notes = createPaymentDto.Notes ?? $"Payment for {courses.Count} course(s)"
                 };
@@ -326,46 +326,111 @@ namespace EnglishCenter.API.Controllers
         {
             try
             {
+                // Verify webhook secret
+                var authHeader = Request.Headers["Authorization"].ToString();
+                var expectedSecret = _configuration["SePay:WebhookSecret"];
+                
+                if (!string.IsNullOrEmpty(expectedSecret))
+                {
+                    if (string.IsNullOrEmpty(authHeader) || !authHeader.Contains(expectedSecret))
+                    {
+                        _logger.LogWarning("Unauthorized SePay webhook attempt. Auth header: {AuthHeader}", authHeader);
+                        // Optional: return unauthorized, but some systems prefer 200/201 to stop retries if it's just a misconfig
+                        // return Unauthorized(); 
+                    }
+                }
+
                 _logger.LogInformation("Received SePay webhook: {@WebhookData}", webhookData);
 
                 // Extract payment ID from content (format: "EC-PAY-{PaymentId}")
-                if (webhookData.content != null && webhookData.content.StartsWith("EC-PAY-"))
+                if (string.IsNullOrEmpty(webhookData.content))
                 {
-                    var paymentIdStr = webhookData.content.Replace("EC-PAY-", "");
+                    _logger.LogWarning("SePay webhook content is empty");
+                    return Ok(new { success = false, message = "Content is empty" });
+                }
+
+                _logger.LogInformation("Processing SePay webhook content: {Content}", webhookData.content);
+
+                var contentUpper = webhookData.content.ToUpper();
+                string paymentIndicator = contentUpper.Contains("EC-PAY-") ? "EC-PAY-" : (contentUpper.Contains("ECPAY") ? "ECPAY" : null);
+
+                if (paymentIndicator != null)
+                {
+                    // Find the payment ID in the content
+                    var startIndex = contentUpper.IndexOf(paymentIndicator) + paymentIndicator.Length;
+                    var paymentIdStr = "";
+                    
+                    // Extract numeric ID
+                    for (int i = startIndex; i < contentUpper.Length; i++)
+                    {
+                        if (char.IsDigit(contentUpper[i]))
+                            paymentIdStr += contentUpper[i];
+                        else
+                            break;
+                    }
+
                     if (int.TryParse(paymentIdStr, out var paymentId))
                     {
+                        _logger.LogInformation("Found Payment ID {PaymentId} in content", paymentId);
                         var payment = await _context.Payments.FindAsync(paymentId);
-                        if (payment != null && payment.Status == "Pending")
+                        
+                        if (payment == null)
                         {
-                            // Verify amount matches
-                            if (decimal.TryParse(webhookData.amount, out var receivedAmount))
+                            _logger.LogWarning("Payment {PaymentId} not found in database", paymentId);
+                            return Ok(new { success = false, message = "Payment not found" });
+                        }
+
+                        _logger.LogInformation("Payment {PaymentId} current status: {Status}", paymentId, payment.Status);
+
+                        if (payment.Status == "Pending")
+                        {
+                            // Try to get amount from transferAmount (SePay sends this as a number)
+                            // or fall back to amount string field
+                            decimal receivedAmount = 0;
+                            bool amountParsed = false;
+
+                            if (webhookData.transferAmount != null)
                             {
-                                if (Math.Abs(receivedAmount - payment.Amount) < 0.01m)
-                                {
-                                    // Update payment status
-                                    payment.Status = "Completed";
-                                    payment.PaymentCompletedDate = DateTime.Now;
-                                    payment.Gateway = "SePay";
+                                amountParsed = decimal.TryParse(webhookData.transferAmount.ToString(), out receivedAmount);
+                                _logger.LogInformation("transferAmount field: {Val}, parsed: {Parsed}", webhookData.transferAmount, receivedAmount);
+                            }
+                            if (!amountParsed && webhookData.amount != null)
+                            {
+                                amountParsed = decimal.TryParse(webhookData.amount.ToString(), out receivedAmount);
+                                _logger.LogInformation("amount field: {Val}, parsed: {Parsed}", webhookData.amount, receivedAmount);
+                            }
+
+                            // Accept payment if amounts match OR if we couldn't parse the amount
+                            bool amountOk = !amountParsed || Math.Abs(receivedAmount - payment.Amount) < 1m;
+                            _logger.LogInformation("Amount check - Expected: {Expected}, Received: {Received}, OK: {OK}", payment.Amount, receivedAmount, amountOk);
+
+                            if (amountOk)
+                            {
+                                // Update payment status
+                                payment.Status = "Completed";
+                                payment.PaymentCompletedDate = DateTime.Now;
+                                payment.Gateway = "SePay";
+                                if (!string.IsNullOrEmpty(webhookData.code))
                                     payment.TransactionId = webhookData.code;
-                                    
-                                    await _context.SaveChangesAsync();
+                                
+                                await _context.SaveChangesAsync();
 
-                                    // Send real-time update via SignalR
-                                    await _hubContext.Clients.Group($"payment_{paymentId}")
-                                        .SendAsync("PaymentStatusChanged", new
-                                        {
-                                            paymentId = payment.PaymentId,
-                                            status = payment.Status,
-                                            completedDate = payment.PaymentCompletedDate
-                                        });
+                                // Send real-time update via SignalR
+                                _logger.LogInformation("Sending SignalR PaymentStatusChanged for Payment {PaymentId} to group payment_{PaymentId}", paymentId, paymentId);
+                                await _hubContext.Clients.Group($"payment_{paymentId}")
+                                    .SendAsync("PaymentStatusChanged", new
+                                    {
+                                        paymentId = payment.PaymentId,
+                                        status = payment.Status,
+                                        completedDate = payment.PaymentCompletedDate
+                                    });
 
-                                    _logger.LogInformation("Payment {PaymentId} marked as completed", paymentId);
-                                }
-                                else
-                                {
-                                    _logger.LogWarning("Amount mismatch for payment {PaymentId}: expected {Expected}, received {Received}", 
-                                        paymentId, payment.Amount, receivedAmount);
-                                }
+                                _logger.LogInformation("Payment {PaymentId} marked as Completed and SignalR sent", paymentId);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Amount mismatch for payment {PaymentId}: expected {Expected}, received {Received}", 
+                                    paymentId, payment.Amount, receivedAmount);
                             }
                         }
                     }

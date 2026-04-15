@@ -727,6 +727,9 @@ namespace EnglishCenter.API.DTOs
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
         public decimal Amount { get; set; }
 
+        [Required]
+        public string PaymentMethod { get; set; } = string.Empty;
+
         public string? Notes { get; set; }
     }
 
@@ -756,6 +759,7 @@ namespace EnglishCenter.API.DTOs
         public string? content { get; set; }
         public string? transferType { get; set; }
         public string? amount { get; set; }
+        public object? transferAmount { get; set; }
         public string? referenceCode { get; set; }
         public object? accumulated { get; set; }
         public string? subAccount { get; set; }

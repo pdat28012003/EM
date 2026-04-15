@@ -92,6 +92,24 @@ const StudentPayment = () => {
   }, [studentId]);
 
   const connectionRef = React.useRef(null);
+  const pollingRef = React.useRef(null);
+
+  // Handle successful payment completion
+  const handlePaymentSuccess = React.useCallback(() => {
+    // Clear polling
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    setTimeout(() => {
+      setQrDialog(false);
+      loadEnrolledCourses();
+      loadPaymentHistory();
+      setSuccessDialog(true);
+      setSelectedCourses([]);
+    }, 1500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Setup SignalR connection for real-time payment updates
@@ -121,7 +139,7 @@ const StudentPayment = () => {
     startConnection();
 
     const handleStatusChange = (data) => {
-      console.log('Received payment update:', data);
+      console.log('Received payment update via SignalR:', data);
 
       // Support both event formats and data structures
       const pId = data.paymentId || data.PaymentId;
@@ -130,16 +148,7 @@ const StudentPayment = () => {
       if (currentPayment && pId === currentPayment.paymentId) {
         setPaymentStatus(status);
         if (status === 'Completed' || status === 'Complete') {
-          // Trigger data reload after success
-          setTimeout(() => {
-            setQrDialog(false);
-            loadEnrolledCourses();
-            loadPaymentHistory();
-            // Show success dialog
-            setSuccessDialog(true);
-            // Reset selection after successful payment
-            setSelectedCourses([]);
-          }, 2000);
+          handlePaymentSuccess();
         }
       }
     };
@@ -155,6 +164,41 @@ const StudentPayment = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPayment]);
+
+  // Polling fallback: poll payment status every 3s while QR dialog is open
+  useEffect(() => {
+    if (qrDialog && currentPayment) {
+      // Start polling
+      pollingRef.current = setInterval(async () => {
+        try {
+          const res = await paymentAPI.getPaymentStatus(currentPayment.paymentId);
+          const status = res.data?.status;
+          console.log('Polled payment status:', status);
+          if (status === 'Completed' || status === 'Complete') {
+            setPaymentStatus(status);
+            handlePaymentSuccess();
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+        }
+      }, 3000);
+    } else {
+      // Clear polling when QR dialog closes
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrDialog, currentPayment]);
+
 
   const loadEnrolledCourses = async () => {
     try {
