@@ -8,6 +8,7 @@ using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using EnglishCenter.API.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -18,15 +19,18 @@ namespace EnglishCenter.API.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IMappingService _mappingService;
         private readonly IPasswordService _passwordService;
+        private readonly ILogger<StudentsController> _logger;
 
         public StudentsController(
             ApplicationDbContext context,
             IMappingService mappingService,
-            IPasswordService passwordService)
+            IPasswordService passwordService,
+            ILogger<StudentsController> logger)
         {
             _context = context;
             _mappingService = mappingService;
             _passwordService = passwordService;
+            _logger = logger;
         }
 
         private async Task<Student?> FindStudent(int id)
@@ -630,15 +634,20 @@ namespace EnglishCenter.API.Controllers
                     DayOfWeek = cs.CurriculumDay.ScheduleDate.DayOfWeek.ToString(),
                     StartTime = cs.StartTime.ToString(@"hh\:mm"),
                     EndTime = cs.EndTime.ToString(@"hh\:mm"),
-                    CourseName = string.Join(", ", cs.CurriculumDay.Curriculum.CurriculumCourses.Select(cc => cc.Course.CourseName)),
-                    CurriculumName = cs.CurriculumDay.Curriculum.CurriculumName,
-                    SessionName = cs.SessionName,
+                    CourseName = cs.CurriculumDay.Curriculum?.CurriculumCourses != null && cs.CurriculumDay.Curriculum.CurriculumCourses.Any()
+                        ? string.Join(", ", cs.CurriculumDay.Curriculum.CurriculumCourses.Select(cc => cc.Course?.CourseName).Where(n => !string.IsNullOrEmpty(n)))
+                        : cs.CurriculumDay.Curriculum?.CurriculumName ?? "Chưa phân loại",
+                    CurriculumName = cs.CurriculumDay.Curriculum?.CurriculumName ?? "",
+                    SessionName = cs.SessionName ?? "",
                     SessionNumber = cs.SessionNumber,
-                    Topic = cs.CurriculumDay.Topic,
-                    RoomName = cs.AssignedRoom?.RoomName ?? "Not assigned",
-                    TeacherName = cs.Teacher?.FullName ?? "Not assigned",
+                    Topic = cs.CurriculumDay?.Topic ?? "",
+                    RoomName = cs.AssignedRoom?.RoomName ?? "Chưa phân phòng",
+                    TeacherName = cs.Teacher?.FullName ?? "Chưa phân giáo viên",
                     Status = "Scheduled"
                 }).ToList();
+
+                _logger.LogInformation("Retrieved {Count} schedule items for student {StudentId} from {StartDate} to {EndDate}",
+                    scheduleDtos.Count, id, startDate?.ToString("yyyy-MM-dd"), endDate?.ToString("yyyy-MM-dd"));
 
                 return Ok(new PagedResult<object>
                 {
