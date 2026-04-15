@@ -182,17 +182,8 @@ const Dashboard = () => {
     totalRevenue: 0,
     monthlyRevenue: 0,
   });
+  const [revenueData, setRevenueData] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Mock chart data
-  const revenueData = [
-    { month: 'T1', val: 4000000 },
-    { month: 'T2', val: 3000000 },
-    { month: 'T3', val: 5000000 },
-    { month: 'T4', val: 4500000 },
-    { month: 'T5', val: 6800000 },
-    { month: 'T6', val: stats.monthlyRevenue || 6800000 },
-  ];
 
   useEffect(() => {
     loadStats();
@@ -200,8 +191,20 @@ const Dashboard = () => {
 
   const loadStats = async () => {
     try {
-      const response = await dashboardAPI.getStats();
-      setStats(response.data);
+      const [statsResponse, trendResponse] = await Promise.all([
+        dashboardAPI.getStats(),
+        dashboardAPI.getRevenueTrend()
+      ]);
+
+      setStats(statsResponse.data);
+
+      // Convert revenue trend data for chart
+      const trendData = trendResponse.data?.monthlyData || [];
+      const chartData = trendData.map(item => ({
+        month: item.month,
+        val: item.revenue
+      }));
+      setRevenueData(chartData);
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
     } finally {

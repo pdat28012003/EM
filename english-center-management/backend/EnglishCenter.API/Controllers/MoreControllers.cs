@@ -529,5 +529,42 @@ namespace EnglishCenter.API.Controllers
 
             return Ok(stats);
         }
+
+        /// <summary>
+        /// Gets revenue trend for the last 6 months. (Lấy xu hướng doanh thu 6 tháng gần nhất.)
+        /// </summary>
+        /// <returns>Revenue trend data (Dữ liệu xu hướng doanh thu)</returns>
+        [HttpGet("revenue-trend")]
+        public async Task<ActionResult<RevenueTrendDto>> GetRevenueTrend()
+        {
+            var monthlyData = new List<RevenueTrendItemDto>();
+            var today = DateTime.Now;
+
+            // Get last 6 months data
+            for (int i = 5; i >= 0; i--)
+            {
+                var date = today.AddMonths(-i);
+                var monthName = $"T{date.Month}";
+
+                var monthRevenue = await _context.Payments
+                    .Where(p => p.Status == "Completed" &&
+                               p.PaymentDate.Month == date.Month &&
+                               p.PaymentDate.Year == date.Year)
+                    .SumAsync(p => (decimal?)p.Amount) ?? 0;
+
+                monthlyData.Add(new RevenueTrendItemDto
+                {
+                    Month = monthName,
+                    Revenue = monthRevenue
+                });
+            }
+
+            var trend = new RevenueTrendDto
+            {
+                MonthlyData = monthlyData
+            };
+
+            return Ok(trend);
+        }
     }
 }

@@ -18,11 +18,13 @@ import {
   CircularProgress,
   useTheme,
   Avatar,
-  Stack,
   Menu,
   Divider,
   Switch,
-  Tooltip
+  Tooltip,
+  FormControl,
+  Select,
+  InputLabel
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { 
@@ -52,7 +54,6 @@ const Teachers = () => {
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [filters, setFilters] = useState({
     status: 'all', // 'all', 'active', 'inactive'
-    skill: 'all',
     search: ''
   });
   const [formData, setFormData] = useState({
@@ -88,12 +89,12 @@ const Teachers = () => {
       } else if (filters.status === 'inactive') {
         params.isActive = false;
       }
-      
-      // Add skill filter
-      if (filters.skill && filters.skill !== 'all') {
-        params.search = params.search ? `${params.search} ${filters.skill}` : filters.skill;
+
+      // Add search filter
+      if (filters.search) {
+        params.search = filters.search;
       }
-      
+
       const response = await teachersAPI.getAll(params);
       const teachersData = response.data?.data || [];
       setTeachers(Array.isArray(teachersData) ? teachersData : []);
@@ -194,7 +195,7 @@ const Teachers = () => {
         await teachersAPI.create(submitData);
       }
       handleCloseDialog();
-      setFilters(prev => ({ ...prev, search: '', status: 'all', skill: 'all' })); // Reset bộ lọc và tìm kiếm
+      setFilters(prev => ({ ...prev, search: '', status: 'all' })); // Reset bộ lọc và tìm kiếm
       loadTeachers();
     } catch (error) {
       console.error('Error saving teacher:', error);
@@ -439,7 +440,7 @@ const Teachers = () => {
       <Paper sx={{ p: 2, mb: 3, borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <TextField
-            placeholder="Tìm theo tên, email, sđt..."
+            placeholder="Tìm theo tên, email, sđt, kỹ năng..."
             value={filters.search}
             name="search_teacher_field_unique"
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -458,70 +459,21 @@ const Teachers = () => {
               autoComplete: 'off',
             }}
           />
-          <Stack direction="row" spacing={1}>
-            {['IELTS', 'TOEIC', 'Giao tiếp'].map((skill) => {
-              const isActive = filters.skill === skill;
-              return (
-                <Chip 
-                  key={skill} 
-                  label={skill} 
-                  onClick={() => setFilters({ ...filters, skill: isActive ? 'all' : skill })} 
-                  variant={isActive ? 'filled' : 'outlined'}
-                  color={isActive ? 'info' : 'default'}
-                  sx={{ 
-                    borderRadius: 2, 
-                    fontWeight: 600, 
-                    fontSize: '0.75rem',
-                    height: 36,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    bgcolor: isActive ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                    color: isActive ? '#4f46e5' : 'text.secondary',
-                    border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(226, 232, 240, 1)',
-                    '&:hover': { 
-                      bgcolor: isActive ? 'rgba(99, 102, 241, 0.25)' : 'rgba(241, 245, 249, 1)',
-                    }
-                  }}
-                />
-              );
-            })}
-          </Stack>
 
-          <Stack direction="row" spacing={1}>
-            {['all', 'active', 'inactive'].map((status) => {
-              const labels = { all: 'Tất cả trạng thái', active: 'Đang dạy', inactive: 'Nghỉ' };
-              const isActive = filters.status === status;
-              return (
-                <Chip 
-                  key={status} 
-                  label={labels[status]} 
-                  onClick={() => setFilters({ ...filters, status })} 
-                  variant={isActive ? 'filled' : 'outlined'}
-                  color={isActive ? 'primary' : 'default'}
-                  sx={{ 
-                    borderRadius: 2, 
-                    fontWeight: 700, 
-                    fontSize: '0.75rem',
-                    height: 36,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    bgcolor: isActive ? 'primary.main' : 'transparent',
-                    boxShadow: (isActive && theme.palette.mode === 'dark') 
-                      ? '0 0 15px rgba(59, 130, 246, 0.4)' 
-                      : 'none',
-                    border: isActive ? 'none' : '1px solid rgba(226, 232, 240, 0.2)',
-                    '&:hover': { 
-                      bgcolor: isActive ? 'primary.dark' : 'rgba(59, 130, 246, 0.08)',
-                      transform: 'translateY(-1px)',
-                      boxShadow: isActive && theme.palette.mode === 'dark' 
-                        ? '0 0 20px rgba(59, 130, 246, 0.6)' 
-                        : '0 4px 8px rgba(0,0,0,0.1)'
-                    }
-                  }}
-                />
-              );
-            })}
-          </Stack>
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel id="status-filter-label">Trạng thái</InputLabel>
+            <Select
+              labelId="status-filter-label"
+              value={filters.status}
+              label="Trạng thái"
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+              sx={{ borderRadius: 2, bgcolor: 'background.paper' }}
+            >
+              <MenuItem value="all">Tất cả trạng thái</MenuItem>
+              <MenuItem value="active">Đang dạy</MenuItem>
+              <MenuItem value="inactive">Nghỉ</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
       </Paper>
 
