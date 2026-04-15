@@ -215,7 +215,9 @@ namespace EnglishCenter.API.Controllers
 
             var grades = await _context.Grades
                 .Include(g => g.Assignment)
-                    .ThenInclude(a => a.Curriculum)
+#pragma warning disable CS8602
+                    .ThenInclude(a => a.Curriculum!)
+#pragma warning restore CS8602
                 .Include(g => g.Student)
                 .Take(10)
                 .Select(g => new

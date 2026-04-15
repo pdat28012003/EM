@@ -352,7 +352,7 @@ namespace EnglishCenter.API.Controllers
                 _logger.LogInformation("Processing SePay webhook content: {Content}", webhookData.content);
 
                 var contentUpper = webhookData.content.ToUpper();
-                string paymentIndicator = contentUpper.Contains("EC-PAY-") ? "EC-PAY-" : (contentUpper.Contains("ECPAY") ? "ECPAY" : null);
+                string? paymentIndicator = contentUpper.Contains("EC-PAY-") ? "EC-PAY-" : (contentUpper.Contains("ECPAY") ? "ECPAY" : null);
 
                 if (paymentIndicator != null)
                 {
