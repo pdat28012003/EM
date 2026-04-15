@@ -202,6 +202,7 @@ export const paymentsAPI = {
 // Dashboard API
 export const dashboardAPI = {
   getStats: () => api.get('/dashboard/stats'),
+  getRevenueTrend: () => api.get('/dashboard/revenue-trend'),
   getTeacherDashboardStatistics: (teacherId) => api.get(`/statistics/teacher-dashboard/${teacherId}`),
 };
 

@@ -512,6 +512,19 @@ namespace EnglishCenter.API.DTOs
         public decimal MonthlyRevenue { get; set; }
     }
 
+    // Revenue trend data point for chart
+    public class RevenueTrendItemDto
+    {
+        public string Month { get; set; } = string.Empty; // T1, T2, T3...
+        public decimal Revenue { get; set; }
+    }
+
+    // Revenue trend response
+    public class RevenueTrendDto
+    {
+        public List<RevenueTrendItemDto> MonthlyData { get; set; } = new List<RevenueTrendItemDto>();
+    }
+
     // Dashboard Statistics with week-over-week comparison
     public class DashboardStatisticsDto
     {

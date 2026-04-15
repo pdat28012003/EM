@@ -814,7 +814,7 @@ const Students = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="fullName"
-                  label="Họ và Tên *"
+                  label="Họ và Tên"
                   value={formData.fullName}
                   onChange={handleInputChange}
                   error={!!errors.fullName}
@@ -823,12 +823,13 @@ const Students = () => {
                   fullWidth
                   placeholder="Nguyễn Văn A"
                   InputProps={{ sx: { borderRadius: 2.5 } }}
+                  sx={{ '& .MuiFormLabel-asterisk': { display: 'none' } }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="email"
-                  label="Email *"
+                  label="Email"
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
@@ -838,12 +839,13 @@ const Students = () => {
                   fullWidth
                   placeholder="nguyenvan@gmail.com"
                   InputProps={{ sx: { borderRadius: 2.5 } }}
+                  sx={{ '& .MuiFormLabel-asterisk': { display: 'none' } }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="phoneNumber"
-                  label="Số Điện Thoại *"
+                  label="Số Điện Thoại"
                   value={formData.phoneNumber}
                   onChange={handleInputChange}
                   error={!!errors.phoneNumber}
@@ -852,6 +854,7 @@ const Students = () => {
                   fullWidth
                   placeholder="0901234567"
                   InputProps={{ sx: { borderRadius: 2.5 } }}
+                  sx={{ '& .MuiFormLabel-asterisk': { display: 'none' } }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -864,6 +867,21 @@ const Students = () => {
                   required
                   fullWidth
                   InputProps={{ sx: { borderRadius: 2.5 } }}
+                  SelectProps={{
+                    renderValue: (selected) => (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{ 
+                          width: 10, 
+                          height: 10, 
+                          borderRadius: '50%', 
+                          bgcolor: getLevelStyle(selected).color || 'primary.main',
+                          flexShrink: 0
+                        }} />
+                        {selected}
+                      </Box>
+                    )
+                  }}
+                  sx={{ '& .MuiFormLabel-asterisk': { display: 'none' } }}
                 >
                   {levels.map((level) => (
                     <MenuItem key={level} value={level} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -871,7 +889,8 @@ const Students = () => {
                         width: 10, 
                         height: 10, 
                         borderRadius: '50%', 
-                        bgcolor: getLevelStyle(level).color || 'primary.main' 
+                        bgcolor: getLevelStyle(level).color || 'primary.main',
+                        flexShrink: 0
                       }} />
                       {level}
                     </MenuItem>
@@ -881,7 +900,7 @@ const Students = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="dateOfBirth"
-                  label="Ngày Sinh *"
+                  label="Ngày Sinh"
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={handleInputChange}
@@ -891,6 +910,7 @@ const Students = () => {
                   required
                   fullWidth
                   InputProps={{ sx: { borderRadius: 2.5 } }}
+                  sx={{ '& .MuiFormLabel-asterisk': { display: 'none' } }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -902,6 +922,7 @@ const Students = () => {
                   fullWidth
                   placeholder="123 Lê Lợi, Q1, TP.HCM"
                   InputProps={{ sx: { borderRadius: 2.5 } }}
+                  sx={{ '& .MuiFormLabel-asterisk': { display: 'none' } }}
                 />
               </Grid>
               <Grid item xs={12}>

@@ -58,7 +58,7 @@ const StudentGrades = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [curriculumId]);
 
   useEffect(() => {
     const studentData = JSON.parse(localStorage.getItem('user') || '{}');

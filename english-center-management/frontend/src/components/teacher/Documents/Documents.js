@@ -39,7 +39,6 @@ import {
   Edit,
   Visibility,
   FilterList,
-  Folder,
   InsertDriveFile,
   PictureAsPdf,
   VideoLibrary,
@@ -327,10 +326,6 @@ const handleDelete = async (doc) => {
       console.error('Error updating document:', error);
       alert('Cập nhật thất bại');
     }
-  };
-
-  const handleUploadOpen = () => {
-    setUploadDialogOpen(true);
   };
 
   const handleUploadClose = () => {
