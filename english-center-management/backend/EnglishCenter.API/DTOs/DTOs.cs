@@ -265,7 +265,11 @@ namespace EnglishCenter.API.DTOs
         public int CurriculumId { get; set; }
     }
 
-    
+    public class AddStudentToCurriculumDto
+    {
+        public int StudentId { get; set; }
+    }
+
     // Test Score DTOs
     public class TestScoreDto
     {
@@ -374,9 +378,10 @@ namespace EnglishCenter.API.DTOs
         public List<int> ParticipantTeacherIds { get; set; } = new List<int>();
     }
 
-    public class AddStudentToCurriculumDto
+    public class AddStudentToCourseDto
     {
         public int StudentId { get; set; }
+        public int? CurriculumId { get; set; } // Optional: curriculum containing this course
     }
 
     public class AddStudentToSessionDto

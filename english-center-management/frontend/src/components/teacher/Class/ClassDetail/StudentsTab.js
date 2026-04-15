@@ -44,25 +44,38 @@ export default function StudentsTab({ curriculumId, curriculumInfo }) {
       setLoading(true);
       // Get teacherId from localStorage or props
       const userData = localStorage.getItem('user');
-      const teacherId = userData ? JSON.parse(userData).teacherId : null;
+      let teacherId = null;
+      let user = null;
+      try {
+        user = JSON.parse(userData || '{}');
+        teacherId = user?.teacherId || user?.TeacherId;
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+      
+      console.log('Loading students for curriculum:', curriculumId, 'teacherId:', teacherId, 'user:', user);
       
       if (teacherId) {
         // Get students from teacher's sessions
+        console.log('Calling getStudentsByTeacherSessions with teacherId:', teacherId);
         const response = await curriculumAPI.getStudentsByTeacherSessions(teacherId);
+        console.log('getStudentsByTeacherSessions response:', response);
         const data = response.data || {};
         setStudents(data.students || []);        
         setTotalCount(data.totalCount || 0);
-        // sessions data ignored - not used in UI
       } else {
         // Fallback: get all students in curriculum
+        console.log('No teacherId, calling getStudents with curriculumId:', curriculumId);
         const response = await curriculumAPI.getStudents(curriculumId);
+        console.log('getStudents response:', response);
         const data = response.data || {};
         setStudents(data.students || []);        
         setTotalCount(data.totalCount || 0);
-        // sessions data ignored - not used in UI
       }
     } catch (error) {
       console.error('Error loading students:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
       setStudents([]);
       setTotalCount(0);
     } finally {

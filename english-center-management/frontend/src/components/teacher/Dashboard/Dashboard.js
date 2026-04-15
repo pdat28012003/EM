@@ -134,8 +134,12 @@ const TeacherDashboard = () => {
       })) : [];
       setRecentCurriculums(mappedCurriculums);
       
-      const activitiesResponse = await activityLogsAPI.getMyActivities({ limit: 10 });
-      const activitiesData = activitiesResponse.data || [];
+      const activitiesResponse = await activityLogsAPI.getMyActivities({ 
+        limit: 10,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+      const activitiesData = activitiesResponse.data?.data || activitiesResponse.data || [];
       const mappedActivities = Array.isArray(activitiesData) ? activitiesData.map(a => ({
         type: a.iconType || 'default',
         title: a.title,

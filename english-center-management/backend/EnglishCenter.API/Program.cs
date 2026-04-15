@@ -268,6 +268,8 @@ builder.Services.AddScoped<IPasswordService, PasswordService>();
 
 builder.Services.AddSingleton<INotificationService, NotificationService>();
 
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+
 
 
 // Configure JWT Authentication

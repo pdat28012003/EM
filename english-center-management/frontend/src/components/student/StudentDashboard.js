@@ -208,8 +208,12 @@ const StudentDashboard = () => {
       
       
       // 4. Load Activities (limit to 4)
-      const activitiesRes = await activityLogsAPI.getMyActivities({ limit: 4 });
-      const activitiesData = activitiesRes.data || [];
+      const activitiesRes = await activityLogsAPI.getMyActivities({ 
+        limit: 4,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+      const activitiesData = activitiesRes.data?.data || activitiesRes.data || [];
       setActivities(activitiesData.map(a => ({
         type: a.iconType || 'default',
         title: a.title,

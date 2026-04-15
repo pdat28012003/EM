@@ -206,19 +206,164 @@ namespace EnglishCenter.API.Controllers
                 return NotFound(new { message = "Course not found" });
             }
 
-            // Check if course has active curriculums
-            var activeCurriculums = await _context.Curriculums
-                .AnyAsync(c => c.CourseId == id && c.Status == "Active");
+            // Check if course is used in any curriculum
+            var usedInCurriculums = await _context.CurriculumCourses
+                .AnyAsync(cc => cc.CourseId == id);
             
-            if (activeCurriculums)
+            if (usedInCurriculums)
             {
-                return BadRequest(new { message = "Cannot delete course with active curriculums" });
+                return BadRequest(new { message = "Cannot delete course that is used in curriculums" });
+            }
+
+            // Remove related PaymentCourses first
+            var paymentCourses = await _context.PaymentCourses
+                .Where(pc => pc.CourseId == id)
+                .ToListAsync();
+            if (paymentCourses.Any())
+            {
+                _context.PaymentCourses.RemoveRange(paymentCourses);
+            }
+
+            // Remove related CourseEnrollments
+            var courseEnrollments = await _context.CourseEnrollments
+                .Where(ce => ce.CourseId == id)
+                .ToListAsync();
+            if (courseEnrollments.Any())
+            {
+                _context.CourseEnrollments.RemoveRange(courseEnrollments);
             }
 
             _context.Courses.Remove(course);
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        /// <summary>
+        /// Gets all students enrolled in a specific course. (Lấy danh sách học viên trong khóa học.)
+        /// </summary>
+        [HttpGet("{id}/students")]
+        public async Task<ActionResult<IEnumerable<object>>> GetCourseStudents(int id)
+        {
+            try
+            {
+                var course = await _context.Courses.FindAsync(id);
+                if (course == null)
+                    return NotFound(new { message = "Course not found" });
+
+                var enrollments = await _context.CourseEnrollments
+                    .Include(ce => ce.Student)
+                    .Where(ce => ce.CourseId == id && ce.Status == "Active")
+                    .Select(ce => new
+                    {
+                        enrollmentId = ce.CourseEnrollmentId,
+                        studentId = ce.StudentId,
+                        studentName = ce.Student.FullName,
+                        curriculumId = ce.CurriculumId,
+                        enrollmentDate = ce.EnrollmentDate,
+                        status = ce.Status
+                    })
+                    .ToListAsync();
+
+                return Ok(enrollments);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error getting course students", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Adds a student to a course. (Thêm học viên vào khóa học.)
+        /// </summary>
+        [HttpPost("{id}/students")]
+        public async Task<IActionResult> AddStudentToCourse(int id, [FromBody] AddStudentToCourseDto dto)
+        {
+            try
+            {
+                var course = await _context.Courses.FindAsync(id);
+                if (course == null)
+                    return NotFound(new { message = "Course not found" });
+
+                var student = await _context.Students.FindAsync(dto.StudentId);
+                if (student == null)
+                    return NotFound(new { message = "Student not found" });
+
+                // Check if already enrolled
+                var existing = await _context.CourseEnrollments
+                    .FirstOrDefaultAsync(ce => ce.CourseId == id && ce.StudentId == dto.StudentId);
+
+                if (existing != null)
+                    return BadRequest(new { message = "Student already enrolled in this course" });
+
+                // Get curriculum containing this course (if specified)
+                int? curriculumId = dto.CurriculumId;
+                if (!curriculumId.HasValue)
+                {
+                    // Auto-find curriculum containing this course
+                    var curriculumCourse = await _context.CurriculumCourses
+                        .FirstOrDefaultAsync(cc => cc.CourseId == id);
+                    if (curriculumCourse != null)
+                        curriculumId = curriculumCourse.CurriculumId;
+                }
+
+                var enrollment = new CourseEnrollment
+                {
+                    StudentId = dto.StudentId,
+                    CourseId = id,
+                    CurriculumId = curriculumId,
+                    EnrollmentDate = DateTime.Now,
+                    Status = "Active"
+                };
+
+                _context.CourseEnrollments.Add(enrollment);
+
+                // Also add to curriculum if specified
+                if (curriculumId.HasValue)
+                {
+                    var curriculum = await _context.Curriculums
+                        .Include(c => c.ParticipantStudents)
+                        .FirstOrDefaultAsync(c => c.CurriculumId == curriculumId.Value);
+
+                    if (curriculum != null && !curriculum.ParticipantStudents.Any(s => s.StudentId == dto.StudentId))
+                    {
+                        curriculum.ParticipantStudents.Add(student);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Student enrolled to course successfully", enrollmentId = enrollment.CourseEnrollmentId });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error enrolling student to course", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Removes a student from a course. (Xóa học viên khỏi khóa học.)
+        /// </summary>
+        [HttpDelete("{id}/students/{studentId}")]
+        public async Task<IActionResult> RemoveStudentFromCourse(int id, int studentId)
+        {
+            try
+            {
+                var enrollment = await _context.CourseEnrollments
+                    .FirstOrDefaultAsync(ce => ce.CourseId == id && ce.StudentId == studentId);
+
+                if (enrollment == null)
+                    return NotFound(new { message = "Enrollment not found" });
+
+                enrollment.Status = "Dropped";
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Student removed from course" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error removing student from course", error = ex.Message });
+            }
         }
     }
 

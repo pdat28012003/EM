@@ -21,6 +21,7 @@ import {
   Avatar,
   Fade,
   Tooltip,
+  Divider,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { 
@@ -34,7 +35,7 @@ import {
   AccessTime,
   Close,
 } from '@mui/icons-material';
-import { coursesAPI } from '../../../services/api';
+import { coursesAPI, studentsAPI } from '../../../services/api';
 import { alpha } from '@mui/material/styles';
 
 const Courses = () => {
@@ -58,6 +59,13 @@ const Courses = () => {
     duration: 12,
     price: 0,
   });
+
+  // Student enrollment dialog
+  const [openStudentDialog, setOpenStudentDialog] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [enrolledStudents, setEnrolledStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   const [errors, setErrors] = useState({});
 
@@ -106,6 +114,50 @@ const Courses = () => {
   const handleCloseMenu = () => {
     setAnchorEl(null);
     setSelectedCourse(null);
+  };
+
+  const handleOpenStudentDialog = async (course) => {
+    setSelectedCourse(course);
+    setOpenStudentDialog(true);
+    setLoadingStudents(true);
+    try {
+      // Load enrolled students
+      const enrolledRes = await coursesAPI.getStudents(course.courseId);
+      setEnrolledStudents(enrolledRes.data || []);
+      // Load all students (handle different API response formats)
+      const studentsRes = await studentsAPI.getAll({ page: 1, pageSize: 1000 });
+const studentsData = studentsRes.data?.data?.data || [];
+setStudents(studentsData);
+    } catch (error) {
+      console.error('Error loading students:', error);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const handleAddStudent = async (studentId) => {
+    try {
+      await coursesAPI.addStudent(selectedCourse.courseId, studentId);
+      // Refresh enrolled list
+      const enrolledRes = await coursesAPI.getStudents(selectedCourse.courseId);
+      setEnrolledStudents(enrolledRes.data || []);
+    } catch (error) {
+      console.error('Error adding student:', error);
+      alert('Lỗi khi thêm học viên: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleRemoveStudent = async (studentId) => {
+    if (!window.confirm('Bạn có chắc muốn xóa học viên này khỏi khóa học?')) return;
+    try {
+      await coursesAPI.removeStudent(selectedCourse.courseId, studentId);
+      // Refresh enrolled list
+      const enrolledRes = await coursesAPI.getStudents(selectedCourse.courseId);
+      setEnrolledStudents(enrolledRes.data || []);
+    } catch (error) {
+      console.error('Error removing student:', error);
+      alert('Lỗi khi xóa học viên: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   const handleOpenDialog = (course = null) => {
@@ -186,6 +238,7 @@ const Courses = () => {
       loadCourses();
     } catch (error) {
       console.error('Error saving course:', error);
+      alert('Lỗi khi lưu khóa học: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -203,6 +256,7 @@ const Courses = () => {
         loadCourses();
       } catch (error) {
         console.error('Error deleting course:', error);
+        alert('Lỗi khi xóa khóa học: ' + (error.response?.data?.message || error.message));
       }
     }
   };
@@ -505,6 +559,10 @@ const Courses = () => {
           <Edit fontSize="small" color="primary" />
           <Typography variant="body2" fontWeight={600}>Chỉnh sửa</Typography>
         </MenuItem>
+        <MenuItem onClick={() => { handleCloseMenu(); handleOpenStudentDialog(selectedCourse); }} sx={{ gap: 1.5, py: 1 }}>
+          <School fontSize="small" color="success" />
+          <Typography variant="body2" fontWeight={600}>Quản lý học viên</Typography>
+        </MenuItem>
         <MenuItem onClick={handleDeleteClick} sx={{ gap: 1.5, py: 1, color: 'error.main' }}>
           <Delete fontSize="small" />
           <Typography variant="body2" fontWeight={600}>Xóa khóa học</Typography>
@@ -630,6 +688,114 @@ const Courses = () => {
             sx={{ px: 4, borderRadius: 2.5, fontWeight: 700 }}
           >
             {editingId ? 'Cập Nhật' : 'Thêm Mới'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Student Enrollment Dialog */}
+      <Dialog
+        open={openStudentDialog}
+        onClose={() => setOpenStudentDialog(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4, backgroundImage: 'none' } }}
+      >
+        <DialogTitle sx={{ m: 0, p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: 'success.main', width: 40, height: 40 }}>
+              <School />
+            </Avatar>
+            <Typography variant="h6" fontWeight={800}>
+              Quản lý học viên - {selectedCourse?.courseName}
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setOpenStudentDialog(false)} size="small" sx={{ color: 'text.secondary' }}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 3, minHeight: 400 }}>
+          {loadingStudents ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+              <Typography>Đang tải...</Typography>
+            </Box>
+          ) : (
+            <>
+              <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                Học viên đã đăng ký ({enrolledStudents.length})
+              </Typography>
+              <Box sx={{ mb: 3 }}>
+                {enrolledStudents.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                    Chưa có học viên nào đăng ký khóa học này.
+                  </Typography>
+                ) : (
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {enrolledStudents.map((enrollment) => (
+                      <Chip
+                        key={enrollment.enrollmentId}
+                        label={enrollment.studentName}
+                        onDelete={() => handleRemoveStudent(enrollment.studentId)}
+                        color="primary"
+                        variant="outlined"
+                        sx={{ mb: 1 }}
+                      />
+                    ))}
+                  </Stack>
+                )}
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                Thêm học viên mới
+              </Typography>
+              <TextField
+                placeholder="Tìm kiếm học viên..."
+                variant="outlined"
+                size="small"
+                fullWidth
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Box sx={{ maxHeight: 250, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1 }}>
+                {(students || [])
+                  .filter((s) => !(enrolledStudents || []).some((es) => es.studentId === s.studentId))
+                  .map((student) => (
+                    <Box
+                      key={student.studentId}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        p: 1,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' },
+                      }}
+                      onClick={() => handleAddStudent(student.studentId)}
+                    >
+                     
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight={600}>{student.fullName}</Typography>
+                        <Typography variant="caption" color="text.secondary">{student.email}</Typography>
+                      </Box>
+                      <Button size="small" variant="outlined" sx={{ borderRadius: 2 }}>
+                        Thêm
+                      </Button>
+                    </Box>
+                  ))}
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpenStudentDialog(false)} sx={{ px: 4, borderRadius: 2.5, fontWeight: 700 }}>
+            Đóng
           </Button>
         </DialogActions>
       </Dialog>

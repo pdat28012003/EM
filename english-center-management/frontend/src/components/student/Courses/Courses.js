@@ -43,7 +43,7 @@ import {
 
 } from '@mui/icons-material';
 
-import { curriculumAPI, authAPI } from '../../../services/api';
+import { studentsAPI, authAPI } from '../../../services/api';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -141,7 +141,7 @@ const StudentClasses = () => {
 
       console.log('Fetching classes for studentId:', studentId);
 
-      const response = await curriculumAPI.getCurriculumsByStudent(studentId);
+      const response = await studentsAPI.getCurriculums(studentId);
 
       console.log('API Response:', response.data);
 
@@ -150,7 +150,7 @@ const StudentClasses = () => {
       const mappedClasses = Array.isArray(curriculumsData) ? curriculumsData.map(c => ({
         curriculumId: c.curriculumId,
         className: c.curriculumName,
-        courseName: c.courseName,
+        courseName: c.courseName || (c.courses?.map(course => course.courseName).join(', ') || 'Khóa học tiếng Anh'),
         startDate: c.startDate,
         endDate: c.endDate,
         status: c.status,
@@ -351,10 +351,21 @@ const StudentClasses = () => {
 
 
 
-                  <Typography variant="body1" color="textSecondary" sx={{ mb: 2, fontWeight: 500 }}>
-
+                  <Typography 
+                    variant="body1" 
+                    color="textSecondary" 
+                    sx={{ 
+                      mb: 2, 
+                      fontWeight: 500,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      minHeight: '3em'
+                    }}
+                  >
                     {classItem.courseName}
-
                   </Typography>
 
 
