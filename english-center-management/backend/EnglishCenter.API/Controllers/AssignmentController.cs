@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Models;
+using EnglishCenter.API.Services;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Hosting;
 using System.Text.Json;
@@ -17,11 +18,13 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly IActivityLogService _activityLogService;
 
-        public AssignmentController(ApplicationDbContext context, IWebHostEnvironment environment)
+        public AssignmentController(ApplicationDbContext context, IWebHostEnvironment environment, IActivityLogService activityLogService)
         {
             _context = context;
             _environment = environment;
+            _activityLogService = activityLogService;
         }
 
         /// <summary>
@@ -266,20 +269,12 @@ namespace EnglishCenter.API.Controllers
                     };
                     _context.Notifications.Add(teacherNotification);
 
-                    // CREATE ACTIVITY LOG for teacher
-                    var activityLog = new ActivityLog
-                    {
-                        TeacherId = teacher.TeacherId,
-                        Action = "CREATE_ASSIGNMENT",
-                        Title = "Đã tạo bài tập mới",
-                        Description = $"Bạn đã tạo bài tập '{assignment.Title}' trong khóa {curriculum.CurriculumName}",
-                        IconType = "assignment",
-                        Color = "success",
-                        TargetId = assignment.AssignmentId,
-                        TargetType = "Assignment",
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _context.ActivityLogs.Add(activityLog);
+                    // CREATE ACTIVITY LOG for teacher using service
+                    await _activityLogService.LogAssignmentCreatedAsync(
+                        teacherId: teacher.TeacherId,
+                        assignmentId: assignment.AssignmentId,
+                        assignmentTitle: assignment.Title
+                    );
                 }
 
                 await _context.SaveChangesAsync();
@@ -639,20 +634,12 @@ namespace EnglishCenter.API.Controllers
                     _context.Notifications.Add(notification);
                     await _context.SaveChangesAsync();
 
-                    // CREATE ACTIVITY LOG for student
-                    var studentActivity = new ActivityLog
-                    {
-                        StudentId = dto.StudentId,
-                        Action = "SUBMIT_ASSIGNMENT",
-                        Title = "Đã nộp bài tập",
-                        Description = $"Bạn đã nộp bài '{assignment.Title}'",
-                        IconType = "assignment_turned_in",
-                        Color = "info",
-                        TargetId = submission.SubmissionId,
-                        TargetType = "Submission",
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _context.ActivityLogs.Add(studentActivity);
+                    // CREATE ACTIVITY LOG for student using service
+                    await _activityLogService.LogAssignmentSubmittedAsync(
+                        studentId: dto.StudentId,
+                        submissionId: submission.SubmissionId,
+                        assignmentTitle: assignment.Title
+                    );
                     await _context.SaveChangesAsync();
                 }
 
@@ -1024,35 +1011,14 @@ namespace EnglishCenter.API.Controllers
                 _context.Notifications.Add(notification);
                 await _context.SaveChangesAsync();
 
-                // CREATE ACTIVITY LOG for teacher
-                var graderActivity = new ActivityLog
-                {
-                    TeacherId = submission.GradedBy,
-                    Action = "GRADE_SUBMISSION",
-                    Title = "Đã chấm điểm bài nộp",
-                    Description = $"Bạn đã chấm điểm bài '{submission.Assignment?.Title}' của {submission.Student?.FullName}: {gradeDto.Score}/{submission.Assignment?.MaxScore}",
-                    IconType = "grading",
-                    Color = "warning",
-                    TargetId = submission.SubmissionId,
-                    TargetType = "Submission",
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.ActivityLogs.Add(graderActivity);
-
-                // CREATE ACTIVITY LOG for student
-                var gradedActivity = new ActivityLog
-                {
-                    StudentId = submission.StudentId,
-                    Action = "ASSIGNMENT_GRADED",
-                    Title = "Bài tập đã được chấm",
-                    Description = $"Bài '{submission.Assignment!.Title}' của bạn được chấm: {gradeDto.Score}/{submission.Assignment.MaxScore}",
-                    IconType = "grading",
-                    Color = "warning",
-                    TargetId = submission.SubmissionId,
-                    TargetType = "Submission",
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.ActivityLogs.Add(gradedActivity);
+                // CREATE ACTIVITY LOGS using service
+                await _activityLogService.LogAssignmentGradedAsync(
+                    teacherId: submission.GradedBy ?? 1, // Default to teacher ID 1 if null
+                    studentId: submission.StudentId,
+                    submissionId: submission.SubmissionId,
+                    assignmentTitle: submission.Assignment!.Title,
+                    score: gradeDto.Score
+                );
 
                 await _context.SaveChangesAsync();
 
@@ -1505,19 +1471,12 @@ namespace EnglishCenter.API.Controllers
                 };
                 _context.AssignmentSubmissions.Add(submission);
 
-                // Activity log for student
-                _context.ActivityLogs.Add(new ActivityLog
-                {
-                    StudentId = dto.StudentId,
-                    Action = "SUBMIT_QUIZ",
-                    Title = "Đã nộp Quiz",
-                    Description = $"Bạn đã nộp Quiz '{assignment.Title}'",
-                    IconType = "quiz",
-                    Color = "info",
-                    TargetId = submission.SubmissionId,
-                    TargetType = "Submission",
-                    CreatedAt = DateTime.UtcNow
-                });
+                // Activity log for student using service
+                await _activityLogService.LogQuizSubmittedAsync(
+                    studentId: dto.StudentId,
+                    assignmentId: assignmentId,
+                    quizTitle: assignment.Title
+                );
 
                 await _context.SaveChangesAsync();
 

@@ -424,6 +424,42 @@ namespace EnglishCenter.API.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EnglishCenter.API.Models.CourseEnrollment", b =>
+                {
+                    b.Property<int>("CourseEnrollmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CourseEnrollmentId"));
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CurriculumId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EnrollmentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CourseEnrollmentId");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("CurriculumId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("CourseEnrollments");
+                });
+
             modelBuilder.Entity("EnglishCenter.API.Models.Curriculum", b =>
                 {
                     b.Property<int>("CurriculumId")
@@ -2038,6 +2074,31 @@ namespace EnglishCenter.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Lesson");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("EnglishCenter.API.Models.CourseEnrollment", b =>
+                {
+                    b.HasOne("EnglishCenter.API.Models.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnglishCenter.API.Models.Curriculum", "Curriculum")
+                        .WithMany()
+                        .HasForeignKey("CurriculumId");
+
+                    b.HasOne("EnglishCenter.API.Models.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Curriculum");
 
                     b.Navigation("Student");
                 });

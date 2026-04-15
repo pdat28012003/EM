@@ -18,6 +18,7 @@ namespace EnglishCenter.API.Data
         public DbSet<TestScore> TestScores { get; set; }
         public DbSet<Curriculum> Curriculums { get; set; }
         public DbSet<CurriculumCourse> CurriculumCourses { get; set; }
+        public DbSet<CourseEnrollment> CourseEnrollments { get; set; }
         public DbSet<CurriculumDay> CurriculumDays { get; set; }
         public DbSet<CurriculumSession> CurriculumSessions { get; set; }
         public DbSet<Lesson> Lessons { get; set; }

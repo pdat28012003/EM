@@ -48,7 +48,7 @@ const TeacherClasses = () => {
 
   const handleViewClassDetail = (classItem) => {
     // Navigate to class detail page
-    navigate(`/teacher/classes/${classItem.classId}`);
+    navigate(`/teacher/curriculums/${classItem.classId}`);
   };
   
   useEffect(() => {

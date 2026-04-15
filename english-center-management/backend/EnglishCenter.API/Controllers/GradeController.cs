@@ -89,12 +89,27 @@ namespace EnglishCenter.API.Controllers
         [HttpGet("curriculum/{curriculumId}")]
         public async Task<ActionResult<IEnumerable<GradeDto>>> GetGradesByCurriculum(int curriculumId)
         {
+            // Get courseIds from curriculum
+            var courseIds = await _context.CurriculumCourses
+                .Where(cc => cc.CurriculumId == curriculumId)
+                .Select(cc => cc.CourseId)
+                .ToListAsync();
+
+            // Get studentIds from CourseEnrollments
+            var studentIds = await _context.CourseEnrollments
+                .Where(ce => courseIds.Contains(ce.CourseId) && ce.Status == "Active")
+                .Select(ce => ce.StudentId)
+                .Distinct()
+                .ToListAsync();
+
             var grades = await _context.Grades
                 .Include(g => g.Student)
                 .Include(g => g.Assignment)
                 .Include(g => g.Skill)
-                .Where(g => g.Student != null && _context.Enrollments
-                    .Any(e => e.StudentId == g.StudentId && e.CurriculumId == curriculumId && e.Status == "Active"))
+                .Where(g => g.Student != null && 
+                           studentIds.Contains(g.StudentId) &&
+                           g.Assignment != null && 
+                           g.Assignment.CurriculumId == curriculumId)
                 .Select(g => new GradeDto
                 {
                     GradeId = g.GradeId,

@@ -19,7 +19,7 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import { gradesAPI, curriculumAPI } from '../../../services/api';
+import { gradesAPI, studentsAPI } from '../../../services/api';
 import { useParams } from 'react-router-dom';
 
 const StudentGrades = () => {
@@ -36,7 +36,7 @@ const StudentGrades = () => {
       setError(null);
 
       // Load student's curriculums
-      const curriculumsRes = await curriculumAPI.getCurriculumsByStudent(studentId);
+      const curriculumsRes = await studentsAPI.getCurriculums(studentId);
       const curriculumsData = curriculumsRes.data || [];
       setCurriculums(curriculumsData);
 

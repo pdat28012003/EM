@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -69,6 +69,10 @@ const StudentClassDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
+  // Cache for tab data
+  const [gradesLoaded, setGradesLoaded] = useState(false);
+  const [assignmentsLoaded, setAssignmentsLoaded] = useState(false);
+  
 
   useEffect(() => {
     loadClassData();
@@ -78,27 +82,37 @@ const StudentClassDetail = () => {
     loadSkillsData();
   }, []);
 
+  // Cleanup fullscreen on unmount
   useEffect(() => {
-    if (activeTab === 0) {
+    return () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 0 && !gradesLoaded) {
       loadGradesData();
-    } else if (activeTab === 1) {
+      setGradesLoaded(true);
+    } else if (activeTab === 1 && !assignmentsLoaded) {
       loadAssignmentsData();
+      setAssignmentsLoaded(true);
     }
-  }, [activeTab]);
+  }, [activeTab, gradesLoaded, assignmentsLoaded]);
 
   const loadClassData = async () => {
     try {
       setLoading(true);
-      const [classRes, studentsRes] = await Promise.all([
-        curriculumAPI.getById(curriculumId),
-        curriculumAPI.getStudents(curriculumId),
-      ]);
-
+      const classRes = await curriculumAPI.getById(curriculumId);
       const classData = classRes.data?.Data || classRes.data?.data?.Data || classRes.data?.data?.data || classRes.data?.data || classRes.data;
-      const studentsData = studentsRes.data?.Data || studentsRes.data?.data?.Data || studentsRes.data?.data?.data || studentsRes.data?.data || studentsRes.data || [];
+      
+      // Get all students from curriculum (1 API call)
+      const studentsRes = await curriculumAPI.getStudents(curriculumId);
+      const studentsData = studentsRes.data?.students || studentsRes.data?.data?.students || [];
 
       setCurriculumInfo(classData);
-      setStudents(Array.isArray(studentsData) ? studentsData : []);
+      setStudents(studentsData);
     } catch (err) {
       console.error('Error loading class data:', err);
       setError('Không thể tải thông tin lớp học. Vui lòng thử lại sau.');
@@ -127,6 +141,7 @@ const StudentClassDetail = () => {
       const response = await skillsAPI.getAll();
       const skillsData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
       const activeSkills = Array.isArray(skillsData) ? skillsData.filter(s => s.isActive !== false) : [];
+      console.log('Loaded skills:', activeSkills);
       setSkills(activeSkills);
     } catch (err) {
       console.error('Error loading skills:', err);
@@ -138,12 +153,15 @@ const StudentClassDetail = () => {
     try {
       setAssignmentsLoading(true);
       // Lấy studentId từ user data
-      const userData = localStorage.getItem('user');
-      let studentId = null;
-      if (userData) {
-        const user = JSON.parse(userData);
-        studentId = user.studentId;
-      }
+      const getStudentId = () => {
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          return user?.studentId || null;
+        } catch {
+          return null;
+        }
+      };
+      const studentId = getStudentId();
       const response = await assignmentsAPI.getAll({ curriculumId, studentId });
       const assignmentsData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
       setAssignments(Array.isArray(assignmentsData) ? assignmentsData : []);
@@ -155,25 +173,38 @@ const StudentClassDetail = () => {
     }
   };
 
+  // Optimized grade map O(n) instead of O(n²)
+  const gradeMap = useMemo(() => {
+    const map = {};
+    grades.forEach(g => {
+      const studentId = g.studentId || g.StudentId;
+      const skill = (g.skillName || g.SkillName)?.toLowerCase();
+      if (!studentId || !skill) return;
+
+      if (!map[studentId]) map[studentId] = {};
+      
+      const current = map[studentId][skill];
+      const createdAt = new Date(g.createdAt || g.CreatedAt || 0);
+
+      if (!current || createdAt > current.date) {
+        map[studentId][skill] = {
+          score: g.score || g.Score,
+          date: createdAt
+        };
+      }
+    });
+    return map;
+  }, [grades, students]);
+
   // Get grade for a student by skill name
   const getStudentGradeBySkill = (studentId, skillName) => {
-    const studentGrades = grades.filter(g =>
-      (g.studentId === studentId || g.StudentId === studentId) &&
-      (g.skillName?.toLowerCase() === skillName.toLowerCase() ||
-       g.SkillName?.toLowerCase() === skillName.toLowerCase())
-    );
-    if (studentGrades.length === 0) return null;
-    // Get latest grade
-    const latest = studentGrades.sort((a, b) =>
-      new Date(b.createdAt || b.CreatedAt || 0) - new Date(a.createdAt || a.CreatedAt || 0)
-    )[0];
-    return latest?.score || latest?.Score || null;
+    return gradeMap[studentId]?.[skillName.toLowerCase()]?.score ?? null;
   };
 
-  // Get skills for grade columns (from skills API, not from grades data)
-  const getUniqueSkills = () => {
+  // Cached unique skills
+  const uniqueSkills = useMemo(() => {
     return skills.map(s => s.name || s.Name).filter(Boolean);
-  };
+  }, [skills]);
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -352,7 +383,7 @@ const StudentClassDetail = () => {
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'primary.main' }}>
                     <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Học viên</TableCell>
-                    {getUniqueSkills().map(skill => (
+                    {uniqueSkills.map(skill => (
                       <TableCell key={skill} sx={{ color: 'white', fontWeight: 'bold' }} align="center">
                         {skill}
                       </TableCell>
@@ -363,7 +394,6 @@ const StudentClassDetail = () => {
                 <TableBody>
                   {students.map((student, index) => {
                     const studentId = student.studentId || student.StudentId;
-                    const uniqueSkills = getUniqueSkills();
 
                     // Get all skill scores dynamically
                     const skillScores = uniqueSkills.map(skill =>
@@ -466,13 +496,14 @@ const StudentClassDetail = () => {
               </Box>
 
               {(() => {
+                // Refactored filter helpers
+                const isSubmitted = (a) => ['Submitted', 'Graded'].includes(a.studentStatus);
+                const isOverdue = (a) => dayjs().isAfter(dayjs(a.dueDate || a.DueDate));
+                
                 const filteredAssignments = assignments.filter(a => {
                   if (assignmentFilter === 'all') return true;
-                  const now = dayjs();
-                  const dueDate = dayjs(a.dueDate || a.DueDate);
-                  const isSubmitted = a.studentStatus === 'Graded' || a.studentStatus === 'Submitted';
-                  if (assignmentFilter === 'pending') return now.isBefore(dueDate) && !isSubmitted;
-                  if (assignmentFilter === 'overdue') return now.isAfter(dueDate) && !isSubmitted;
+                  if (assignmentFilter === 'pending') return !isSubmitted(a) && !isOverdue(a);
+                  if (assignmentFilter === 'overdue') return !isSubmitted(a) && isOverdue(a);
                   return true;
                 });
 
@@ -502,8 +533,8 @@ const StudentClassDetail = () => {
                   <List sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {filteredAssignments.map((assignment) => {
                       const statusInfo = getStatusInfo(assignment);
-                      const isOverdue = dayjs().isAfter(dayjs(assignment.dueDate || assignment.DueDate));
-                      const isSubmitted = assignment.studentStatus === 'Graded' || assignment.studentStatus === 'Submitted';
+                      const overdue = isOverdue(assignment);
+                      const submitted = isSubmitted(assignment);
                       
                       return (
                         <ListItem 
@@ -557,7 +588,16 @@ const StudentClassDetail = () => {
                             }
                           />
                           <Box>
-                            {!isSubmitted && !isOverdue ? (
+                            {submitted ? (
+                              <Button variant="outlined" color="success" sx={{ borderRadius: 2 }} size="small"
+                                onClick={() => navigate(`/student/assignments/${assignment.assignmentId || assignment.AssignmentId}`)}>
+                                Xem kết quả
+                              </Button>
+                            ) : overdue ? (
+                              <Button variant="outlined" color="error" disabled sx={{ borderRadius: 2 }} size="small">
+                                Đã quá hạn
+                              </Button>
+                            ) : (
                               <Tooltip title="Vào làm bài">
                                 <Button 
                                   variant="contained" 
@@ -576,15 +616,6 @@ const StudentClassDetail = () => {
                                   Làm bài
                                 </Button>
                               </Tooltip>
-                            ) : !isSubmitted && isOverdue ? (
-                              <Button variant="outlined" color="error" disabled sx={{ borderRadius: 2 }} size="small">
-                                Đã quá hạn
-                              </Button>
-                            ) : (
-                              <Button variant="outlined" color="success" sx={{ borderRadius: 2 }} size="small"
-                                onClick={() => navigate(`/student/assignments/${assignment.assignmentId || assignment.AssignmentId}`)}>
-                                Xem kết quả
-                              </Button>
                             )}
                           </Box>
                         </ListItem>

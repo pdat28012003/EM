@@ -148,6 +148,36 @@ namespace EnglishCenter.API.Models
         public Curriculum Curriculum { get; set; } = null!;
     }
 
+    public class CourseEnrollment
+    {
+        [Key]
+        public int CourseEnrollmentId { get; set; }
+
+        [Required]
+        public int StudentId { get; set; }
+
+        [Required]
+        public int CourseId { get; set; }
+
+        // Optional: Link to curriculum if course is part of a curriculum
+        public int? CurriculumId { get; set; }
+
+        public DateTime EnrollmentDate { get; set; }
+
+        [MaxLength(50)]
+        public string Status { get; set; } = "Active"; // Active, Completed, Dropped
+
+        // Navigation properties
+        [ForeignKey("StudentId")]
+        public Student Student { get; set; } = null!;
+
+        [ForeignKey("CourseId")]
+        public Course Course { get; set; } = null!;
+
+        [ForeignKey("CurriculumId")]
+        public Curriculum? Curriculum { get; set; }
+    }
+
     public class Payment
     {
         [Key]

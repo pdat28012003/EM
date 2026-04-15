@@ -16,7 +16,7 @@ import {
   EventNote,
   ArrowBack,
 } from '@mui/icons-material';
-import { curriculumAPI, roomsAPI, teachersAPI, documentsAPI, studentsAPI } from '../../../services/api';
+import { curriculumAPI, roomsAPI, teachersAPI, documentsAPI } from '../../../services/api';
 
 const CurriculumDetail = () => {
   const { curriculumId } = useParams();
@@ -38,13 +38,6 @@ const CurriculumDetail = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [dateRange, setDateRange] = useState([]);
-  const [activeTab, setActiveTab] = useState('schedule'); // 'schedule' | 'students'
-  const [students, setStudents] = useState([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-  const [studentCapacity, setStudentCapacity] = useState({ max: null, available: null });
-  const [showStudentSelectModal, setShowStudentSelectModal] = useState(false);
-  const [availableStudents, setAvailableStudents] = useState([]);
-  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [showFullDesc, setShowFullDesc] = useState(false);
   // Session Students
   const [showSessionStudentModal, setShowSessionStudentModal] = useState(false);
@@ -85,7 +78,6 @@ const CurriculumDetail = () => {
     loadRooms();
     loadTeachers();
     loadDocuments();
-    loadStudents();
   }, [curriculumId]);
 
   useEffect(() => {
@@ -96,14 +88,6 @@ const CurriculumDetail = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curriculum]);
 
-  // Load students when tab changes to students
-  useEffect(() => {
-    console.log('Tab changed:', activeTab);
-    if (activeTab === 'students' && curriculumId) {
-      loadStudents();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, curriculumId]);
 
   const loadCurriculum = async () => {
     try {
@@ -175,131 +159,6 @@ const CurriculumDetail = () => {
     } catch (error) {
       console.error('Error saving teachers:', error);
       alert('Không thể cập nhật giáo viên. Vui lòng thử lại!');
-    }
-  };
-
-  // Load students in curriculum
-  const loadStudents = async () => {
-    try {
-      setLoadingStudents(true);
-      const response = await curriculumAPI.getStudents(curriculumId);
-      const data = response.data || {};
-      setStudents(data.students || []);
-      setStudentCapacity({
-        max: data.maxCapacity,
-        available: data.availableSlots
-      });
-    } catch (error) {
-      console.error('Error loading students:', error);
-    } finally {
-      setLoadingStudents(false);
-    }
-  };
-
-  // Toggle student selection
-  const toggleStudentSelection = (studentId) => {
-    setSelectedStudentIds(prev => {
-      if (prev.includes(studentId)) {
-        return prev.filter(id => id !== studentId);
-      } else {
-        return [...prev, studentId];
-      }
-    });
-  };
-
-  // Select/deselect all
-  const toggleSelectAll = () => {
-    if (selectedStudentIds.length === availableStudents.length) {
-      setSelectedStudentIds([]);
-    } else {
-      setSelectedStudentIds(availableStudents.map(s => s.studentId));
-    }
-  };
-
-  // Add selected students to curriculum
-  const handleAddSelectedStudents = async () => {
-    if (selectedStudentIds.length === 0) {
-      alert('Bạn chưa chọn học viên nào!');
-      return;
-    }
-
-    try {
-      // Add each student one by one
-      for (const studentId of selectedStudentIds) {
-        await curriculumAPI.addStudent(curriculumId, studentId);
-      }
-
-      // Auto-assign students to all existing sessions
-      const sessions = [];
-      curriculum.curriculumDays?.forEach(day => {
-        if (day.curriculumSessions) {
-          sessions.push(...day.curriculumSessions);
-        }
-      });
-
-      if (sessions.length > 0) {
-        let sessionAssignCount = 0;
-        for (const studentId of selectedStudentIds) {
-          for (const session of sessions) {
-            try {
-              await curriculumAPI.addStudentToSession(session.curriculumSessionId, studentId);
-              sessionAssignCount++;
-            } catch (sessionError) {
-              console.warn(`Failed to assign student ${studentId} to session ${session.curriculumSessionId}:`, sessionError);
-              // Continue with other assignments even if one fails
-            }
-          }
-        }
-        console.log(`Assigned ${sessionAssignCount} student-session pairs`);
-      }
-
-      loadStudents();
-      setShowStudentSelectModal(false);
-      setSelectedStudentIds([]);
-
-      const message = sessions.length > 0
-        ? `Thêm thành công ${selectedStudentIds.length} sinh viên và gán vào ${sessions.length} buổi học!`
-        : `Thêm thành công ${selectedStudentIds.length} sinh viên!`;
-      alert(message);
-    } catch (error) {
-      console.error('Error adding students:', error);
-      alert(error.response?.data?.message || 'Không thêm sinh viên. Vui lòng xem xét!');
-    }
-  };
-
-  // Remove student from curriculum
-  const handleRemoveStudent = async (studentId) => {
-    if (!window.confirm('Xóa học viên này khỏi chương trình?')) return;
-    try {
-      await curriculumAPI.removeStudent(curriculumId, studentId);
-      loadStudents();
-      alert('Đã xóa học viên!');
-    } catch (error) {
-      console.error('Error removing student:', error);
-      alert('Không thể xóa học viên. Vui lòng thử lại!');
-    }
-  };
-
-  // Load available students (not in curriculum)
-  const loadAvailableStudents = async () => {
-    try {
-      setSelectedStudentIds([]); // Reset selection
-
-      const response = await curriculumAPI.getStudents(curriculumId);
-      const enrolledStudents = response.data?.students || response.data || [];
-      const enrolledIds = Array.isArray(enrolledStudents) ? enrolledStudents.map(s => s.studentId) : [];
-
-      // Get all students and filter out enrolled ones
-      const allStudentsRes = await studentsAPI.getAll({ pageSize: 1000 });
-      const allStudents = allStudentsRes.data?.data?.data || allStudentsRes.data?.data?.Data || [];
-
-      const available = Array.isArray(allStudents) ? allStudents.filter(s => {
-        return !enrolledIds.includes(s.studentId) && s.isActive;
-      }) : [];
-
-      setAvailableStudents(available);
-    } catch (error) {
-      console.error('Error loading available students:', error);
     }
   };
 
@@ -730,52 +589,8 @@ const CurriculumDetail = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs-container" style={{
-        display: 'flex',
-        borderBottom: '2px solid #e5e7eb',
-        marginBottom: '20px'
-      }}>
-        <button
-          onClick={() => setActiveTab('schedule')}
-          style={{
-            padding: '12px 24px',
-            border: 'none',
-            borderBottom: activeTab === 'schedule' ? '2px solid #3b82f6' : '2px solid transparent',
-            background: 'none',
-            color: activeTab === 'schedule' ? '#3b82f6' : '#6b7280',
-            fontWeight: activeTab === 'schedule' ? '600' : '400',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <EventNote />
-          Lịch học
-        </button>
-        <button
-          onClick={() => setActiveTab('students')}
-          style={{
-            padding: '12px 24px',
-            border: 'none',
-            borderBottom: activeTab === 'students' ? '2px solid #3b82f6' : '2px solid transparent',
-            background: 'none',
-            color: activeTab === 'students' ? '#3b82f6' : '#6b7280',
-            fontWeight: activeTab === 'students' ? '600' : '400',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <Person />
-          Học viên ({studentCapacity.max ? `${students.length}/${studentCapacity.max}` : students.length})
-        </button>
-      </div>
-
-      {activeTab === 'schedule' ? (
-        <div className="curriculum-timeline">
+      {/* Lịch học */}
+      <div className="curriculum-timeline">
           <h3>Lịch sắp xếp buổi học</h3>
           {dateRange.map((date, index) => {
             const dateStr = formatDate(date);
@@ -928,183 +743,7 @@ const CurriculumDetail = () => {
             );
           })}
         </div>
-      ) : (
-        // Students Tab
-        <div className="students-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div>
-              <h3 style={{ margin: 0 }}>
-                Danh sách học viên ({studentCapacity.max ? `${students.length}/${studentCapacity.max}` : students.length})
-              </h3>
-              {studentCapacity.max && (
-                <small style={{ color: studentCapacity.available <= 3 ? '#dc2626' : '#6b7280' }}>
-                  {studentCapacity.available > 0
-                    ? `Còn ${studentCapacity.available} chỗ trống`
-                    : 'Đã đầy'}
-                </small>
-              )}
-            </div>
-            <button
-              className="btn btn-success"
-              onClick={() => {
-                loadAvailableStudents();
-                setShowStudentSelectModal(true);
-              }}
-              disabled={studentCapacity.available === 0}
-              style={{ opacity: studentCapacity.available === 0 ? 0.5 : 1 }}
-            >
-              <Add />
-              Thêm học viên
-            </button>
-          </div>
-          {studentCapacity.available === 0 && (
-            <div style={{ background: '#fee2e2', border: '1px solid #dc2626', borderRadius: '4px', padding: '10px', marginBottom: '15px', color: '#dc2626' }}>
-              <strong>⚠️ Phòng học đã đạt sức chứa tối đa ({studentCapacity.max} học viên)</strong>
-              <p style={{ margin: '8px 0 0 0', fontSize: '13px' }}>
-                Các buổi học sau có phòng nhỏ hơn số học viên hiện tại.
-              </p>
-              <div style={{ marginTop: '10px', padding: '8px', background: '#fef3c7', borderRadius: '4px', color: '#92400e' }}>
-                <strong>💡 Gợi ý:</strong>
-                <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
-                  <li>Chuyển buổi học sang phòng lớn hơn (Lịch học → Sửa buổi)</li>
-                  <li>Hoặc tách thành 2 buổi ở 2 phòng khác nhau</li>
-                  <li>Hoặc giới hạn số học viên ở mức {studentCapacity.max}</li>
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {loadingStudents ? (
-            <p>Đang tải...</p>
-          ) : students.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-              <p>Chưa có học viên nào trong chương trình học này</p>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  loadAvailableStudents();
-                  setShowStudentSelectModal(true);
-                }}
-                style={{ marginTop: '10px' }}
-              >
-                Thêm học viên
-              </button>
-            </div>
-          ) : (
-            <div className="students-grid" style={{ display: 'grid', gap: '10px' }}>
-              {students.map(student => (
-                <div
-                  key={student.studentId}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '15px',
-                    background: '#f8f9fa',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: '600', marginBottom: '4px' }}>{student.fullName}</div>
-                    <div style={{ fontSize: '13px', color: '#666' }}>
-                      {student.email} | {student.phoneNumber} | Trình độ: {student.level}
-                    </div>
-                  </div>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleRemoveStudent(student.studentId)}
-                  >
-                    <Delete />
-                    Xóa
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Student Select Modal */}
-      {showStudentSelectModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Thêm học viên vào chương trình</h3>
-              <button className="close-btn" onClick={() => setShowStudentSelectModal(false)}>
-                <Close />
-              </button>
-            </div>
-            <div style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <p style={{ margin: 0, color: '#666' }}>Chọn học viên để thêm:</p>
-                {availableStudents.length > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-link"
-                    onClick={toggleSelectAll}
-                    style={{ padding: '5px 10px' }}
-                  >
-                    {selectedStudentIds.length === availableStudents.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
-                  </button>
-                )}
-              </div>
-              {availableStudents.length > 0 ? (
-                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {availableStudents.map(student => (
-                    <label
-                      key={student.studentId}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        marginBottom: '10px',
-                        padding: '10px',
-                        background: '#f8f9fa',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedStudentIds.includes(student.studentId)}
-                        onChange={() => toggleStudentSelection(student.studentId)}
-                        style={{ width: 'auto', marginRight: '10px' }}
-                      />
-                      <div>
-                        <div style={{ fontWeight: '600' }}>{student.fullName}</div>
-                        <div style={{ fontSize: '13px', color: '#666' }}>
-                          {student.email} | Trình độ: {student.level}
-                        </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ color: '#999' }}>Không có học viên nào khả dụng</p>
-              )}
-              {selectedStudentIds.length > 0 && (
-                <div style={{ marginTop: '15px', padding: '10px', background: '#e0f2fe', borderRadius: '4px' }}>
-                  <strong>Đã chọn: {selectedStudentIds.length} học viên</strong>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowStudentSelectModal(false)}>
-                Đóng
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleAddSelectedStudents}
-                disabled={selectedStudentIds.length === 0}
-              >
-                <Add />
-                Thêm {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      
 
       {/* Modals */}
       {showTeacherModal && (
@@ -1382,28 +1021,6 @@ const CurriculumDetail = () => {
                     ⚠️ {roomInfo.conflictMessage}
                   </small>
                 )}
-                {/* Room Capacity Warning */}
-                {sessionForm.roomId && students.length > 0 && (
-                  (() => {
-                    const selectedRoom = rooms.find(r => r.roomId === parseInt(sessionForm.roomId));
-                    if (selectedRoom && selectedRoom.capacity < students.length) {
-                      return (
-                        <small style={{ color: '#dc2626', display: 'block', marginTop: '5px', background: '#fee2e2', padding: '8px', borderRadius: '4px' }}>
-                          ⚠️ <strong>Cảnh báo:</strong> Phòng {selectedRoom.roomName} chỉ chứa {selectedRoom.capacity} người, nhưng hiện có {students.length} học viên đăng ký. Vui lòng chọn phòng lớn hơn hoặc giảm số học viên.
-                        </small>
-                      );
-                    }
-                    if (selectedRoom && students.length > 0) {
-                      const remaining = selectedRoom.capacity - students.length;
-                      return (
-                        <small style={{ color: remaining <= 3 ? '#dc2626' : '#16a34a', display: 'block', marginTop: '5px' }}>
-                          ✅ Phòng còn {remaining}/{selectedRoom.capacity} chỗ trống ({students.length} học viên)
-                        </small>
-                      );
-                    }
-                    return null;
-                  })()
-                )}
               </div>
               <div className="form-group">
                 <label>Giảng viên</label>
@@ -1454,7 +1071,7 @@ const CurriculumDetail = () => {
                   {documents.length > 0 ? (
                     documents.map(doc => (
                       <option key={doc.documentId} value={doc.documentId}>
-                        {doc.title} ({doc.type})
+                        {doc.originalFileName || doc.title || doc.fileName}
                       </option>
                     ))
                   ) : (
@@ -1541,7 +1158,7 @@ const CurriculumDetail = () => {
                   {documents.length > 0 ? (
                     documents.map(doc => (
                       <option key={doc.documentId} value={doc.documentId}>
-                        {doc.title} ({doc.type})
+                        {doc.originalFileName || doc.title || doc.fileName}
                       </option>
                     ))
                   ) : (
