@@ -396,12 +396,12 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets student's enrolled curriculums. (Lấy danh sách chương trình học của học viên.)
+        /// Gets student's enrolled curriculums with full schedule details. (Lấy danh sách chương trình học của học viên với chi tiết lịch học.)
         /// </summary>
         /// <param name="id">Student ID (ID học viên)</param>
-        /// <returns>List of curriculums (Danh sách chương trình học)</returns>
+        /// <returns>List of curriculums with nested days and sessions (Danh sách chương trình học với chi tiết ngày và buổi học)</returns>
         [HttpGet("{id}/curriculums")]
-        public async Task<ActionResult<IEnumerable<CurriculumDto>>> GetStudentCurriculums(int id)
+        public async Task<ActionResult<IEnumerable<object>>> GetStudentCurriculums(int id)
         {
             try
             {
@@ -411,26 +411,49 @@ namespace EnglishCenter.API.Controllers
                     return NotFound(new { message = "Student not found" });
                 }
 
+                // Get all curriculums the student is enrolled in with full nested structure
                 var curriculums = await _context.Enrollments
                     .Include(e => e.Curriculum)
                     .ThenInclude(c => c.CurriculumCourses)
                     .ThenInclude(cc => cc.Course)
-                    .Where(e => e.StudentId == id)
-                    .Select(e => new CurriculumDto
+                    .Include(e => e.Curriculum)
+                    .ThenInclude(c => c.CurriculumDays)
+                    .ThenInclude(cd => cd.CurriculumSessions)
+                    .ThenInclude(cs => cs.Teacher)
+                    .Include(e => e.Curriculum)
+                    .ThenInclude(c => c.CurriculumDays)
+                    .ThenInclude(cd => cd.CurriculumSessions)
+                    .ThenInclude(cs => cs.AssignedRoom)
+                    .Where(e => e.StudentId == id && e.Curriculum.Status == "Active")
+                    .Select(e => new
                     {
-                        CurriculumId = e.Curriculum.CurriculumId,
-                        CurriculumName = e.Curriculum.CurriculumName,
-                        StartDate = e.Curriculum.StartDate,
-                        EndDate = e.Curriculum.EndDate,
-                        Status = e.Curriculum.Status,
-                        Courses = e.Curriculum.CurriculumCourses
-                            .OrderBy(cc => cc.OrderIndex)
-                            .Select(cc => new CurriculumCourseInfoDto
+                        curriculumId = e.Curriculum.CurriculumId,
+                        className = e.Curriculum.CurriculumName,
+                        curriculumName = e.Curriculum.CurriculumName,
+                        courseName = string.Join(", ", e.Curriculum.CurriculumCourses.Select(cc => cc.Course.CourseName)),
+                        startDate = e.Curriculum.StartDate,
+                        endDate = e.Curriculum.EndDate,
+                        status = e.Curriculum.Status,
+                        curriculumDays = e.Curriculum.CurriculumDays
+                            .OrderBy(cd => cd.ScheduleDate)
+                            .Select(cd => new
                             {
-                                CourseId = cc.Course.CourseId,
-                                CourseName = cc.Course.CourseName,
-                                CourseCode = cc.Course.CourseCode,
-                                OrderIndex = cc.OrderIndex
+                                curriculumDayId = cd.CurriculumDayId,
+                                scheduleDate = cd.ScheduleDate,
+                                topic = cd.Topic,
+                                curriculumSessions = cd.CurriculumSessions
+                                    .OrderBy(cs => cs.StartTime)
+                                    .Select(cs => new
+                                    {
+                                        curriculumSessionId = cs.CurriculumSessionId,
+                                        sessionNumber = cs.SessionNumber,
+                                        sessionName = cs.SessionName,
+                                        startTime = cs.StartTime.ToString(@"hh\:mm"),
+                                        endTime = cs.EndTime.ToString(@"hh\:mm"),
+                                        roomName = cs.AssignedRoom != null ? cs.AssignedRoom.RoomName : "Chưa phân phòng",
+                                        teacherName = cs.Teacher != null ? cs.Teacher.FullName : "Chưa phân giáo viên"
+                                    })
+                                    .ToList()
                             })
                             .ToList()
                     })
@@ -438,9 +461,10 @@ namespace EnglishCenter.API.Controllers
 
                 return Ok(curriculums);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error retrieving student classes" });
+                _logger.LogError(ex, "Error retrieving student curriculums");
+                return StatusCode(500, new { message = "Error retrieving student classes", error = ex.Message });
             }
         }
 

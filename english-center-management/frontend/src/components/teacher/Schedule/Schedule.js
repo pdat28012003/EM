@@ -72,7 +72,10 @@ const TeacherSchedule = () => {
   const loadScheduleData = async (teacherId) => {
     try {
       // Load curriculum sessions by teacher ID with date range filter
-      const params = {};
+      const params = {
+        page: 1,
+        pageSize: 100
+      };
       
       if (startDate && endDate) {
         params.startDate = startDate.format('YYYY-MM-DD');
@@ -81,7 +84,7 @@ const TeacherSchedule = () => {
       
       const schedulesResponse = await teachersAPI.getSchedule(teacherId, params);
       console.log('Teacher schedule API response:', schedulesResponse.data);
-      const schedulesData = schedulesResponse.data?.data || [];
+      const schedulesData = schedulesResponse.data?.Data || schedulesResponse.data?.data || [];
       console.log('Schedule data:', schedulesData);
       if (schedulesData.length > 0) {
         console.log('First schedule item keys:', Object.keys(schedulesData[0]));

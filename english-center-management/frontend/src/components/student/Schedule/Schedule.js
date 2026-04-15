@@ -99,9 +99,10 @@ const StudentSchedule = () => {
 
       // Lấy lịch học trong khoảng ngày đã chọn
       const params = {
+        page: 1,
+        pageSize: 100,
         startDate: startDate.format('YYYY-MM-DD'),
-        endDate: endDate.format('YYYY-MM-DD'),
-        pageSize: 100
+        endDate: endDate.format('YYYY-MM-DD')
       };
 
       const response = await studentsAPI.getSchedule(studentId, params);

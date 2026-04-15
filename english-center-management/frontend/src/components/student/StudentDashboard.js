@@ -183,8 +183,9 @@ const StudentDashboard = () => {
         : 0;
 
       // 3. Load Schedule (Stats)
-      const scheduleRes = await studentsAPI.getSchedule(studentId);
-      const scheduleData = scheduleRes.data?.data || scheduleRes.data?.Data || scheduleRes.data || [];
+      const scheduleParams = { page: 1, pageSize: 100 };
+      const scheduleRes = await studentsAPI.getSchedule(studentId, scheduleParams);
+      const scheduleData = scheduleRes.data?.Data || scheduleRes.data?.data || [];
       
       // Calculate sessions for this week vs last week
       const now = dayjs();

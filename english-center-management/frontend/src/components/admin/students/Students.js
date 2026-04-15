@@ -179,8 +179,12 @@ const Students = () => {
   const handleOpenScheduleDialog = async (student) => {
     setCurrentStudent(student);
     try {
-      const response = await studentsAPI.getSchedule(student.studentId);
-      setStudentSchedule(response.data);
+      // Use getCurriculums instead of getSchedule to get the nested curriculum structure
+      // that the modal expects (with curriculumDays and curriculumSessions)
+      const response = await studentsAPI.getCurriculums(student.studentId);
+      // getCurriculums returns the nested curriculum structure
+      const scheduleData = response.data?.data || response.data || [];
+      setStudentSchedule(scheduleData);
       setOpenScheduleDialog(true);
     } catch (error) {
       console.error('Error loading student schedule:', error);

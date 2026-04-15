@@ -158,7 +158,10 @@ const Schedules = () => {
     try {
       setLoading(true);
       setError(null);
-      const params = {};
+      const params = {
+        page: schedulePagination.page + 1,  // API expects 1-based page numbers
+        pageSize: schedulePagination.pageSize
+      };
       
       // Use single date filter if provided
       if (selectedDate) {
@@ -178,17 +181,18 @@ const Schedules = () => {
       
       const response = await studentsAPI.getSchedule(studentId, params);
       
+      // Handle both possible response structures
       let scheduleData = [];
-      if (response.data?.data && Array.isArray(response.data.data)) {
-        scheduleData = response.data.data;
-      } else if (response.data?.Data && Array.isArray(response.data.Data)) {
+      if (response.data?.Data && Array.isArray(response.data.Data)) {
         scheduleData = response.data.Data;
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        scheduleData = response.data.data;
       } else if (response.data && Array.isArray(response.data)) {
         scheduleData = response.data;
       }
       
       setSchedule(scheduleData);
-      setTotalSchedule(response.data?.totalCount || response.data?.TotalCount || scheduleData.length || 0);
+      setTotalSchedule(response.data?.TotalCount || response.data?.totalCount || scheduleData.length || 0);
     } catch (err) {
       console.error('Error loading schedule:', err);
       setError('Không thể tải lịch học');
@@ -227,7 +231,10 @@ const Schedules = () => {
       setLoading(true);
       setError(null);
       
-      const params = {};
+      const params = {
+        page: schedulePagination.page + 1,  // API expects 1-based page numbers
+        pageSize: schedulePagination.pageSize
+      };
       
       // Use single date filter if provided
       if (selectedDate) {
