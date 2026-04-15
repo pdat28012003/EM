@@ -25,28 +25,25 @@ import { DataGrid } from '@mui/x-data-grid';
 import { 
   Edit, 
   Delete, 
-  Visibility, 
-  VisibilityOff, 
-  CalendarMonth, 
-  AssignmentInd, 
+  Visibility,
+  VisibilityOff,
+  CalendarMonth,
   MoreVert,
   Search,
   Clear,
   PersonAdd,
   FilterList
 } from '@mui/icons-material';
-import { studentsAPI, enrollmentsAPI, curriculumAPI, UPLOAD_URL } from '../../../services/api';
+import { studentsAPI, UPLOAD_URL } from '../../../services/api';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
-  const [classes, setClasses] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterValue, setFilterValue] = useState('Tất cả');
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
-  const [openEnrollDialog, setOpenEnrollDialog] = useState(false);
   const [openScheduleDialog, setOpenScheduleDialog] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(null);
@@ -62,9 +59,6 @@ const Students = () => {
     avatar: '',
     level: 'Beginner',
     isActive: true
-  });
-  const [enrollData, setEnrollData] = useState({
-    classId: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -150,20 +144,9 @@ const Students = () => {
     }
   }, [searchTerm, filterValue, paginationModel]);
 
-  const loadClasses = useCallback(async () => {
-    try {
-      const response = await curriculumAPI.getAll({ status: 'Active' });
-      const classesData = response.data?.Data || response.data?.data || response.data || [];
-      setClasses(Array.isArray(classesData) ? classesData : []);
-    } catch (error) {
-      console.error('Error loading classes:', error);
-    }
-  }, []);
-
   useEffect(() => {
     loadStudents();
-    loadClasses();
-  }, [loadStudents, loadClasses]);
+  }, [loadStudents]);
 
   const handleOpenDialog = (student = null) => {
     if (student) {
@@ -193,13 +176,6 @@ const Students = () => {
     setOpenDialog(true);
   };
 
-  const handleOpenEnrollDialog = (student) => {
-    setEditingStudent(student);
-    setCurrentStudent(student);
-    setEnrollData({ classId: '' });
-    setOpenEnrollDialog(true);
-  };
-
   const handleOpenScheduleDialog = async (student) => {
     setCurrentStudent(student);
     try {
@@ -214,7 +190,6 @@ const Students = () => {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-    setOpenEnrollDialog(false);
     setOpenScheduleDialog(false);
     setCurrentStudent(null);
   };
@@ -262,10 +237,6 @@ const Students = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleEnrollChange = (e) => {
-    setEnrollData({ classId: e.target.value });
-  };
-
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -292,30 +263,6 @@ const Students = () => {
       alert(errorMessage);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleEnrollSubmit = async () => {
-    if (!enrollData.classId) {
-      alert('Vui lòng chọn lớp học');
-      return;
-    }
-    
-    if (!currentStudent || !currentStudent.studentId) {
-      alert('Không tìm thấy thông tin học viên');
-      return;
-    }
-    
-    try {
-      await enrollmentsAPI.create({
-        studentId: currentStudent.studentId,
-        classId: parseInt(enrollData.classId),
-      });
-      alert('Đăng ký vào chương trình học thành công');
-      handleCloseDialog();
-    } catch (error) {
-      console.error('Error enrolling student:', error);
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi đăng ký học viên');
     }
   };
 
@@ -983,39 +930,6 @@ const Students = () => {
         </Box>
       </Dialog>
 
-      {/* Dialog Đăng ký Chương trình học */}
-      <Dialog open={openEnrollDialog} onClose={handleCloseDialog} maxWidth="xs" fullWidth>
-        <DialogTitle>Đăng Ký Chương Trình Học</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <Typography variant="body1">
-              Học viên: <strong>{currentStudent?.fullName}</strong>
-            </Typography>
-            <TextField
-              name="classId"
-              label="Chọn Lớp Học (Chương Trình)"
-              select
-              value={enrollData.classId}
-              onChange={handleEnrollChange}
-              required
-              fullWidth
-            >
-              {classes.map((cls) => (
-                <MenuItem key={cls.classId} value={cls.classId}>
-                  {cls.className} ({cls.courseName})
-                </MenuItem>
-              ))}
-            </TextField>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Hủy</Button>
-          <Button onClick={handleEnrollSubmit} variant="contained" color="primary">
-            Đăng Ký
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       {/* Dialog Xem Thời Khóa Biểu */}
       <Dialog open={openScheduleDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>Thời Khóa Biểu Học Viên: {currentStudent?.fullName}</DialogTitle>
@@ -1076,16 +990,6 @@ const Students = () => {
           },
         }}
       >
-        <MenuItem
-          onClick={() => {
-            handleOpenEnrollDialog(selectedStudentForMenu);
-            handleCloseMenu();
-          }}
-          sx={{ gap: 1.5, py: 1 }}
-        >
-          <AssignmentInd fontSize="small" color="primary" />
-          <Typography variant="body2">Đăng ký chương trình</Typography>
-        </MenuItem>
         <MenuItem
           onClick={() => {
             handleOpenScheduleDialog(selectedStudentForMenu);
