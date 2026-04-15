@@ -553,18 +553,25 @@ namespace EnglishCenter.API.Controllers
                     return NotFound(new { message = "Student not found" });
                 }
 
-                // Get active enrollments for this student
-                var activeEnrollments = await _context.Enrollments
+                // Get active enrollments for this student (regular course enrollment)
+                var activeEnrollmentCurriculumIds = await _context.Enrollments
                     .Where(e => e.StudentId == id && e.Status == "Active")
-                    .Select(e => e.CurriculumId)
+                    .Join(_context.Curriculums,
+                          e => e.CurriculumId,
+                          c => c.CurriculumId,
+                          (e, c) => c)
+                    .Where(c => c.Status == "Active")
+                    .Select(c => c.CurriculumId)
                     .ToListAsync();
 
-                // Get curriculums directly
-                var studentCurriculums = await _context.Curriculums
-                    .Where(c => activeEnrollments.Contains(c.CurriculumId) && c.Status == "Active")
+                // Get session IDs where student was directly added (e.g. certification exam prep sessions)
+                var directSessionIds = await _context.SessionStudents
+                    .Where(ss => ss.StudentId == id)
+                    .Select(ss => ss.CurriculumSessionId)
                     .ToListAsync();
 
-                if (!studentCurriculums.Any())
+                // If student has neither enrollments nor direct session registrations, return empty
+                if (!activeEnrollmentCurriculumIds.Any() && !directSessionIds.Any())
                 {
                     return Ok(new PagedResult<object>
                     {
@@ -576,12 +583,7 @@ namespace EnglishCenter.API.Controllers
                     });
                 }
 
-                // Get curriculum IDs
-                var curriculumIds = studentCurriculums
-                    .Select(c => c.CurriculumId)
-                    .ToList();
-
-                // Query curriculum sessions
+                // Query sessions from BOTH enrollment-based curricula AND direct session registrations
                 var query = _context.CurriculumSessions
                     .Include(cs => cs.CurriculumDay)
                     .ThenInclude(cd => cd.Curriculum)
@@ -589,7 +591,8 @@ namespace EnglishCenter.API.Controllers
                     .ThenInclude(cc => cc.Course)
                     .Include(cs => cs.AssignedRoom)
                     .Include(cs => cs.Teacher)
-                    .Where(cs => curriculumIds.Contains(cs.CurriculumDay.CurriculumId));
+                    .Where(cs => activeEnrollmentCurriculumIds.Contains(cs.CurriculumDay.CurriculumId)
+                              || directSessionIds.Contains(cs.CurriculumSessionId));
 
                 // Filter by specific date if provided
                 if (date.HasValue)

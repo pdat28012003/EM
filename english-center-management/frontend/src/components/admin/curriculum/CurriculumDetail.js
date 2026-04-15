@@ -1,15 +1,15 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Add, 
-  Edit, 
-  Delete, 
-  Close, 
-  School, 
-  Person, 
+import {
+  Add,
+  Edit,
+  Delete,
+  Close,
+  School,
+  Person,
   People,
-  Room, 
+  Room,
   AccessTime,
   MenuBook,
   Group,
@@ -53,9 +53,9 @@ const CurriculumDetail = () => {
   const [sessionStudentCapacity, setSessionStudentCapacity] = useState({ max: null, available: null });
   const [availableStudentsForSession, setAvailableStudentsForSession] = useState([]);
   const [selectedSessionStudentIds, setSelectedSessionStudentIds] = useState([]);
-  
+
   const navigate = useNavigate();
-  
+
   const [sessionForm, setSessionForm] = useState({
     curriculumSessionId: null,
     curriculumDayId: '',
@@ -222,20 +222,48 @@ const CurriculumDetail = () => {
       alert('Bạn chưa chọn học viên nào!');
       return;
     }
-    
+
     try {
       // Add each student one by one
       for (const studentId of selectedStudentIds) {
         await curriculumAPI.addStudent(curriculumId, studentId);
       }
-      
+
+      // Auto-assign students to all existing sessions
+      const sessions = [];
+      curriculum.curriculumDays?.forEach(day => {
+        if (day.curriculumSessions) {
+          sessions.push(...day.curriculumSessions);
+        }
+      });
+
+      if (sessions.length > 0) {
+        let sessionAssignCount = 0;
+        for (const studentId of selectedStudentIds) {
+          for (const session of sessions) {
+            try {
+              await curriculumAPI.addStudentToSession(session.curriculumSessionId, studentId);
+              sessionAssignCount++;
+            } catch (sessionError) {
+              console.warn(`Failed to assign student ${studentId} to session ${session.curriculumSessionId}:`, sessionError);
+              // Continue with other assignments even if one fails
+            }
+          }
+        }
+        console.log(`Assigned ${sessionAssignCount} student-session pairs`);
+      }
+
       loadStudents();
       setShowStudentSelectModal(false);
       setSelectedStudentIds([]);
-      alert(`Thêm thành công ${selectedStudentIds.length} học viên!`);
+
+      const message = sessions.length > 0
+        ? `Thêm thành công ${selectedStudentIds.length} sinh viên và gán vào ${sessions.length} buổi học!`
+        : `Thêm thành công ${selectedStudentIds.length} sinh viên!`;
+      alert(message);
     } catch (error) {
       console.error('Error adding students:', error);
-      alert(error.response?.data?.message || 'Không thể thêm học viên. Vui lòng kiểm tra lại!');
+      alert(error.response?.data?.message || 'Không thêm sinh viên. Vui lòng xem xét!');
     }
   };
 
@@ -256,19 +284,19 @@ const CurriculumDetail = () => {
   const loadAvailableStudents = async () => {
     try {
       setSelectedStudentIds([]); // Reset selection
-      
+
       const response = await curriculumAPI.getStudents(curriculumId);
       const enrolledStudents = response.data?.students || response.data || [];
       const enrolledIds = Array.isArray(enrolledStudents) ? enrolledStudents.map(s => s.studentId) : [];
-      
+
       // Get all students and filter out enrolled ones
       const allStudentsRes = await studentsAPI.getAll({ pageSize: 1000 });
       const allStudents = allStudentsRes.data?.data?.data || allStudentsRes.data?.data?.Data || [];
-      
+
       const available = Array.isArray(allStudents) ? allStudents.filter(s => {
         return !enrolledIds.includes(s.studentId) && s.isActive;
       }) : [];
-      
+
       setAvailableStudents(available);
     } catch (error) {
       console.error('Error loading available students:', error);
@@ -328,12 +356,12 @@ const CurriculumDetail = () => {
       alert('Bạn chưa chọn học viên nào!');
       return;
     }
-    
+
     try {
       for (const studentId of selectedSessionStudentIds) {
         await curriculumAPI.addStudentToSession(selectedSessionForStudents.curriculumSessionId, studentId);
       }
-      
+
       loadSessionStudents(selectedSessionForStudents.curriculumSessionId);
       loadAvailableStudentsForSession(selectedSessionForStudents.curriculumSessionId);
       setSelectedSessionStudentIds([]);
@@ -414,17 +442,17 @@ const CurriculumDetail = () => {
 
   const generateDateRange = () => {
     if (!curriculum) return;
-    
+
     const start = parseDate(curriculum.startDate);
     const end = parseDate(curriculum.endDate);
     const dates = [];
-    
+
     if (!start || !end) return;
-    
+
     for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
       dates.push(new Date(date));
     }
-    
+
     setDateRange(dates);
   };
 
@@ -443,7 +471,7 @@ const CurriculumDetail = () => {
         topic: `Học ngày ${date.toLocaleDateString('vi-VN')}`,
         description: ''
       });
-      
+
       const newDay = response.data;
       setSelectedDay(newDay);
       setIsEditingSession(false);
@@ -458,7 +486,7 @@ const CurriculumDetail = () => {
         roomId: '',
         teacherId: ''
       });
-      
+
       setShowSessionModal(true);
       loadCurriculum();
     } catch (error) {
@@ -472,7 +500,7 @@ const CurriculumDetail = () => {
       alert('Mỗi ngày tối đa 3 buổi học!');
       return;
     }
-    
+
     setSelectedDay(day);
     setIsEditingSession(false);
     setSessionForm({
@@ -512,7 +540,7 @@ const CurriculumDetail = () => {
 
   const handleSubmitSession = async (e) => {
     e.preventDefault();
-    
+
     if (new Date(`2000-01-01 ${sessionForm.startTime}`) >= new Date(`2000-01-01 ${sessionForm.endTime}`)) {
       alert('Giờ bắt đầu phải sớm hơn giờ kết thúc!');
       return;
@@ -536,7 +564,7 @@ const CurriculumDetail = () => {
       } else {
         await curriculumAPI.createSession(sessionData);
       }
-      
+
       loadCurriculum();
       setShowSessionModal(false);
     } catch (error) {
@@ -580,7 +608,7 @@ const CurriculumDetail = () => {
 
   const handleSubmitLesson = async (e) => {
     e.preventDefault();
-    
+
     try {
       if (isEditingLesson && selectedLesson) {
         await curriculumAPI.updateLesson(selectedLesson.lessonId, {
@@ -603,7 +631,7 @@ const CurriculumDetail = () => {
           documentId: lessonForm.documentId ? parseInt(lessonForm.documentId) : null
         });
       }
-      
+
       loadCurriculum();
       setShowLessonModal(false);
       setIsEditingLesson(false);
@@ -657,8 +685,8 @@ const CurriculumDetail = () => {
   return (
     <div className="curriculum-detail-container">
       <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between' }}>
-        <button 
-          className="btn btn-secondary btn-sm" 
+        <button
+          className="btn btn-secondary btn-sm"
           onClick={() => navigate(-1)}
           style={{ background: '#6c757d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
         >
@@ -691,7 +719,7 @@ const CurriculumDetail = () => {
               </div>
             )}
           </div>
-          <button 
+          <button
             className="btn btn-success"
             onClick={() => setShowTeacherModal(true)}
             style={{ flexShrink: 0 }}
@@ -703,10 +731,10 @@ const CurriculumDetail = () => {
       </div>
 
       {/* Tabs */}
-      <div className="tabs-container" style={{ 
-        display: 'flex', 
-        borderBottom: '2px solid #e5e7eb', 
-        marginBottom: '20px' 
+      <div className="tabs-container" style={{
+        display: 'flex',
+        borderBottom: '2px solid #e5e7eb',
+        marginBottom: '20px'
       }}>
         <button
           onClick={() => setActiveTab('schedule')}
@@ -749,157 +777,157 @@ const CurriculumDetail = () => {
       {activeTab === 'schedule' ? (
         <div className="curriculum-timeline">
           <h3>Lịch sắp xếp buổi học</h3>
-        {dateRange.map((date, index) => {
-          const dateStr = formatDate(date);
-          const curriculumDay = curriculum.curriculumDays?.find(
-            d => d.scheduleDate.split('T')[0] === dateStr
-          );
-          
-          return (
-            <div key={index} className="date-card">
-              <div className="date-header">
-                <h4>{date.toLocaleDateString('vi-VN', { weekday: 'long', month: 'long', day: 'numeric' })}</h4>
-              </div>
+          {dateRange.map((date, index) => {
+            const dateStr = formatDate(date);
+            const curriculumDay = curriculum.curriculumDays?.find(
+              d => d.scheduleDate.split('T')[0] === dateStr
+            );
 
-              {curriculumDay ? (
-                <div className="day-content">
-                  <p className="topic"><strong>Chủ đề:</strong> {curriculumDay.topic}</p>
-                  <p className="description">{curriculumDay.description}</p>
-                  
-                  <div className="sessions">
-                    <div className="sessions-header">
-                      <h5>Buổi học ({curriculumDay.sessionCount}/3)</h5>
-                      {curriculumDay.sessionCount < 3 && (
-                        <button 
-                          className="btn btn-success btn-sm"
-                          onClick={() => handleAddSession(curriculumDay)}
-                        >
-                          <Add />
-                          Thêm buổi
-                        </button>
+            return (
+              <div key={index} className="date-card">
+                <div className="date-header">
+                  <h4>{date.toLocaleDateString('vi-VN', { weekday: 'long', month: 'long', day: 'numeric' })}</h4>
+                </div>
+
+                {curriculumDay ? (
+                  <div className="day-content">
+                    <p className="topic"><strong>Chủ đề:</strong> {curriculumDay.topic}</p>
+                    <p className="description">{curriculumDay.description}</p>
+
+                    <div className="sessions">
+                      <div className="sessions-header">
+                        <h5>Buổi học ({curriculumDay.sessionCount}/3)</h5>
+                        {curriculumDay.sessionCount < 3 && (
+                          <button
+                            className="btn btn-success btn-sm"
+                            onClick={() => handleAddSession(curriculumDay)}
+                          >
+                            <Add />
+                            Thêm buổi
+                          </button>
+                        )}
+                      </div>
+
+                      {curriculumDay.curriculumSessions?.length > 0 ? (
+                        curriculumDay.curriculumSessions?.map((session) => (
+                          <div key={session.curriculumSessionId} className="session-card">
+                            <div className="session-header">
+                              <AccessTime />
+                              <strong>Buổi {session.sessionNumber}: {session.sessionName}</strong>
+                              <span className="time">{session.startTime} - {session.endTime}</span>
+                            </div>
+                            <p className="room"><Room />
+                              Phòng: {session.roomName || 'Chưa xếp phòng'}</p>
+                            <p className="teacher"><Person />
+                              Giảng viên: {session.teacherName || 'Chưa phân công'}</p>
+                            {session.documentId && (
+                              <p className="document" style={{ color: '#2196f3', marginTop: '4px' }}>
+                                <span style={{ marginRight: '4px' }}>📄</span>
+                                Tài liệu: {session.documentTitle || 'Đang tải...'}
+                              </p>
+                            )}
+
+                            <div className="lessons">
+                              <div className="lessons-header">
+                                <strong>Tiết học:</strong>
+                                <button
+                                  className="btn btn-sm btn-primary"
+                                  onClick={() => handleAddLesson(session)}
+                                  title="Thêm tiết học vào buổi này"
+                                >
+                                  <MenuBook />
+                                  Thêm tiết
+                                </button>
+                              </div>
+
+                              {session.lessons?.length > 0 ? (
+                                <ul className="lessons-list">
+                                  {session.lessons.map((lesson) => (
+                                    <li key={lesson.lessonId} className="lesson-item">
+                                      <div className="lesson-info">
+                                        <span className="lesson-num">Tiết {lesson.lessonNumber}</span>
+                                        <span className="lesson-title">{lesson.lessonTitle}</span>
+                                        <span className="lesson-duration">({lesson.duration})</span>
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '5px' }}>
+                                        <button
+                                          className="btn btn-sm btn-info"
+                                          onClick={() => handleEditLesson(lesson)}
+                                        >
+                                          <Edit />
+                                          Sửa
+                                        </button>
+                                        <button
+                                          className="btn btn-sm btn-danger"
+                                          onClick={() => handleDeleteLesson(lesson.lessonId)}
+                                        >
+                                          <Delete />
+                                          Xóa
+                                        </button>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="no-lessons">❌ Chưa có tiết học. Nhấp "Thêm tiết" để thêm</p>
+                              )}
+                            </div>
+
+                            <div className="session-actions" style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
+                              <button
+                                className="btn btn-sm btn-info"
+                                onClick={() => handleEditSession(curriculumDay, session)}
+                              >
+                                <Edit />
+                                Sửa buổi
+                              </button>
+                              <button
+                                className="btn btn-sm btn-success"
+                                onClick={() => openSessionStudentModal(session)}
+                                title="Quản lý học viên theo buổi"
+                              >
+                                <People />
+                                Học viên ({session.studentCount || 0})
+                              </button>
+                              <button
+                                className="btn btn-sm btn-danger"
+                                onClick={() => handleDeleteSession(session.curriculumSessionId)}
+                              >
+                                <Delete />
+                                Xóa buổi
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="no-sessions">❌ Chưa có buổi học. Nhấp "Thêm buổi" để bắt đầu</p>
                       )}
                     </div>
 
-                    {curriculumDay.curriculumSessions?.length > 0 ? (
-                      curriculumDay.curriculumSessions?.map((session) => (
-                        <div key={session.curriculumSessionId} className="session-card">
-                          <div className="session-header">
-                            <AccessTime />
-                            <strong>Buổi {session.sessionNumber}: {session.sessionName}</strong>
-                            <span className="time">{session.startTime} - {session.endTime}</span>
-                          </div>
-                          <p className="room"><Room />
-                          Phòng: {session.roomName || 'Chưa xếp phòng'}</p>
-                          <p className="teacher"><Person />
-                          Giảng viên: {session.teacherName || 'Chưa phân công'}</p>
-                          {session.documentId && (
-                            <p className="document" style={{ color: '#2196f3', marginTop: '4px' }}>
-                              <span style={{ marginRight: '4px' }}>📄</span>
-                              Tài liệu: {session.documentTitle || 'Đang tải...'}
-                            </p>
-                          )}
-                          
-                          <div className="lessons">
-                            <div className="lessons-header">
-                              <strong>Tiết học:</strong>
-                              <button 
-                                className="btn btn-sm btn-primary"
-                                onClick={() => handleAddLesson(session)}
-                                title="Thêm tiết học vào buổi này"
-                              >
-                                <MenuBook />
-                              Thêm tiết
-                              </button>
-                            </div>
-
-                            {session.lessons?.length > 0 ? (
-                              <ul className="lessons-list">
-                                {session.lessons.map((lesson) => (
-                                  <li key={lesson.lessonId} className="lesson-item">
-                                    <div className="lesson-info">
-                                      <span className="lesson-num">Tiết {lesson.lessonNumber}</span>
-                                      <span className="lesson-title">{lesson.lessonTitle}</span>
-                                      <span className="lesson-duration">({lesson.duration})</span>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '5px' }}>
-                                      <button 
-                                        className="btn btn-sm btn-info"
-                                        onClick={() => handleEditLesson(lesson)}
-                                      >
-                                        <Edit />
-                                        Sửa
-                                      </button>
-                                      <button 
-                                        className="btn btn-sm btn-danger"
-                                        onClick={() => handleDeleteLesson(lesson.lessonId)}
-                                      >
-                                        <Delete />
-                                        Xóa
-                                      </button>
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="no-lessons">❌ Chưa có tiết học. Nhấp "Thêm tiết" để thêm</p>
-                            )}
-                          </div>
-
-                          <div className="session-actions" style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
-                            <button 
-                              className="btn btn-sm btn-info"
-                              onClick={() => handleEditSession(curriculumDay, session)}
-                            >
-                              <Edit />
-                              Sửa buổi
-                            </button>
-                            <button 
-                              className="btn btn-sm btn-success"
-                              onClick={() => openSessionStudentModal(session)}
-                              title="Quản lý học viên theo buổi"
-                            >
-                              <People />
-                              Học viên ({session.studentCount || 0})
-                            </button>
-                            <button 
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleDeleteSession(session.curriculumSessionId)}
-                            >
-                              <Delete />
-                              Xóa buổi
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="no-sessions">❌ Chưa có buổi học. Nhấp "Thêm buổi" để bắt đầu</p>
-                    )}
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleDeleteDay(curriculumDay.curriculumDayId)}
+                    >
+                      <Delete />
+                      Xóa ngày
+                    </button>
                   </div>
-
-                  <button 
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDeleteDay(curriculumDay.curriculumDayId)}
-                  >
-                    <Delete />
-                    Xóa ngày
-                  </button>
-                </div>
-              ) : (
-                <div className="day-empty">
-                  <p>❌ Chưa có buổi học</p>
-                  <button 
-                    className="btn btn-primary btn-sm"
-                    onClick={() => handleAddDay(date)}
-                  >
-                    <Add />
-                          Thêm buổi học
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                ) : (
+                  <div className="day-empty">
+                    <p>❌ Chưa có buổi học</p>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleAddDay(date)}
+                    >
+                      <Add />
+                      Thêm buổi học
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       ) : (
         // Students Tab
         <div className="students-section">
@@ -910,8 +938,8 @@ const CurriculumDetail = () => {
               </h3>
               {studentCapacity.max && (
                 <small style={{ color: studentCapacity.available <= 3 ? '#dc2626' : '#6b7280' }}>
-                  {studentCapacity.available > 0 
-                    ? `Còn ${studentCapacity.available} chỗ trống` 
+                  {studentCapacity.available > 0
+                    ? `Còn ${studentCapacity.available} chỗ trống`
                     : 'Đã đầy'}
                 </small>
               )}
@@ -936,7 +964,7 @@ const CurriculumDetail = () => {
                 Các buổi học sau có phòng nhỏ hơn số học viên hiện tại.
               </p>
               <div style={{ marginTop: '10px', padding: '8px', background: '#fef3c7', borderRadius: '4px', color: '#92400e' }}>
-                <strong>💡 Gợi ý:</strong> 
+                <strong>💡 Gợi ý:</strong>
                 <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
                   <li>Chuyển buổi học sang phòng lớn hơn (Lịch học → Sửa buổi)</li>
                   <li>Hoặc tách thành 2 buổi ở 2 phòng khác nhau</li>
@@ -945,7 +973,7 @@ const CurriculumDetail = () => {
               </div>
             </div>
           )}
-          
+
           {loadingStudents ? (
             <p>Đang tải...</p>
           ) : students.length === 0 ? (
@@ -1136,16 +1164,16 @@ const CurriculumDetail = () => {
             </div>
             <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
               {/* Capacity Info */}
-              <div style={{ 
-                background: sessionStudentCapacity.available === 0 ? '#fee2e2' : '#e0f2fe', 
-                borderRadius: '4px', 
-                padding: '10px', 
+              <div style={{
+                background: sessionStudentCapacity.available === 0 ? '#fee2e2' : '#e0f2fe',
+                borderRadius: '4px',
+                padding: '10px',
                 marginBottom: '15px',
                 border: sessionStudentCapacity.available === 0 ? '1px solid #dc2626' : 'none'
               }}>
                 <strong>
-                  {sessionStudentCapacity.max 
-                    ? `Sức chứa: ${sessionStudents.length}/${sessionStudentCapacity.max} học viên` 
+                  {sessionStudentCapacity.max
+                    ? `Sức chứa: ${sessionStudents.length}/${sessionStudentCapacity.max} học viên`
                     : `${sessionStudents.length} học viên`}
                 </strong>
                 {sessionStudentCapacity.available !== null && sessionStudentCapacity.available > 0 && (
@@ -1166,7 +1194,7 @@ const CurriculumDetail = () => {
                 {sessionStudents.length > 0 ? (
                   <div style={{ display: 'grid', gap: '8px' }}>
                     {sessionStudents.map(student => (
-                      <div 
+                      <div
                         key={student.sessionStudentId}
                         style={{
                           display: 'flex',
@@ -1260,17 +1288,17 @@ const CurriculumDetail = () => {
               )}
             </div>
             <div className="modal-footer">
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
+              <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={() => setShowSessionStudentModal(false)}
               >
                 Đóng
               </button>
               {sessionStudentCapacity.available !== 0 && selectedSessionStudentIds.length > 0 && (
-                <button 
-                  type="button" 
-                  className="btn btn-primary" 
+                <button
+                  type="button"
+                  className="btn btn-primary"
                   onClick={handleAddStudentsToSession}
                 >
                   <Add />
@@ -1297,7 +1325,7 @@ const CurriculumDetail = () => {
                 <input
                   type="number"
                   value={sessionForm.sessionNumber}
-                  onChange={(e) => setSessionForm({...sessionForm, sessionNumber: parseInt(e.target.value)})}
+                  onChange={(e) => setSessionForm({ ...sessionForm, sessionNumber: parseInt(e.target.value) })}
                   min="1"
                   max="3"
                   required
@@ -1309,7 +1337,7 @@ const CurriculumDetail = () => {
                 <input
                   type="text"
                   value={sessionForm.sessionName}
-                  onChange={(e) => setSessionForm({...sessionForm, sessionName: e.target.value})}
+                  onChange={(e) => setSessionForm({ ...sessionForm, sessionName: e.target.value })}
                   required
                 />
               </div>
@@ -1318,7 +1346,7 @@ const CurriculumDetail = () => {
                 <input
                   type="time"
                   value={sessionForm.startTime}
-                  onChange={(e) => setSessionForm({...sessionForm, startTime: e.target.value})}
+                  onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })}
                   required
                 />
               </div>
@@ -1327,7 +1355,7 @@ const CurriculumDetail = () => {
                 <input
                   type="time"
                   value={sessionForm.endTime}
-                  onChange={(e) => setSessionForm({...sessionForm, endTime: e.target.value})}
+                  onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })}
                   required
                 />
               </div>
@@ -1340,7 +1368,7 @@ const CurriculumDetail = () => {
                 </div>
                 <select
                   value={sessionForm.roomId}
-                  onChange={(e) => setSessionForm({...sessionForm, roomId: e.target.value})}
+                  onChange={(e) => setSessionForm({ ...sessionForm, roomId: e.target.value })}
                 >
                   <option value="">-- Chọn phòng học --</option>
                   {rooms.map(room => (
@@ -1384,7 +1412,7 @@ const CurriculumDetail = () => {
                 ) : (
                   <select
                     value={sessionForm.teacherId}
-                    onChange={(e) => setSessionForm({...sessionForm, teacherId: e.target.value})}
+                    onChange={(e) => setSessionForm({ ...sessionForm, teacherId: e.target.value })}
                   >
                     <option value="">-- Chọn giảng viên --</option>
                     {teachersWithAvailability.length > 0 ? (
@@ -1420,7 +1448,7 @@ const CurriculumDetail = () => {
                 <label>Tài liệu</label>
                 <select
                   value={sessionForm.documentId}
-                  onChange={(e) => setSessionForm({...sessionForm, documentId: e.target.value})}
+                  onChange={(e) => setSessionForm({ ...sessionForm, documentId: e.target.value })}
                 >
                   <option value="">-- Không chọn tài liệu --</option>
                   {documents.length > 0 ? (
@@ -1440,7 +1468,7 @@ const CurriculumDetail = () => {
                 <label>Mô tả</label>
                 <textarea
                   value={sessionForm.sessionDescription}
-                  onChange={(e) => setSessionForm({...sessionForm, sessionDescription: e.target.value})}
+                  onChange={(e) => setSessionForm({ ...sessionForm, sessionDescription: e.target.value })}
                   rows="3"
                 />
               </div>
@@ -1472,7 +1500,7 @@ const CurriculumDetail = () => {
                 <input
                   type="number"
                   value={lessonForm.lessonNumber}
-                  onChange={(e) => setLessonForm({...lessonForm, lessonNumber: parseInt(e.target.value)})}
+                  onChange={(e) => setLessonForm({ ...lessonForm, lessonNumber: parseInt(e.target.value) })}
                   min="1"
                   required
                 />
@@ -1482,7 +1510,7 @@ const CurriculumDetail = () => {
                 <input
                   type="text"
                   value={lessonForm.lessonTitle}
-                  onChange={(e) => setLessonForm({...lessonForm, lessonTitle: e.target.value})}
+                  onChange={(e) => setLessonForm({ ...lessonForm, lessonTitle: e.target.value })}
                   required
                 />
               </div>
@@ -1490,7 +1518,7 @@ const CurriculumDetail = () => {
                 <label>Nội dung</label>
                 <textarea
                   value={lessonForm.content}
-                  onChange={(e) => setLessonForm({...lessonForm, content: e.target.value})}
+                  onChange={(e) => setLessonForm({ ...lessonForm, content: e.target.value })}
                   rows="3"
                 />
               </div>
@@ -1499,7 +1527,7 @@ const CurriculumDetail = () => {
                 <input
                   type="time"
                   value={lessonForm.duration}
-                  onChange={(e) => setLessonForm({...lessonForm, duration: e.target.value})}
+                  onChange={(e) => setLessonForm({ ...lessonForm, duration: e.target.value })}
                   required
                 />
               </div>
@@ -1507,7 +1535,7 @@ const CurriculumDetail = () => {
                 <label>Tài liệu</label>
                 <select
                   value={lessonForm.documentId}
-                  onChange={(e) => setLessonForm({...lessonForm, documentId: e.target.value})}
+                  onChange={(e) => setLessonForm({ ...lessonForm, documentId: e.target.value })}
                 >
                   <option value="">-- Không chọn tài liệu --</option>
                   {documents.length > 0 ? (
@@ -1527,7 +1555,7 @@ const CurriculumDetail = () => {
                 <label>Ghi chú</label>
                 <textarea
                   value={lessonForm.notes}
-                  onChange={(e) => setLessonForm({...lessonForm, notes: e.target.value})}
+                  onChange={(e) => setLessonForm({ ...lessonForm, notes: e.target.value })}
                   rows="2"
                 />
               </div>
