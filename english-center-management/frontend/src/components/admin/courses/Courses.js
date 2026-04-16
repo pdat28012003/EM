@@ -66,6 +66,7 @@ const Courses = () => {
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
 
   const [errors, setErrors] = useState({});
 
@@ -116,18 +117,43 @@ const Courses = () => {
     setSelectedCourse(null);
   };
 
+  const loadAllStudents = async () => {
+    try {
+      let allStudents = [];
+      let currentPage = 1;
+      let hasMorePages = true;
+
+      while (hasMorePages) {
+        const response = await studentsAPI.getAll({ page: currentPage, pageSize: 100 });
+        const pageData = response.data?.data?.data || response.data?.Data?.Data || [];
+        
+        allStudents = [...allStudents, ...pageData];
+        
+        // Check if there are more pages
+        const paginationInfo = response.data?.data || response.data?.Data;
+        hasMorePages = paginationInfo?.hasNextPage || false;
+        currentPage++;
+      }
+
+      return allStudents;
+    } catch (error) {
+      console.error('Error loading all students:', error);
+      return [];
+    }
+  };
+
   const handleOpenStudentDialog = async (course) => {
     setSelectedCourse(course);
     setOpenStudentDialog(true);
     setLoadingStudents(true);
+    setStudentSearchTerm('');
     try {
       // Load enrolled students
       const enrolledRes = await coursesAPI.getStudents(course.courseId);
       setEnrolledStudents(enrolledRes.data || []);
-      // Load all students (handle different API response formats)
-      const studentsRes = await studentsAPI.getAll({ page: 1, pageSize: 1000 });
-const studentsData = studentsRes.data?.data?.data || [];
-setStudents(studentsData);
+      // Load all students from all pages
+      const allStudents = await loadAllStudents();
+      setStudents(allStudents);
     } catch (error) {
       console.error('Error loading students:', error);
     } finally {
@@ -709,7 +735,7 @@ setStudents(studentsData);
               Quản lý học viên - {selectedCourse?.courseName}
             </Typography>
           </Box>
-          <IconButton onClick={() => setOpenStudentDialog(false)} size="small" sx={{ color: 'text.secondary' }}>
+          <IconButton onClick={() => { setOpenStudentDialog(false); setStudentSearchTerm(''); }} size="small" sx={{ color: 'text.secondary' }}>
             <Close />
           </IconButton>
         </DialogTitle>
@@ -754,6 +780,8 @@ setStudents(studentsData);
                 variant="outlined"
                 size="small"
                 fullWidth
+                value={studentSearchTerm}
+                onChange={(e) => setStudentSearchTerm(e.target.value)}
                 sx={{ mb: 2 }}
                 InputProps={{
                   startAdornment: (
@@ -766,6 +794,14 @@ setStudents(studentsData);
               <Box sx={{ maxHeight: 250, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1 }}>
                 {(students || [])
                   .filter((s) => !(enrolledStudents || []).some((es) => es.studentId === s.studentId))
+                  .filter((s) => {
+                    const term = studentSearchTerm.toLowerCase();
+                    return (
+                      s.fullName?.toLowerCase().includes(term) ||
+                      s.email?.toLowerCase().includes(term) ||
+                      s.phoneNumber?.toLowerCase().includes(term)
+                    );
+                  })
                   .map((student) => (
                     <Box
                       key={student.studentId}
@@ -794,7 +830,7 @@ setStudents(studentsData);
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpenStudentDialog(false)} sx={{ px: 4, borderRadius: 2.5, fontWeight: 700 }}>
+          <Button onClick={() => { setOpenStudentDialog(false); setStudentSearchTerm(''); }} sx={{ px: 4, borderRadius: 2.5, fontWeight: 700 }}>
             Đóng
           </Button>
         </DialogActions>

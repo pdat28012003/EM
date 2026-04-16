@@ -1329,6 +1329,8 @@ namespace EnglishCenter.API.Controllers
                 var session = await _context.CurriculumSessions
                     .Include(cs => cs.AssignedRoom)
                     .Include(cs => cs.SessionStudents)
+                    .Include(cs => cs.CurriculumDay)
+                        .ThenInclude(cd => cd.Curriculum)
                     .FirstOrDefaultAsync(cs => cs.CurriculumSessionId == sessionId);
 
                 if (session == null)

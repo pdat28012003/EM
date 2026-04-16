@@ -289,12 +289,39 @@ namespace EnglishCenter.API.Controllers
                 if (student == null)
                     return NotFound(new { message = "Student not found" });
 
-                // Check if already enrolled
+                // Check if already enrolled with status "Active"
                 var existing = await _context.CourseEnrollments
-                    .FirstOrDefaultAsync(ce => ce.CourseId == id && ce.StudentId == dto.StudentId);
+                    .FirstOrDefaultAsync(ce => ce.CourseId == id && ce.StudentId == dto.StudentId && ce.Status == "Active");
 
                 if (existing != null)
                     return BadRequest(new { message = "Student already enrolled in this course" });
+
+                // Check if there's a "Dropped" enrollment and reactivate it
+                var droppedEnrollment = await _context.CourseEnrollments
+                    .FirstOrDefaultAsync(ce => ce.CourseId == id && ce.StudentId == dto.StudentId && ce.Status == "Dropped");
+
+                if (droppedEnrollment != null)
+                {
+                    // Reactivate the dropped enrollment
+                    droppedEnrollment.Status = "Active";
+                    droppedEnrollment.EnrollmentDate = DateTime.Now;
+
+                    // Ensure student is in curriculum if enrolled
+                    if (droppedEnrollment.CurriculumId.HasValue)
+                    {
+                        var curriculum = await _context.Curriculums
+                            .Include(c => c.ParticipantStudents)
+                            .FirstOrDefaultAsync(c => c.CurriculumId == droppedEnrollment.CurriculumId.Value);
+
+                        if (curriculum != null && !curriculum.ParticipantStudents.Any(s => s.StudentId == dto.StudentId))
+                        {
+                            curriculum.ParticipantStudents.Add(student);
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    return Ok(new { message = "Student re-enrolled to course successfully", enrollmentId = droppedEnrollment.CourseEnrollmentId });
+                }
 
                 // Get curriculum containing this course (if specified)
                 int? curriculumId = dto.CurriculumId;
