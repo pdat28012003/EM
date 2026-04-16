@@ -16,23 +16,20 @@ import {
   Menu as MuiMenu,
   MenuItem,
   Avatar,
-  InputBase,
   Tooltip,
 } from '@mui/material';
-import { 
-  LayoutDashboard, 
-  Users, 
-  GraduationCap, 
-  BookOpen, 
-  DoorOpen, 
-  Calendar, 
-  BarChart3, 
-  CreditCard, 
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
+  BookOpen,
+  DoorOpen,
+  Calendar,
+  BarChart3,
+  CreditCard,
   FileText,
   LogOut,
   Menu as MenuIcon,
-  Bell,
-  Search,
   ChevronDown,
   Home
 } from 'lucide-react';
@@ -172,8 +169,8 @@ const Layout = ({ children }) => {
       </Box>
       <List sx={{ px: collapsed ? 0 : 1.5, mt: 0.5, '& .MuiListItem-root': { px: 0.5 } }}>
         {menuItems.map((item) => {
-          const isActive = item.path === '/' 
-            ? location.pathname === '/' 
+          const isActive = item.path === '/'
+            ? location.pathname === '/'
             : location.pathname.startsWith(item.path);
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 0 }}>
@@ -210,10 +207,10 @@ const Layout = ({ children }) => {
                 >
                   {React.cloneElement(item.icon, { size: 20, strokeWidth: isActive ? 2.5 : 2 })}
                 </ListItemIcon>
-                <ListItemText 
+                <ListItemText
                   primary={item.text}
-                  primaryTypographyProps={{ 
-                    variant: 'body2', 
+                  primaryTypographyProps={{
+                    variant: 'body2',
                     fontWeight: isActive ? 700 : 500,
                     sx: { fontSize: '0.85rem' }
                   }}
@@ -247,8 +244,8 @@ const Layout = ({ children }) => {
           <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 1.5, display: 'flex', justifyContent: 'center', color: 'inherit' }}>
             <LogOut size={18} />
           </ListItemIcon>
-          <ListItemText 
-            primary="Đăng xuất" 
+          <ListItemText
+            primary="Đăng xuất"
             primaryTypographyProps={{ variant: 'body2', fontWeight: 600, sx: { fontSize: '0.85rem' } }}
             sx={{
               opacity: collapsed ? 0 : 1,
@@ -308,49 +305,12 @@ const Layout = ({ children }) => {
               </Typography>
             </Box>
           </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ 
-              display: { xs: 'none', sm: 'flex' },
-              alignItems: 'center',
-              bgcolor: 'rgba(0, 0, 0, 0.04)',
-              borderRadius: '12px',
-              px: 1.5,
-              py: 0.5,
-              mr: 1,
-              border: '1px solid transparent',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              '&:focus-within': {
-                bgcolor: 'white',
-                borderColor: 'primary.main',
-                boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
-              }
-            }}>
-              <Search size={16} color="#64748b" />
-              <InputBase
-                placeholder="Tìm kiếm..."
-                sx={{ 
-                  ml: 1, 
-                  fontSize: '0.85rem', 
-                  color: 'text.primary',
-                  width: 150,
-                  transition: 'width 0.3s',
-                  '& .MuiInputBase-input::placeholder': {
-                    color: 'text.secondary',
-                    opacity: 0.5
-                  },
-                  '&:focus-within': { width: 220 }
-                }}
-              />
-            </Box>
 
-            <IconButton sx={{ color: 'text.secondary' }}>
-              <Bell size={20} />
-            </IconButton>
-            
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+
             <Button
               onClick={handleMenuClick}
-              sx={{ 
+              sx={{
                 textTransform: 'none',
                 ml: 1,
                 borderRadius: '12px',
@@ -364,11 +324,11 @@ const Layout = ({ children }) => {
                   <Typography variant="body2" sx={{ fontWeight: 800, lineHeight: 1, color: 'text.primary' }}>Admin</Typography>
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Quản trị viên</Typography>
                 </Box>
-                <Avatar sx={{ 
-                  width: 38, 
-                  height: 38, 
-                  bgcolor: 'primary.main', 
-                  fontSize: '0.9rem', 
+                <Avatar sx={{
+                  width: 38,
+                  height: 38,
+                  bgcolor: 'primary.main',
+                  fontSize: '0.9rem',
                   fontWeight: 800,
                   boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
                 }}>A</Avatar>
@@ -382,9 +342,9 @@ const Layout = ({ children }) => {
               onClick={handleMenuClose}
               PaperProps={{
                 elevation: 3,
-                sx: { 
-                  mt: 1, 
-                  borderRadius: '12px', 
+                sx: {
+                  mt: 1,
+                  borderRadius: '12px',
                   minWidth: 180,
                   border: '1px solid rgba(0, 0, 0, 0.05)'
                 }
