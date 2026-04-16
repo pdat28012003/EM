@@ -823,4 +823,31 @@ namespace EnglishCenter.API.DTOs
         public List<string> messages { get; set; } = new List<string>();
         public T? data { get; set; }
     }
+
+    // Session Attendance DTOs
+    public class SessionAttendanceDto
+    {
+        public int SessionAttendanceId { get; set; }
+        public int CurriculumSessionId { get; set; }
+        public int StudentId { get; set; }
+        public string StudentName { get; set; } = string.Empty;
+        public DateTime AttendanceDate { get; set; }
+        public string Status { get; set; } = "Present";
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    public class CreateSessionAttendanceDto
+    {
+        public int SessionId { get; set; }
+        public int StudentId { get; set; }
+        public DateTime Date { get; set; }
+        public string Status { get; set; } = "Present";
+        public string? Notes { get; set; }
+    }
+
+    public class UpdateSessionAttendanceDto
+    {
+        public string Status { get; set; } = "Present";
+        public string? Notes { get; set; }
+    }
 }

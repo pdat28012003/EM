@@ -38,8 +38,12 @@ import {
   ErrorOutline,
   AccessTime,
   Launch,
+  EventAvailable,
+  CheckCircle,
+  Cancel,
+  WatchLater,
 } from '@mui/icons-material';
-import { curriculumAPI, gradesAPI, skillsAPI, assignmentsAPI } from '../../../services/api';
+import { curriculumAPI, gradesAPI, skillsAPI, assignmentsAPI, sessionAttendanceAPI } from '../../../services/api';
 import dayjs from 'dayjs';
 
 function TabPanel({ children, value, index, ...other }) {
@@ -66,12 +70,15 @@ const StudentClassDetail = () => {
   const [assignments, setAssignments] = useState([]);
   const [assignmentsLoading, setAssignmentsLoading] = useState(false);
   const [assignmentFilter, setAssignmentFilter] = useState('all'); // all, pending, overdue
+  const [attendance, setAttendance] = useState([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
   // Cache for tab data
   const [gradesLoaded, setGradesLoaded] = useState(false);
   const [assignmentsLoaded, setAssignmentsLoaded] = useState(false);
+  const [attendanceLoaded, setAttendanceLoaded] = useState(false);
   
 
   useEffect(() => {
@@ -98,8 +105,11 @@ const StudentClassDetail = () => {
     } else if (activeTab === 1 && !assignmentsLoaded) {
       loadAssignmentsData();
       setAssignmentsLoaded(true);
+    } else if (activeTab === 2 && !attendanceLoaded) {
+      loadAttendanceData();
+      setAttendanceLoaded(true);
     }
-  }, [activeTab, gradesLoaded, assignmentsLoaded]);
+  }, [activeTab, gradesLoaded, assignmentsLoaded, attendanceLoaded]);
 
   const loadClassData = async () => {
     try {
@@ -107,12 +117,29 @@ const StudentClassDetail = () => {
       const classRes = await curriculumAPI.getById(curriculumId);
       const classData = classRes.data?.Data || classRes.data?.data?.Data || classRes.data?.data?.data || classRes.data?.data || classRes.data;
       
-      // Get all students from curriculum (1 API call)
+      // Get current student ID
+      const getStudentId = () => {
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          return user?.studentId || null;
+        } catch {
+          return null;
+        }
+      };
+      const currentStudentId = getStudentId();
+      
+      // Get all students from curriculum but filter to only show current student
       const studentsRes = await curriculumAPI.getStudents(curriculumId);
-      const studentsData = studentsRes.data?.students || studentsRes.data?.data?.students || [];
-
+      const allStudents = studentsRes.data?.students || studentsRes.data?.data?.students || [];
+      
+      // Only show current student's data for privacy
+      const currentStudent = allStudents.find(s => 
+        (s.studentId || s.StudentId) === currentStudentId
+      );
+      
       setCurriculumInfo(classData);
-      setStudents(studentsData);
+      // Only show current student in the list (privacy fix)
+      setStudents(currentStudent ? [currentStudent] : []);
     } catch (err) {
       console.error('Error loading class data:', err);
       setError('Không thể tải thông tin lớp học. Vui lòng thử lại sau.');
@@ -129,7 +156,24 @@ const StudentClassDetail = () => {
     try {
       const response = await gradesAPI.getByCurriculum(curriculumId);
       const gradesData = response.data?.Data || response.data?.data?.Data || response.data?.data?.data || response.data?.data || response.data || [];
-      setGrades(Array.isArray(gradesData) ? gradesData : []);
+      
+      // Get current student ID to filter grades (privacy fix)
+      const getStudentId = () => {
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          return user?.studentId || null;
+        } catch {
+          return null;
+        }
+      };
+      const currentStudentId = getStudentId();
+      
+      // Only show current student's grades
+      const filteredGrades = Array.isArray(gradesData) 
+        ? gradesData.filter(g => (g.studentId || g.StudentId) === currentStudentId)
+        : [];
+      
+      setGrades(filteredGrades);
     } catch (err) {
       console.error('Error loading grades:', err);
       setGrades([]);
@@ -170,6 +214,40 @@ const StudentClassDetail = () => {
       setAssignments([]);
     } finally {
       setAssignmentsLoading(false);
+    }
+  };
+
+  const loadAttendanceData = async () => {
+    try {
+      setAttendanceLoading(true);
+      // Lấy studentId từ user data
+      const getStudentId = () => {
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          return user?.studentId || null;
+        } catch {
+          return null;
+        }
+      };
+      const studentId = getStudentId();
+      if (!studentId) {
+        setAttendance([]);
+        return;
+      }
+      
+      // Get attendance records for this student from all sessions in this curriculum
+      const response = await sessionAttendanceAPI.getAll({ studentId });
+      const attendanceData = response.data || [];
+      
+      // Filter attendance for sessions belonging to this curriculum
+      // We need to check if the session belongs to this curriculum
+      // For now, show all attendance records for this student
+      setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
+    } catch (err) {
+      console.error('Error loading attendance:', err);
+      setAttendance([]);
+    } finally {
+      setAttendanceLoading(false);
     }
   };
 
@@ -296,7 +374,12 @@ const StudentClassDetail = () => {
             <Chip
               label={getStatusLabel(curriculumInfo.status)}
               color={getStatusColor(curriculumInfo.status)}
-              sx={{ fontWeight: 'bold', bgcolor: 'rgba(255,255,255,0.9)' }}
+              sx={{ 
+                fontWeight: 'bold',
+                color: 'white',
+                border: '2px solid rgba(255,255,255,0.5)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              }}
             />
           </Box>
 
@@ -348,33 +431,63 @@ const StudentClassDetail = () => {
       </Paper>
 
       {/* Tabs */}
-      <Paper sx={{ borderRadius: 4 }}>
+      <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
         <Tabs
           value={activeTab}
           onChange={handleTabChange}
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
+          variant="fullWidth"
+          textColor="primary"
+          indicatorColor="primary"
+          sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+            '& .MuiTab-root': {
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              py: 2,
+              textTransform: 'none',
+              '&:hover': {
+                bgcolor: 'rgba(79, 70, 229, 0.04)'
+              }
+            },
+            '& .Mui-selected': {
+              color: '#4F46E5 !important',
+              fontWeight: 700
+            },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              bgcolor: '#4F46E5'
+            }
+          }}
         >
           <Tab
-            icon={<Group />}
-            label={`Danh sách học viên (${students.length})`}
+            icon={<Group sx={{ mb: 0.5 }} />}
+            label="Điểm của tôi"
             id="class-tab-0"
             aria-controls="class-tabpanel-0"
           />
           <Tab
-            icon={<Assignment />}
-            label={`Bài tập (${assignments.length})`}
+            icon={<Assignment sx={{ mb: 0.5 }} />}
+            label="Bài tập"
             id="class-tab-1"
             aria-controls="class-tabpanel-1"
           />
+          <Tab
+            icon={<EventAvailable sx={{ mb: 0.5 }} />}
+            label="Điểm danh"
+            id="class-tab-2"
+            aria-controls="class-tabpanel-2"
+          />
         </Tabs>
 
-        {/* Students Tab - Bảng điểm theo kỹ năng */}
+        {/* My Grades Tab - Bảng điểm theo kỹ năng của tôi */}
         <TabPanel value={activeTab} index={0}>
           {students.length === 0 ? (
             <Box textAlign="center" py={4}>
               <Group sx={{ fontSize: 60, color: '#bdbdbd', mb: 2 }} />
               <Typography variant="h6" color="textSecondary">
-                Chưa có học viên
+                Bạn chưa được thêm vào lớp học này
               </Typography>
             </Box>
           ) : (
@@ -625,6 +738,59 @@ const StudentClassDetail = () => {
                 );
               })()}
             </>
+          )}
+        </TabPanel>
+
+        {/* Attendance Tab - Điểm danh của tôi */}
+        <TabPanel value={activeTab} index={2}>
+          {attendanceLoading ? (
+            <Box display="flex" justifyContent="center" py={4}>
+              <CircularProgress />
+            </Box>
+          ) : attendance.length === 0 ? (
+            <Box textAlign="center" py={4}>
+              <EventAvailable sx={{ fontSize: 60, color: '#bdbdbd', mb: 2 }} />
+              <Typography variant="h6" color="textSecondary">
+                Chưa có dữ liệu điểm danh
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: 'primary.main' }}>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Ngày</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Buổi học</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Trạng thái</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Ghi chú</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {attendance.map((record, index) => (
+                    <TableRow key={index} sx={{ '&:nth-of-type(odd)': { bgcolor: 'grey.50' } }}>
+                      <TableCell>
+                        {dayjs(record.attendanceDate).format('DD/MM/YYYY')}
+                      </TableCell>
+                      <TableCell>
+                        Buổi #{record.curriculumSessionId}
+                      </TableCell>
+                      <TableCell align="center">
+                        {record.status === 'Present' ? (
+                          <Chip icon={<CheckCircle />} label="Có mặt" color="success" size="small" />
+                        ) : record.status === 'Late' ? (
+                          <Chip icon={<WatchLater />} label="Đi muộn" color="warning" size="small" />
+                        ) : (
+                          <Chip icon={<Cancel />} label="Vắng" color="error" size="small" />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {record.notes || '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </TabPanel>
       </Paper>

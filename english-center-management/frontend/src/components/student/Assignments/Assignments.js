@@ -73,29 +73,35 @@ const StudentAssignments = () => {
         return;
       }
 
-      // Step 1: Get student's classes
-      const enrollmentsRes = await studentsAPI.getEnrollments(studentId);
-      const classes = enrollmentsRes.data?.Data || enrollmentsRes.data?.data?.Data || enrollmentsRes.data?.data?.data || enrollmentsRes.data?.data || enrollmentsRes.data || [];
+      // Step 1: Get student's curriculums (not classes)
+      const curriculumsRes = await studentsAPI.getCurriculums(studentId);
+      const curriculums = curriculumsRes.data || [];
+      console.log('Curriculums for student:', curriculums);
 
-      if (classes.length === 0) {
+      if (curriculums.length === 0) {
         setAssignments([]);
         return;
       }
 
-      // Step 2: Get assignments for each class
-      // Note: This could be optimized if backend had a student-specific assignment endpoint
+      // Step 2: Get assignments for each curriculum
       const allAssignments = [];
-      for (const cls of classes) {
+      for (const curr of curriculums) {
         try {
-          const classId = cls.classId;
-          if (!classId) continue;
-          const res = await assignmentsAPI.getAll({ classId, studentId, pageSize: 1000 });
+          const curriculumId = curr.curriculumId;
+          if (!curriculumId) {
+            console.log('Skipping - no curriculumId:', curr);
+            continue;
+          }
+          console.log('Loading assignments for curriculumId:', curriculumId);
+          const res = await assignmentsAPI.getAll({ curriculumId, studentId, pageSize: 1000 });
+          console.log('Assignments response for', curriculumId, ':', res.data);
           const assignmentsData = res.data?.data || res.data || [];
           allAssignments.push(...(Array.isArray(assignmentsData) ? assignmentsData : []));
         } catch (e) {
-          console.error(`Error loading assignments for class ${cls.classId}:`, e);
+          console.error(`Error loading assignments for curriculum ${curr.curriculumId}:`, e);
         }
       }
+      console.log('Total assignments loaded:', allAssignments.length);
 
       // Sort by due date (closest first)
       const sorted = allAssignments.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
