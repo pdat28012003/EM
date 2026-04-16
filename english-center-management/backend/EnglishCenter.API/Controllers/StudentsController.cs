@@ -396,7 +396,7 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets student's enrolled curriculums with full schedule details. (Lấy danh sách chương trình học của học viên với chi tiết lịch học.)
+        /// Gets student's enrolled curriculums with full schedule details. (Lấy danh sách chương trình học của học viên từ khóa học đã đăng ký.)
         /// </summary>
         /// <param name="id">Student ID (ID học viên)</param>
         /// <returns>List of curriculums with nested days and sessions (Danh sách chương trình học với chi tiết ngày và buổi học)</returns>
@@ -411,30 +411,59 @@ namespace EnglishCenter.API.Controllers
                     return NotFound(new { message = "Student not found" });
                 }
 
-                // Get all curriculums the student is enrolled in with full nested structure
-                var curriculums = await _context.Enrollments
-                    .Include(e => e.Curriculum)
-                    .ThenInclude(c => c.CurriculumCourses)
-                    .ThenInclude(cc => cc.Course)
-                    .Include(e => e.Curriculum)
-                    .ThenInclude(c => c.CurriculumDays)
-                    .ThenInclude(cd => cd.CurriculumSessions)
-                    .ThenInclude(cs => cs.Teacher)
-                    .Include(e => e.Curriculum)
-                    .ThenInclude(c => c.CurriculumDays)
-                    .ThenInclude(cd => cd.CurriculumSessions)
-                    .ThenInclude(cs => cs.AssignedRoom)
-                    .Where(e => e.StudentId == id && e.Curriculum.Status == "Active")
-                    .Select(e => new
+                // Get all courses the student is enrolled in (from CourseEnrollments)
+                var enrolledCourseIds = await _context.CourseEnrollments
+                    .Where(ce => ce.StudentId == id && ce.Status == "Active")
+                    .Select(ce => ce.CourseId)
+                    .Distinct()
+                    .ToListAsync();
+
+                if (!enrolledCourseIds.Any())
+                {
+                    return Ok(new List<object>());
+                }
+
+                // Find all curriculums that contain these courses
+                var curriculumIds = await _context.CurriculumCourses
+                    .Where(cc => enrolledCourseIds.Contains(cc.CourseId))
+                    .Select(cc => cc.CurriculumId)
+                    .Distinct()
+                    .ToListAsync();
+
+                if (!curriculumIds.Any())
+                {
+                    return Ok(new List<object>());
+                }
+
+                // Get all curriculums with full nested structure
+                var curriculums = await _context.Curriculums
+                    .Include(c => c.CurriculumCourses)
+                        .ThenInclude(cc => cc.Course)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                        .ThenInclude(cs => cs.Teacher)
+                    .Include(c => c.CurriculumDays)
+                        .ThenInclude(cd => cd.CurriculumSessions)
+                        .ThenInclude(cs => cs.AssignedRoom)
+                    .Where(c => curriculumIds.Contains(c.CurriculumId) && c.Status == "Active")
+                    .Select(c => new
                     {
-                        curriculumId = e.Curriculum.CurriculumId,
-                        className = e.Curriculum.CurriculumName,
-                        curriculumName = e.Curriculum.CurriculumName,
-                        courseName = string.Join(", ", e.Curriculum.CurriculumCourses.Select(cc => cc.Course.CourseName)),
-                        startDate = e.Curriculum.StartDate,
-                        endDate = e.Curriculum.EndDate,
-                        status = e.Curriculum.Status,
-                        curriculumDays = e.Curriculum.CurriculumDays
+                        curriculumId = c.CurriculumId,
+                        className = c.CurriculumName,
+                        curriculumName = c.CurriculumName,
+                        courses = c.CurriculumCourses.Select(cc => new
+                        {
+                            courseId = cc.Course.CourseId,
+                            courseName = cc.Course.CourseName,
+                            courseCode = cc.Course.CourseCode,
+                            level = cc.Course.Level,
+                            fee = cc.Course.Fee
+                        }).ToList(),
+                        courseName = string.Join(", ", c.CurriculumCourses.Select(cc => cc.Course.CourseName)),
+                        startDate = c.StartDate,
+                        endDate = c.EndDate,
+                        status = c.Status,
+                        curriculumDays = c.CurriculumDays
                             .OrderBy(cd => cd.ScheduleDate)
                             .Select(cd => new
                             {

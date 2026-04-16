@@ -29,7 +29,9 @@ import {
   Star,
   Payment,
   NewReleases,
-  Announcement
+  Announcement,
+  Person,
+  LocationOn
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -165,15 +167,40 @@ const StudentDashboard = () => {
       // 1. Load Curriculums (with Course info)
       const curriculumsRes = await studentsAPI.getCurriculums(studentId);
       const curriculumsData = curriculumsRes.data || [];
-      setRecentClasses(curriculumsData.slice(0, 3).map(c => ({
-        id: c.curriculumId,
-        name: c.curriculumName,
-        courseName: c.courses?.length > 0 
-          ? c.courses.map(course => course.courseName).join(', ')
-          : 'Khóa học tiếng Anh',
-        progress: Math.floor(Math.random() * 100), // TODO: Calculate from attendance
-        nextSession: 'Thứ 2, 08:00' // TODO: Get from schedule
-      })));
+      setRecentClasses(curriculumsData.slice(0, 3).map(c => {
+        // Extract teacher and room from first session of first day
+        const firstDay = c.curriculumDays?.[0];
+        const firstSession = firstDay?.curriculumSessions?.[0];
+        const teacherName = firstSession?.teacherName || 'Chưa phân công';
+        const roomName = firstSession?.roomName || 'Chưa phân phòng';
+        
+        // Calculate next session
+        const nextSession = firstDay && firstSession 
+          ? `${dayjs(firstDay.scheduleDate).format('dddd')}, ${firstSession.startTime}`
+          : 'Chưa có lịch';
+        
+        // Limit displayed courses to max 2
+        const maxDisplayCourses = 2;
+        let courseName = 'Khóa học tiếng Anh';
+        if (c.courses?.length > 0) {
+          const displayed = c.courses.slice(0, maxDisplayCourses).map(course => course.courseName);
+          if (c.courses.length > maxDisplayCourses) {
+            displayed.push(`+${c.courses.length - maxDisplayCourses} khóa khác`);
+          }
+          courseName = displayed.join(', ');
+        }
+        
+        return {
+          id: c.curriculumId,
+          name: c.curriculumName,
+          courseName,
+          totalCourses: c.courses?.length || 0,
+          teacherName,
+          roomName,
+          progress: Math.floor(Math.random() * 100), // TODO: Calculate from attendance
+          nextSession
+        };
+      }));
 
       // 2. Load Grades for Stats
       const gradesRes = await gradesAPI.getByStudent(studentId);
@@ -445,12 +472,35 @@ const StudentDashboard = () => {
                   <CardContent sx={{ p: 2.5 }}>
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>{classItem.name}</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
-                        <Typography variant="body2" color="text.secondary">{classItem.courseName}</Typography>
-                        <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: 'divider' }} />
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary" 
+                        sx={{ 
+                          mt: 0.5,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          lineHeight: '1.4em',
+                          maxHeight: '2.8em'
+                        }}
+                        title={classItem.courseName}
+                      >
+                        {classItem.courseName}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1, flexWrap: 'wrap' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <AccessTime sx={{ fontSize: 16, color: '#f57c00' }} />
-                          <Typography variant="body2" color="text.secondary">{classItem.nextSession}</Typography>
+                          <Person sx={{ fontSize: 14, color: '#4F46E5' }} />
+                          <Typography variant="caption" color="text.secondary">{classItem.teacherName}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <LocationOn sx={{ fontSize: 14, color: '#4F46E5' }} />
+                          <Typography variant="caption" color="text.secondary">{classItem.roomName}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <AccessTime sx={{ fontSize: 14, color: '#f57c00' }} />
+                          <Typography variant="caption" color="text.secondary">{classItem.nextSession}</Typography>
                         </Box>
                       </Box>
                     </Box>
