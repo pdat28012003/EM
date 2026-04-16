@@ -223,6 +223,7 @@ const CurriculumDetail = () => {
 
       loadSessionStudents(selectedSessionForStudents.curriculumSessionId);
       loadAvailableStudentsForSession(selectedSessionForStudents.curriculumSessionId);
+      loadCurriculum(); // Reload curriculum to update student count display
       setSelectedSessionStudentIds([]);
       alert(`Thêm thành công ${selectedSessionStudentIds.length} học viên vào buổi học!`);
     } catch (error) {
@@ -238,6 +239,7 @@ const CurriculumDetail = () => {
       await curriculumAPI.removeStudentFromSession(selectedSessionForStudents.curriculumSessionId, studentId);
       loadSessionStudents(selectedSessionForStudents.curriculumSessionId);
       loadAvailableStudentsForSession(selectedSessionForStudents.curriculumSessionId);
+      loadCurriculum(); // Reload curriculum to update student count display
       alert('Đã xóa học viên khỏi buổi học!');
     } catch (error) {
       console.error('Error removing student from session:', error);

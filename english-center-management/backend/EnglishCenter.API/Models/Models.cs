@@ -317,9 +317,6 @@ namespace EnglishCenter.API.Models
         public string CurriculumName { get; set; } = string.Empty;
 
         [Required]
-        public int CourseId { get; set; }
-
-        [Required]
         public DateTime StartDate { get; set; }
 
         [Required]
