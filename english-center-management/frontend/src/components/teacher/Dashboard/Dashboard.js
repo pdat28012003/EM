@@ -124,12 +124,12 @@ const TeacherDashboard = () => {
       setStats(statsResponse.data);
       
       const curriculumsResponse = await curriculumAPI.getCurriculumsByTeacher(teacherId);
-      const curriculumsData = curriculumsResponse.data?.data || curriculumsResponse.data?.Data || [];
+      const curriculumsData = curriculumsResponse.data || [];
       const mappedCurriculums = Array.isArray(curriculumsData) ? curriculumsData.map(curr => ({
         id: curr.curriculumId,
         name: curr.curriculumName || curr.courseName || 'Chương trình không tên',
         students: curr.currentStudents || 0,
-        nextClass: curr.schedule || 'Chưa có lịch',
+        nextClass: curr.roomName || 'Chưa có lịch',
         progress: curr.progress || 0
       })) : [];
       setRecentCurriculums(mappedCurriculums);

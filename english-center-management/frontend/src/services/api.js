@@ -478,7 +478,7 @@ export const curriculumAPI = {
 
   getAvailableStudentsForSession: (sessionId) => api.get(`/curriculum/session/${sessionId}/available-students`),
 
-  getCurriculumsByTeacher: (teacherId) => api.get(`/curriculum/by-teacher/${teacherId}`),
+  getCurriculumsByTeacher: (teacherId) => api.get(`/curriculum/teacher/${teacherId}`),
 
   getStudentsByTeacherSessions: (teacherId) => api.get(`/curriculum/teacher/${teacherId}/students`),
 
