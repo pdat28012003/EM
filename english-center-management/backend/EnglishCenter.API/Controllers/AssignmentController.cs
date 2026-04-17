@@ -95,7 +95,8 @@ namespace EnglishCenter.API.Controllers
                             : null,
                         StudentStatus = studentId.HasValue
                             ? a.Submissions.Where(s => s.StudentId == studentId.Value).OrderByDescending(s => s.SubmittedAt).Select(s => s.Status).FirstOrDefault()
-                            : null
+                            : null,
+                        AllowLateSubmission = a.AllowLateSubmission
                     })
                     .ToListAsync();
 
@@ -171,7 +172,8 @@ namespace EnglishCenter.API.Controllers
                         CurriculumName = a.Curriculum != null ? a.Curriculum.CurriculumName : null,
                         TeacherName = a.Teacher != null ? a.Teacher.FullName : null,
                         SubmissionsCount = a.Submissions.Count,
-                        GradedCount = a.Submissions.Count(s => s.Status == "Graded")
+                        GradedCount = a.Submissions.Count(s => s.Status == "Graded"),
+                        AllowLateSubmission = a.AllowLateSubmission
                     })
                     .FirstOrDefaultAsync();
 
@@ -209,19 +211,33 @@ namespace EnglishCenter.API.Controllers
                     return BadRequest(new { message = "Curriculum not found" });
                 }
 
+                // Get current user ID and TeacherId
+                var userId = GetCurrentUserId();
+                if (userId == null)
+                    return Unauthorized();
+
+                var teacherId = await _context.Teachers
+                    .Where(t => t.UserId == userId)
+                    .Select(t => t.TeacherId)
+                    .FirstOrDefaultAsync();
+
+                if (teacherId == 0)
+                    return BadRequest(new { message = "Teacher profile not found" });
+
                 var assignment = new Assignment
                 {
                     Title = createDto.Title,
                     Description = createDto.Description ?? string.Empty,
                     Type = createDto.Type,
                     CurriculumId = createDto.CurriculumId,
-                    TeacherId = createDto.TeacherId > 0 ? createDto.TeacherId : 1,
+                    TeacherId = teacherId,
                     DueDate = createDto.DueDate.HasValue ? createDto.DueDate.Value : DateTime.UtcNow.AddDays(7),
                     Status = "Published",
                     MaxScore = createDto.MaxScore.HasValue ? Convert.ToInt32(createDto.MaxScore.Value) : 100,
                     AttachmentUrl = createDto.AttachmentUrl,
                     SkillId = createDto.SkillId,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    AllowLateSubmission = createDto.AllowLateSubmission
                 };
 
                 _context.Assignments.Add(assignment);
@@ -268,8 +284,11 @@ namespace EnglishCenter.API.Controllers
                         CreatedAt = DateTime.UtcNow
                     };
                     _context.Notifications.Add(teacherNotification);
+                }
 
-                    // CREATE ACTIVITY LOG for teacher using service
+                // CREATE ACTIVITY LOG for teacher using service (always log regardless of UserId)
+                if (teacher != null)
+                {
                     await _activityLogService.LogAssignmentCreatedAsync(
                         teacherId: teacher.TeacherId,
                         assignmentId: assignment.AssignmentId,
@@ -293,7 +312,8 @@ namespace EnglishCenter.API.Controllers
                     MaxScore = assignment.MaxScore,
                     AttachmentUrl = assignment.AttachmentUrl,
                     SkillId = assignment.SkillId,
-                    UpdatedAt = assignment.UpdatedAt
+                    UpdatedAt = assignment.UpdatedAt,
+                    AllowLateSubmission = assignment.AllowLateSubmission
                 };
 
                 return CreatedAtAction(nameof(GetAssignment), new { id = assignment.AssignmentId }, assignmentDto);
@@ -345,6 +365,9 @@ namespace EnglishCenter.API.Controllers
                 if (!string.IsNullOrEmpty(updateDto.Status))
                     assignment.Status = updateDto.Status;
 
+                if (updateDto.AllowLateSubmission.HasValue)
+                    assignment.AllowLateSubmission = updateDto.AllowLateSubmission.Value;
+
                 assignment.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
@@ -363,7 +386,8 @@ namespace EnglishCenter.API.Controllers
                     MaxScore = assignment.MaxScore,
                     AttachmentUrl = assignment.AttachmentUrl,
                     SkillId = assignment.SkillId,
-                    UpdatedAt = assignment.UpdatedAt
+                    UpdatedAt = assignment.UpdatedAt,
+                    AllowLateSubmission = assignment.AllowLateSubmission
                 };
 
                 return Ok(assignmentDto);
@@ -591,6 +615,13 @@ namespace EnglishCenter.API.Controllers
                 if (assignment == null)
                 {
                     return NotFound(new { message = "Assignment not found" });
+                }
+
+                // Check deadline - không cho nộp nếu đã hết hạn và không cho phép nộp trễ
+                var now = DateTime.UtcNow;
+                if (now > assignment.DueDate && !assignment.AllowLateSubmission)
+                {
+                    return BadRequest(new { message = "Đã quá hạn nộp bài" });
                 }
 
                 // Check if student already submitted
@@ -1333,6 +1364,13 @@ namespace EnglishCenter.API.Controllers
                 if (!string.Equals(assignment.Type, "Quiz", StringComparison.OrdinalIgnoreCase))
                     return BadRequest(new { message = "This assignment is not a Quiz" });
 
+                // Check deadline - không cho nộp nếu đã hết hạn và không cho phép nộp trễ
+                var now = DateTime.UtcNow;
+                if (now > assignment.DueDate && !assignment.AllowLateSubmission)
+                {
+                    return BadRequest(new { message = "Đã quá hạn nộp bài" });
+                }
+
                 var studentExists = await _context.Students.AnyAsync(s => s.StudentId == dto.StudentId);
                 if (!studentExists)
                     return BadRequest(new { message = "Student not found" });
@@ -1375,7 +1413,6 @@ namespace EnglishCenter.API.Controllers
                     return BadRequest(new { message = "Quiz has no questions" });
 
                 // Create attempt
-                var now = DateTime.UtcNow;
                 var attempt = new StudentQuizAttempt
                 {
                     AssignmentId = assignmentId,
@@ -1716,6 +1753,18 @@ namespace EnglishCenter.API.Controllers
                 ".mp4" => "video/mp4",
                 _ => "application/octet-stream"
             };
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst("userId")?.Value
+                ?? User.FindFirst("id")?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
+                return userId;
+
+            return null;
         }
     }
 }

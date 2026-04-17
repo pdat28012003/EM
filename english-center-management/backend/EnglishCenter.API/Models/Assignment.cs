@@ -50,6 +50,9 @@ namespace EnglishCenter.API.Models
 
         public DateTime? UpdatedAt { get; set; }
 
+        [Required]
+        public bool AllowLateSubmission { get; set; } = false; // false = không cho nộp sau hạn
+
         // Navigation properties
         public virtual ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
         public virtual ICollection<AssignmentSkill> AssignmentSkills { get; set; } = new List<AssignmentSkill>();

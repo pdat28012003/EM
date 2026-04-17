@@ -45,6 +45,17 @@ const StudentAssignmentDetail = () => {
 
   const numericAssignmentId = useMemo(() => Number(assignmentId), [assignmentId]);
 
+  // Check if student can submit (not overdue or allow late submission or already submitted)
+  const canSubmit = useMemo(() => {
+    // Allow viewing if already submitted
+    if (submission || quizResult) return true;
+    if (!assignment?.dueDate) return true;
+    const now = dayjs();
+    const dueDate = dayjs(assignment.dueDate);
+    const isOverdue = now.isAfter(dueDate);
+    return !isOverdue || assignment?.allowLateSubmission;
+  }, [assignment, submission, quizResult]);
+
   const exitFullscreenSafe = async () => {
     try {
       if (document.fullscreenElement && document.exitFullscreen) {
@@ -296,6 +307,33 @@ const StudentAssignmentDetail = () => {
         </Alert>
       )}
 
+      {/* Block access if overdue and late submission not allowed */}
+      {!canSubmit ? (
+        <Paper sx={{ p: 4, borderRadius: 3, textAlign: 'center' }}>
+          <Alert severity="error" sx={{ mb: 3 }}>
+            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              ⛔ Đã hết hạn nộp bài
+            </Typography>
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              Bài tập: <strong>{assignment?.title || 'N/A'}</strong>
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Hạn nộp: <strong>{assignment?.dueDate ? dayjs(assignment.dueDate).format('DD/MM/YYYY HH:mm') : 'N/A'}</strong>
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              Bạn không thể làm bài vì đã quá hạn và bài tập này không cho phép nộp trễ.
+            </Typography>
+          </Alert>
+          <Button
+            variant="contained"
+            startIcon={<ArrowBack />}
+            onClick={() => navigate('/student/assignments')}
+          >
+            Quay lại danh sách bài tập
+          </Button>
+        </Paper>
+      ) : (
+        <>
       <Paper sx={{ p: 3, borderRadius: 3, mb: 2 }}>
         <Typography variant="h5" fontWeight={800}>
           {assignment?.title || 'Bài tập'}
@@ -551,6 +589,8 @@ const StudentAssignmentDetail = () => {
             </Button>
           </Box>
         </Paper>
+      )}
+      </>
       )}
     </Container>
   );

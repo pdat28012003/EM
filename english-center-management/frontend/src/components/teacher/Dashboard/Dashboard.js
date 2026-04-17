@@ -135,7 +135,7 @@ const TeacherDashboard = () => {
       setRecentCurriculums(mappedCurriculums);
       
       const activitiesResponse = await activityLogsAPI.getMyActivities({ 
-        limit: 10,
+        limit: 15,
         sortBy: 'createdAt',
         sortOrder: 'desc'
       });
@@ -148,7 +148,7 @@ const TeacherDashboard = () => {
         icon: getActivityIcon(a.iconType),
         color: getActivityColor(a.iconType)
       })) : [];
-      setActivities(mappedActivities);
+      setActivities(mappedActivities); // Show all fetched activities
       
       // Load menu badges (mock for now - replace with real API)
       setMenuBadges({
@@ -558,8 +558,9 @@ const TeacherDashboard = () => {
               </Button>
             </Box>
             
+            <Box sx={{ maxHeight: 660, overflow: 'auto', pr: 1 }}>
             <Stack spacing={2}>
-              {recentCurriculums.map((curriculumItem, index) => (
+              {recentCurriculums.slice(0, 4).map((curriculumItem, index) => (
                 <Card
                   key={curriculumItem.id}
                   sx={{
@@ -624,6 +625,7 @@ const TeacherDashboard = () => {
                 </Card>
               ))}
             </Stack>
+            </Box>
           </Paper>
         </Grid>
         
@@ -645,7 +647,7 @@ const TeacherDashboard = () => {
               </Typography>
             </Box>
             
-            <Box sx={{ position: 'relative', maxHeight: 320, overflow: 'auto', pr: 1 }}>
+            <Box sx={{ position: 'relative', maxHeight: 650, overflow: 'auto', pr: 1 }}>
               {/* Timeline line */}
               <Box
                 sx={{
@@ -660,7 +662,7 @@ const TeacherDashboard = () => {
               />
               
               <Stack spacing={0}>
-                {activities.slice(0, 10).map((activity, index) => (
+                {activities.map((activity, index) => (
                   <Box
                     key={index}
                     sx={{

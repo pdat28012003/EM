@@ -272,15 +272,22 @@ const StudentDashboard = () => {
 
       let completedCount = 0;
       try {
+        const seenAssignmentIds = new Set();
         for (const curr of curriculumsData.slice(0, 5)) { // Limit to 5 curriculums for performance
           const curriculumId = curr.curriculumId;
           if (!curriculumId) continue;
-          const res = await assignmentsAPI.getAll({ classId: curriculumId, studentId, pageSize: 100 });
+          const res = await assignmentsAPI.getAll({ curriculumId, studentId, pageSize: 100 });
           const assignmentsData = res.data?.data || res.data || [];
           const classAssignments = Array.isArray(assignmentsData) ? assignmentsData : [];
-          completedCount += classAssignments.filter(a => 
-            a.studentStatus === 'Graded' || a.studentStatus === 'Submitted'
-          ).length;
+          for (const a of classAssignments) {
+            const id = a.assignmentId || a.AssignmentId;
+            // Skip duplicates and count only completed
+            if (id && !seenAssignmentIds.has(id) && 
+                (a.studentStatus === 'Graded' || a.studentStatus === 'Submitted')) {
+              seenAssignmentIds.add(id);
+              completedCount++;
+            }
+          }
         }
       } catch (e) {
         console.error('Error loading assignments for stats:', e);
