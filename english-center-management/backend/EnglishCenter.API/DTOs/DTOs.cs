@@ -850,4 +850,9 @@ namespace EnglishCenter.API.DTOs
         public string Status { get; set; } = "Present";
         public string? Notes { get; set; }
     }
+
+    public class UpdatePaymentDto
+    {
+        public string? Status { get; set; }
+    }
 }

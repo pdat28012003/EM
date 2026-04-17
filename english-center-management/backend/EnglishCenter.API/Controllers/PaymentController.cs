@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace EnglishCenter.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/payments")]
     public class PaymentController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -443,6 +443,73 @@ namespace EnglishCenter.API.Controllers
             {
                 _logger.LogError(ex, "Error processing SePay webhook");
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Updates payment status
+        /// </summary>
+        [HttpPut("{id}")]
+        public async Task<ActionResult<PaymentDto>> UpdatePayment(int id, [FromBody] UpdatePaymentDto updatePaymentDto)
+        {
+            try
+            {
+                var payment = await _context.Payments
+                    .Include(p => p.Student)
+                    .Include(p => p.PaymentCourses)
+                        .ThenInclude(pc => pc.Course)
+                    .FirstOrDefaultAsync(p => p.PaymentId == id);
+
+                if (payment == null)
+                {
+                    return NotFound("Payment not found");
+                }
+
+                // Update payment status
+                if (!string.IsNullOrEmpty(updatePaymentDto.Status))
+                {
+                    payment.Status = updatePaymentDto.Status;
+                    
+                    // If status is being set to Completed, set the completion date
+                    if (updatePaymentDto.Status == "Completed" && payment.PaymentCompletedDate == null)
+                    {
+                        payment.PaymentCompletedDate = DateTime.Now;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                var paymentDto = new PaymentDto
+                {
+                    PaymentId = payment.PaymentId,
+                    StudentId = payment.StudentId,
+                    StudentName = payment.Student?.FullName ?? "Unknown Student",
+                    Amount = payment.Amount,
+                    PaymentDate = payment.PaymentDate,
+                    PaymentMethod = payment.PaymentMethod,
+                    Status = payment.Status,
+                    Notes = payment.Notes,
+                    TransactionId = payment.TransactionId,
+                    QRCodeUrl = payment.QRCodeUrl,
+                    Gateway = payment.Gateway,
+                    PaymentCompletedDate = payment.PaymentCompletedDate,
+                    Courses = payment.PaymentCourses?.Select(pc => new CourseForPaymentDto
+                    {
+                        CourseId = pc.Course.CourseId,
+                        CourseName = pc.Course.CourseName,
+                        CourseCode = pc.Course.CourseCode,
+                        Fee = pc.CourseFee,
+                        IsSelected = true,
+                        IsPaid = payment.Status == "Completed"
+                    }).ToList() ?? new List<CourseForPaymentDto>()
+                };
+
+                return Ok(paymentDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating payment {PaymentId}", id);
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 

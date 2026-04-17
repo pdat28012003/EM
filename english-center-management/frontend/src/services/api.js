@@ -673,7 +673,7 @@ export const activityLogsAPI = {
   // Auto-cleanup old activity logs (NEW v2.0)
   cleanup: (data) => api.post('/activitylogs/cleanup', data),
 
-  
+
 };
 
 
