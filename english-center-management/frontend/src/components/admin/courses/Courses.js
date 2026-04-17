@@ -63,7 +63,6 @@ const Courses = () => {
   // Student enrollment dialog
   const [openStudentDialog, setOpenStudentDialog] = useState(false);
   const [students, setStudents] = useState([]);
-  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
