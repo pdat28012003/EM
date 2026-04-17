@@ -51,6 +51,8 @@ namespace EnglishCenter.API.DTOs
         public string? Avatar { get; set; }
         public string Role { get; set; } = string.Empty;
         public int? StudentId { get; set; }
+        public int? TeacherId { get; set; }
+        public string? Address { get; set; }
     }
 
     public class RefreshTokenRequest
@@ -85,7 +87,22 @@ namespace EnglishCenter.API.DTOs
         public string? FullName { get; set; }
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
+        public string? Address { get; set; }
         public string? Avatar { get; set; }
         public IFormFile? AvatarFile { get; set; }
+    }
+
+    public class ChangePasswordRequest
+    {
+        [Required]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6)]
+        public string ConfirmPassword { get; set; } = string.Empty;
     }
 }

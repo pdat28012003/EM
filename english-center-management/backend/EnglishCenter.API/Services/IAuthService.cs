@@ -13,6 +13,7 @@ namespace EnglishCenter.API.Services
         Task<bool> ResetPasswordAsync(ResetPasswordRequest request);
         Task<UserDto?> GetCurrentUserAsync(int userId);
         Task<bool> UpdateProfileAsync(int userId, UpdateProfileRequest request, string? avatarUrl = null);
+        Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequest request);
         Task<bool> ResendOtpAsync(string email, string type);
     }
 }

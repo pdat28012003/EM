@@ -148,7 +148,7 @@ namespace EnglishCenter.API.Controllers
             {
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
                 var fileExtension = Path.GetExtension(request.AvatarFile.FileName).ToLowerInvariant();
-                
+
                 if (!allowedExtensions.Contains(fileExtension))
                 {
                     return ResponseHelper.BadRequest("Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif, webp).", "Only image files (jpg, jpeg, png, gif, webp) are allowed.");
@@ -183,10 +183,32 @@ namespace EnglishCenter.API.Controllers
 
             var result = await _authService.UpdateProfileAsync(userId, request, avatarUrl);
             if (!result) return ResponseHelper.BadRequest("Không thể cập nhật thông tin.", "Could not update profile.");
-            
+
             // Return updated user data
             var updatedUser = await _authService.GetCurrentUserAsync(userId);
             return ResponseHelper.Success("Cập nhật thông tin thành công.", updatedUser, "Profile updated successfully.");
+        }
+
+        /// <summary>
+        /// Changes user password.
+        /// (Đổi mật khẩu người dùng)
+        /// </summary>
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            // Validate new password matches confirmation
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                return ResponseHelper.BadRequest("Mật khẩu mới không khớp với mật khẩu xác nhận.", "New password does not match confirmation.");
+            }
+
+            var result = await _authService.ChangePasswordAsync(userId, request);
+            if (!result) return ResponseHelper.BadRequest("Mật khẩu hiện tại không chính xác.", "Current password is incorrect.");
+
+            return ResponseHelper.Success<string>("Đổi mật khẩu thành công.", null, "Password changed successfully.");
         }
 
         /// <summary>

@@ -21,7 +21,7 @@ namespace EnglishCenter.API.Services
             _logger = logger;
         }
 
-        public async Task<SePayQRResponseDto?> GenerateQRCodeAsync(SePayQRRequestDto request)
+        public Task<SePayQRResponseDto?> GenerateQRCodeAsync(SePayQRRequestDto request)
         {
             try
             {
@@ -38,17 +38,17 @@ namespace EnglishCenter.API.Services
                 // Using the actual SePay account - no fallback needed
 
                 // For direct URL method, we just return the URL as the image
-                return new SePayQRResponseDto
+                return Task.FromResult<SePayQRResponseDto?>(new SePayQRResponseDto
                 {
                     qrCode = Guid.NewGuid().ToString("N")[..8], // Generate transaction ID
                     qrData = qrUrl,
                     img = qrUrl // Return the direct URL
-                };
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating QR code from SePay. Message: {Message}", ex.Message);
-                return GenerateFallbackQR(request);
+                return Task.FromResult(GenerateFallbackQR(request));
             }
         }
 
@@ -76,22 +76,21 @@ namespace EnglishCenter.API.Services
             try
             {
                 _logger.LogInformation("Generating fallback QR code for amount: {Amount}", request.amount);
-                
+
                 // Use an example account that is known to work with SePay
                 // This is a temporary solution - you should register your account with SePay
                 var fallbackAccountNumber = "0010000000355"; // Example account from SePay docs
-                var fallbackAccountName = "SePay Example";
                 var bankName = "Vietcombank";
-                
+
                 // Create QR with fallback account but with the original amount and description
                 var qrUrl = $"https://qr.sepay.vn/img?acc={fallbackAccountNumber}&bank={bankName}&amount={request.amount}&des={Uri.EscapeDataString(request.addInfo ?? string.Empty)}&template=compact";
-                
+
                 // Generate a simple transaction ID
                 var transactionId = $"FALLBACK-{DateTime.Now:yyyyMMddHHmmss}";
-                
+
                 _logger.LogWarning("Using fallback SePay account. Original account {OriginalAccount} might not be registered with SePay.", request.accountNumber);
                 _logger.LogInformation("Generated fallback QR URL: {Url}", qrUrl);
-                
+
                 return new SePayQRResponseDto
                 {
                     qrCode = transactionId,
