@@ -47,7 +47,7 @@ const NotificationDropdown = () => {
     try {
       const token = localStorage.getItem('authToken');
       const sseUrl = `${BASE_URL}/api/notifications/stream?token=${token}`;
-      
+
       const eventSource = new EventSource(sseUrl);
       eventSourceRef.current = eventSource;
 
@@ -230,7 +230,17 @@ const NotificationDropdown = () => {
 
   return (
     <>
-      <IconButton onClick={handleClick} sx={{ color: 'white' }}>
+      <IconButton
+        onClick={handleClick}
+        sx={{
+          color: 'text.secondary',
+          '&:hover': {
+            color: 'primary.main',
+            bgcolor: 'rgba(59, 130, 246, 0.04)'
+          },
+          transition: 'all 0.2s ease'
+        }}
+      >
         <Badge badgeContent={unreadCount} color="error">
           <Notifications />
         </Badge>
