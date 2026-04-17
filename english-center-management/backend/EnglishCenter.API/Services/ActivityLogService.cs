@@ -60,8 +60,8 @@ namespace EnglishCenter.API.Services
                 teacherId: teacherId,
                 studentId: null,
                 action: "CREATE_ASSIGNMENT",
-                title: "Tài xuong bai tap moi",
-                description: $"Da tao bai tap: {assignmentTitle}",
+                title: "Tạo bài tập mới",
+                description: $"Đã tạo bài tập: {assignmentTitle}",
                 targetId: assignmentId,
                 targetType: "Assignment"
             );
@@ -74,8 +74,8 @@ namespace EnglishCenter.API.Services
                 teacherId: null,
                 studentId: studentId,
                 action: "SUBMIT_ASSIGNMENT",
-                title: "Nop bai tap",
-                description: $"Da nop bai tap: {assignmentTitle}",
+                title: "Nộp bài tập",
+                description: $"Đã nộp bài tập: {assignmentTitle}",
                 targetId: submissionId,
                 targetType: "Submission"
             );
@@ -89,8 +89,8 @@ namespace EnglishCenter.API.Services
                 teacherId: teacherId,
                 studentId: null,
                 action: "GRADE_SUBMISSION",
-                title: "Cham diem bai tap",
-                description: $"Da cham diem bai tap {assignmentTitle} voi diem {score}",
+                title: "Chấm điểm bài tập",
+                description: $"Đã chấm điểm bài tập {assignmentTitle} với điểm {score}",
                 targetId: submissionId,
                 targetType: "Submission"
             );
@@ -101,8 +101,8 @@ namespace EnglishCenter.API.Services
                 teacherId: null,
                 studentId: studentId,
                 action: "ASSIGNMENT_GRADED",
-                title: "Nhan diem bai tap",
-                description: $"Nhan diem {score} cho bai tap {assignmentTitle}",
+                title: "Nhận điểm bài tập",
+                description: $"Nhận điểm {score} cho bài tập {assignmentTitle}",
                 targetId: submissionId,
                 targetType: "Submission"
             );
@@ -115,8 +115,8 @@ namespace EnglishCenter.API.Services
                 teacherId: null,
                 studentId: studentId,
                 action: "SUBMIT_QUIZ",
-                title: "Lam bai kiem tra",
-                description: $"Da hoan thanh bai kiem tra: {quizTitle}",
+                title: "Làm bài kiểm tra",
+                description: $"Đã hoàn thành bài kiểm tra: {quizTitle}",
                 targetId: assignmentId,
                 targetType: "Assignment"
             );
@@ -129,8 +129,8 @@ namespace EnglishCenter.API.Services
                 teacherId: null,
                 studentId: studentId,
                 action: "ENROLL_CLASS",
-                title: "Ghi danh lop hoc",
-                description: $"Da ghi danh vao lop: {curriculumName}",
+                title: "Ghi danh lớp học",
+                description: $"Đã ghi danh vào lớp: {curriculumName}",
                 targetId: curriculumId,
                 targetType: "Curriculum"
             );
@@ -143,8 +143,8 @@ namespace EnglishCenter.API.Services
                 teacherId: null,
                 studentId: studentId,
                 action: "PAYMENT",
-                title: "Thanh toan hoc phi",
-                description: $"Da thanh toan hoc phi: {amount:N0} VND",
+                title: "Thanh toán học phí",
+                description: $"Đã thanh toán học phí: {amount:N0} VND",
                 targetId: paymentId,
                 targetType: "Payment"
             );
@@ -157,8 +157,8 @@ namespace EnglishCenter.API.Services
                 teacherId: teacherId,
                 studentId: null,
                 action: "UPLOAD_DOCUMENT",
-                title: "Tai len tai lieu",
-                description: $"Da tai len tai lieu: {documentTitle}",
+                title: "Tải lên tài liệu",
+                description: $"Đã tải lên tài liệu: {documentTitle}",
                 targetId: documentId,
                 targetType: "Document"
             );
@@ -171,8 +171,8 @@ namespace EnglishCenter.API.Services
                 teacherId: null,
                 studentId: null,
                 action: "DOWNLOAD_DOCUMENT",
-                title: "Tai tai lieu",
-                description: $"Da tai tai lieu: {documentTitle}",
+                title: "Tải tài liệu",
+                description: $"Đã tải tài liệu: {documentTitle}",
                 targetId: documentId,
                 targetType: "Document"
             );
@@ -186,8 +186,8 @@ namespace EnglishCenter.API.Services
                 teacherId: teacherId,
                 studentId: null,
                 action: "RECORD_ATTENDANCE",
-                title: "Diem danh",
-                description: $"Da diem danh cho buoi hoc: {sessionName}",
+                title: "Điểm danh",
+                description: $"Đã điểm danh cho buổi học: {sessionName}",
                 targetId: sessionId,
                 targetType: "Session"
             );
@@ -198,8 +198,8 @@ namespace EnglishCenter.API.Services
                 teacherId: null,
                 studentId: studentId,
                 action: "ATTENDANCE",
-                title: "Co mat",
-                description: $"Da diem danh buoi hoc: {sessionName}",
+                title: "Có mặt",
+                description: $"Đã điểm danh buổi học: {sessionName}",
                 targetId: sessionId,
                 targetType: "Session"
             );

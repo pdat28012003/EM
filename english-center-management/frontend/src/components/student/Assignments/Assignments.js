@@ -24,11 +24,14 @@ import {
   Launch,
   Schedule,
   CheckCircle,
+  Block,
 } from '@mui/icons-material';
 import { studentsAPI, assignmentsAPI, authAPI } from '../../../services/api';
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 
 const StudentAssignments = () => {
+  const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -103,8 +106,20 @@ const StudentAssignments = () => {
       }
       console.log('Total assignments loaded:', allAssignments.length);
 
+      // Remove duplicates by assignmentId
+      const uniqueAssignments = [];
+      const seenIds = new Set();
+      for (const assignment of allAssignments) {
+        const id = assignment.assignmentId || assignment.AssignmentId;
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          uniqueAssignments.push(assignment);
+        }
+      }
+      console.log('Unique assignments count:', uniqueAssignments.length);
+
       // Sort by due date (closest first)
-      const sorted = allAssignments.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+      const sorted = uniqueAssignments.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
       setAssignments(sorted);
     } catch (err) {
       console.error('Error loading assignments:', err);
@@ -414,25 +429,44 @@ const StudentAssignments = () => {
                   }
                 />
                 <Box sx={{ ml: 2 }}>
-                  <Tooltip title={isCompleted ? "Xem chi tiết" : "Vào làm bài"}>
+                  <Tooltip title={
+                    isCompleted ? "Xem chi tiết" : 
+                    (dayjs().isAfter(dayjs(assignment.dueDate)) && !assignment.allowLateSubmission) ? "Đã hết hạn nộp bài" : 
+                    "Vào làm bài"
+                  }>
                     <Button
-                      variant={isCompleted ? "outlined" : "contained"}
-                      endIcon={isCompleted ? <Launch /> : <Launch />}
+                      variant="contained"
+                      endIcon={
+                        isCompleted ? <Launch /> : 
+                        (dayjs().isAfter(dayjs(assignment.dueDate)) && !assignment.allowLateSubmission) ? <Block /> : 
+                        <Launch />
+                      }
+                      onClick={() => {
+                        // Allow viewing if completed, block only if not completed AND overdue AND no late submission
+                        const isOverdueBlocked = !isCompleted && dayjs().isAfter(dayjs(assignment.dueDate)) && !assignment.allowLateSubmission;
+                        if (isOverdueBlocked) {
+                          return; // Do nothing if overdue and no late submission allowed
+                        }
+                        navigate(`/student/assignments/${assignment.assignmentId}`);
+                      }}
                       sx={{ 
                         borderRadius: 2,
-                        background: isCompleted ? 'transparent' : 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                        borderColor: isCompleted ? '#10B981' : 'transparent',
-                        color: isCompleted ? '#10B981' : 'white',
+                        background: isCompleted ? 'transparent' : (dayjs().isAfter(dayjs(assignment.dueDate)) && !assignment.allowLateSubmission) ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' : 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                        border: isCompleted ? '2px solid #10B981' : 'none',
+                        color: isCompleted ? '#10B981' : 'white !important',
+                        fontWeight: 600,
+                        opacity: (!isCompleted && dayjs().isAfter(dayjs(assignment.dueDate)) && !assignment.allowLateSubmission) ? 0.7 : 1,
+                        cursor: (!isCompleted && dayjs().isAfter(dayjs(assignment.dueDate)) && !assignment.allowLateSubmission) ? 'not-allowed' : 'pointer',
                         '&:hover': {
-                          background: isCompleted ? 'rgba(16, 185, 129, 0.1)' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                          background: isCompleted ? 'rgba(16, 185, 129, 0.1)' : (dayjs().isAfter(dayjs(assignment.dueDate)) && !assignment.allowLateSubmission) ? 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                           borderColor: isCompleted ? '#059669' : 'transparent',
-                          transform: 'translateY(-1px)',
+                          transform: (!isCompleted && dayjs().isAfter(dayjs(assignment.dueDate)) && !assignment.allowLateSubmission) ? 'none' : 'translateY(-1px)',
                           boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
                         },
                         transition: 'all 0.3s ease'
                       }}
                     >
-                      {isCompleted ? "Xem lại" : "Làm bài"}
+                      {isCompleted ? "Xem lại" : (dayjs().isAfter(dayjs(assignment.dueDate)) && !assignment.allowLateSubmission) ? "Hết hạn" : "Làm bài"}
                     </Button>
                   </Tooltip>
                 </Box>

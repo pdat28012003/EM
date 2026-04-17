@@ -42,7 +42,7 @@ const collapsedWidth = 80;
 
 const teacherMenuItems = [
   { text: 'Dashboard', icon: <LayoutDashboard size={22} />, path: '/teacher/dashboard' },
-  { text: 'Khóa Học', icon: <BookOpen size={22} />, path: '/teacher/classes' },
+  { text: 'Khóa Học', icon: <BookOpen size={22} />, path: '/teacher/curriculums' },
   { text: 'Lịch Dạy', icon: <Calendar size={22} />, path: '/teacher/schedule' },
   { text: 'Tài Liệu', icon: <FileText size={22} />, path: '/teacher/documents' },
 ];

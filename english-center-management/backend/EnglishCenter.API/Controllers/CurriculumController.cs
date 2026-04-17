@@ -1357,6 +1357,29 @@ namespace EnglishCenter.API.Controllers
                     }
                 }
 
+                // Check if student has paid for the curriculum
+                var curriculumId = session.CurriculumDay.CurriculumId;
+                var curriculum = await _context.Curriculums
+                    .Include(c => c.CurriculumCourses)
+                    .FirstOrDefaultAsync(c => c.CurriculumId == curriculumId);
+                
+                if (curriculum != null)
+                {
+                    var courseIds = curriculum.CurriculumCourses.Select(cc => cc.CourseId).ToList();
+                    var hasPaid = await _context.Payments
+                        .AnyAsync(p => p.StudentId == dto.StudentId 
+                            && p.Status == "Completed"
+                            && p.PaymentCourses.Any(pc => courseIds.Contains(pc.CourseId)));
+                    
+                    if (!hasPaid)
+                    {
+                        return BadRequest(new 
+                        { 
+                            message = "Học viên chưa thanh toán khóa học này. Vui lòng hoàn tất thanh toán trước khi tham gia buổi học."
+                        });
+                    }
+                }
+
                 var sessionStudent = new SessionStudent
                 {
                     CurriculumSessionId = sessionId,
@@ -1490,7 +1513,10 @@ namespace EnglishCenter.API.Controllers
                         roomName = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Where(cs => cs.TeacherId == teacherId).Select(cs => cs.AssignedRoom!.RoomName).FirstOrDefault(),
                         teacherName = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Where(cs => cs.TeacherId == teacherId).Select(cs => cs.Teacher!.FullName).FirstOrDefault(),
                         currentStudents = c.ParticipantStudents.Count,
-                        maxStudents = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Where(cs => cs.TeacherId == teacherId && cs.AssignedRoom != null).Select(cs => cs.AssignedRoom!.Capacity).FirstOrDefault()
+                        maxStudents = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Where(cs => cs.TeacherId == teacherId && cs.AssignedRoom != null).Select(cs => cs.AssignedRoom!.Capacity).FirstOrDefault(),
+                        progress = c.StartDate != default && c.EndDate != default && c.EndDate > c.StartDate
+                            ? Math.Min(100, Math.Max(0, (int)((DateTime.UtcNow - c.StartDate).TotalDays / (c.EndDate - c.StartDate).TotalDays * 100)))
+                            : 0
                     })
                     .ToListAsync();
 

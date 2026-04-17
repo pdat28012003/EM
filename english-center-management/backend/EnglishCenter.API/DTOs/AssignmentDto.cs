@@ -24,6 +24,7 @@ namespace EnglishCenter.API.DTOs
         public decimal? StudentScore { get; set; }
         public string? StudentStatus { get; set; }
         public int? TimeSpentSeconds { get; set; }
+        public bool AllowLateSubmission { get; set; }
     }
 
     public class CreateAssignmentDto
@@ -37,6 +38,7 @@ namespace EnglishCenter.API.DTOs
         public decimal? MaxScore { get; set; }
         public string? AttachmentUrl { get; set; }
         public int? SkillId { get; set; }
+        public bool AllowLateSubmission { get; set; } = false;
     }
 
     public class UpdateAssignmentDto
@@ -49,6 +51,7 @@ namespace EnglishCenter.API.DTOs
         public decimal? MaxScore { get; set; }
         public string? AttachmentUrl { get; set; }
         public int? SkillId { get; set; }
+        public bool? AllowLateSubmission { get; set; }
     }
 
     public class AssignmentSubmissionDto

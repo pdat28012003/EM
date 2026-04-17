@@ -36,7 +36,9 @@ import {
   ListItemText,
   Menu,
   ListItemIcon,
-  InputAdornment
+  InputAdornment,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
 import {
   Add,
@@ -74,7 +76,8 @@ export default function AssignmentsTab({ curriculumId, curriculumInfo }) {
     dueDate: '',
     type: 'Homework',
     maxScore: 10,
-    skillId: ''
+    skillId: '',
+    allowLateSubmission: false
   });
   const [skills, setSkills] = useState([]);
   const [questionForm, setQuestionForm] = useState({
@@ -271,7 +274,8 @@ export default function AssignmentsTab({ curriculumId, curriculumInfo }) {
       dueDate: '',
       type: 'Homework',
       maxScore: 100,
-      skillId: ''
+      skillId: '',
+      allowLateSubmission: false
     });
   };
 
@@ -283,7 +287,8 @@ export default function AssignmentsTab({ curriculumId, curriculumInfo }) {
       dueDate: assignment.dueDate,
       type: assignment.type,
       maxScore: assignment.maxScore,
-      skillId: assignment.skillId || ''
+      skillId: assignment.skillId || '',
+      allowLateSubmission: assignment.allowLateSubmission || false
     });
     setCreateDialogOpen(true);
   };
@@ -669,6 +674,7 @@ export default function AssignmentsTab({ curriculumId, curriculumInfo }) {
                 <TableCell><strong>Loại</strong></TableCell>
                 <TableCell align="center"><strong>Kỹ năng</strong></TableCell>
                 <TableCell align="center"><strong>Hạn nộp</strong></TableCell>
+                <TableCell align="center"><strong>Nộp trễ</strong></TableCell>
                 <TableCell align="center"><strong>Điểm tối đa</strong></TableCell>
                 <TableCell align="center"><strong>Trạng thái</strong></TableCell>
                 <TableCell align="center"><strong>Thao tác</strong></TableCell>
@@ -722,6 +728,13 @@ export default function AssignmentsTab({ curriculumId, curriculumInfo }) {
                     <Typography variant="body2">
                       {formatDate(assignment.dueDate)}
                     </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    {assignment.allowLateSubmission ? (
+                      <Chip label="Cho phép" size="small" color="success" variant="outlined" />
+                    ) : (
+                      <Chip label="Không" size="small" color="error" variant="outlined" />
+                    )}
                   </TableCell>
                   <TableCell align="center">
                     <Typography variant="body2" fontWeight="medium">
@@ -852,6 +865,17 @@ export default function AssignmentsTab({ curriculumId, curriculumInfo }) {
                 InputLabelProps={{ shrink: true }}
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.allowLateSubmission}
+                    onChange={(e) => setFormData({ ...formData, allowLateSubmission: e.target.checked })}
+                  />
+                }
+                label="Cho phép nộp trễ (sau hạn nộp)"
               />
             </Grid>
           </Grid>
