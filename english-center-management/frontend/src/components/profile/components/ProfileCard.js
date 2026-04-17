@@ -23,18 +23,18 @@ const ProfileCard = ({ user, avatarPreview, uploading, fileInputRef, onAvatarCli
   const avatarSrc = avatarPreview || user?.avatar;
   
   return (
-    <Card sx={{ height: '100%', borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-      <CardContent sx={{ textAlign: 'center', p: 4 }}>
-        <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
+    <Card sx={{ height: '100%', minHeight: 450, borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+      <CardContent sx={{ textAlign: 'center', p: 4, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Box sx={{ position: 'relative', display: 'flex', justifyContent: 'center', mb: 2, width: 140, height: 140, mx: 'auto' }}>
           <Avatar
             sx={{
               width: 140,
               height: 140,
-              mx: 'auto',
               bgcolor: roleInfo.color,
               fontSize: '3.5rem',
               cursor: 'pointer',
               border: '4px solid #f0f0f0',
+              borderRadius: '50%',
               '& img': { objectFit: 'cover' }
             }}
             src={!imgError ? avatarSrc : undefined}
@@ -43,13 +43,16 @@ const ProfileCard = ({ user, avatarPreview, uploading, fileInputRef, onAvatarCli
           >
             {user?.fullName?.charAt(0) || 'U'}
           </Avatar>
-          
+
           {/* Hover Overlay */}
           <Box
             onClick={onAvatarClick}
             sx={{
               position: 'absolute',
-              inset: 0,
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
               bgcolor: 'rgba(0,0,0,0.5)',
               color: 'white',
               display: 'flex',
@@ -85,11 +88,11 @@ const ProfileCard = ({ user, avatarPreview, uploading, fileInputRef, onAvatarCli
         <Typography variant="h6" fontWeight={600} gutterBottom>
           {user?.fullName || 'User'}
         </Typography>
-        
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
+
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           gap: 1,
           mb: 1,
           px: 2,

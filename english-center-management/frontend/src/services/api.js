@@ -560,6 +560,8 @@ export const authAPI = {
 
   updateProfile: (data) => api.put('/auth/update-profile', data),
 
+  changePassword: (data) => api.post('/auth/change-password', data),
+
   forgotPassword: (data) => api.post('/auth/forgot-password', data),
 
   resetPassword: (data) => api.post('/auth/reset-password', data),

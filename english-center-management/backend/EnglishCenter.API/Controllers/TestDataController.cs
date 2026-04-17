@@ -213,6 +213,7 @@ namespace EnglishCenter.API.Controllers
                 })
                 .ToListAsync();
 
+#pragma warning disable CS8602
             var grades = await _context.Grades
                 .Include(g => g.Assignment)
                     .ThenInclude(a => a.Curriculum)
@@ -230,6 +231,7 @@ namespace EnglishCenter.API.Controllers
                     g.Score
                 })
                 .ToListAsync();
+#pragma warning restore CS8602
 
             return Ok(new
             {

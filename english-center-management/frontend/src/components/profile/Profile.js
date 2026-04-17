@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Container, Paper, Grid, Alert, CircularProgress, Box } from '@mui/material';
+import { Container, Paper, Grid, Alert, CircularProgress, Box, Tabs, Tab, Typography } from '@mui/material';
 import { useProfile } from './hooks/useProfile';
-import ProfileHeader from './components/ProfileHeader';
 import ProfileCard from './components/ProfileCard';
 import ProfileForm from './components/ProfileForm';
-import ProfileInfo from './components/ProfileInfo';
+import SecurityForm from './components/SecurityForm';
 
 const Profile = () => {
+  const [activeTab, setActiveTab] = useState(0);
   const [editMode, setEditMode] = useState(false);
-  
+
   const {
     user,
     formData,
@@ -23,8 +23,18 @@ const Profile = () => {
     setSuccess,
     handleInputChange,
     updateProfile,
-    uploadAvatar
+    uploadAvatar,
+    changePassword
   } = useProfile();
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+    setError('');
+    setSuccess('');
+    if (newValue === 0) {
+      setEditMode(false);
+    }
+  };
 
   // Reset form when cancel edit
   const handleEditToggle = () => {
@@ -74,53 +84,76 @@ const Profile = () => {
   return (
     <Box sx={{ backgroundColor: '#f8fafc', py: 4 }}>
       <Container maxWidth="md">
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 4, 
-            borderRadius: 4, 
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            borderRadius: 4,
             boxShadow: '0 8px 24px rgba(0,0,0,0.05)'
           }}
         >
-        <ProfileHeader 
-          editMode={editMode}
-          onEditToggle={handleEditToggle}
-          loading={loading}
-        />
+          <Typography variant="h5" fontWeight="bold" sx={{ mb: 4 }}>
+            Hồ sơ của tôi
+          </Typography>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            sx={{
+              mb: 4,
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '1rem'
+              },
+              '& .MuiTabs-indicator': {
+                borderRadius: 2
+              }
+            }}
+          >
+            <Tab label="Thông tin cá nhân" />
+            <Tab label="Bảo mật" />
+          </Tabs>
 
-        <Grid container spacing={3} sx={{ alignItems: 'stretch' }}>
-          {/* Left - Profile Card */}
-          <Grid item xs={12} md={4}>
-            <ProfileCard
-              user={user}
-              avatarPreview={avatarPreview}
-              uploading={uploading}
-              fileInputRef={fileInputRef}
-              onAvatarClick={handleAvatarClick}
-              onFileChange={handleFileChange}
-            />
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+
+          <Grid container spacing={3} sx={{ alignItems: 'stretch' }}>
+            {/* Left - Profile Card */}
+            <Grid item xs={12} md={4}>
+              <ProfileCard
+                user={user}
+                avatarPreview={avatarPreview}
+                uploading={uploading}
+                fileInputRef={fileInputRef}
+                onAvatarClick={handleAvatarClick}
+                onFileChange={handleFileChange}
+              />
+            </Grid>
+
+            {/* Right - Content based on active tab */}
+            <Grid item xs={12} md={8}>
+              {activeTab === 0 ? (
+                <ProfileForm
+                  formData={formData}
+                  editMode={editMode}
+                  loading={loading}
+                  onInputChange={handleInputChange}
+                  onSave={handleSave}
+                  onCancel={handleEditToggle}
+                  onEditToggle={handleEditToggle}
+                />
+              ) : (
+                <SecurityForm
+                  loading={loading}
+                  onChangePassword={changePassword}
+                />
+              )}
+            </Grid>
           </Grid>
-
-          {/* Right - Profile Form */}
-          <Grid item xs={12} md={8}>
-            <ProfileForm
-              formData={formData}
-              editMode={editMode}
-              loading={loading}
-              onInputChange={handleInputChange}
-              onSave={handleSave}
-              onCancel={handleEditToggle}
-            />
-          </Grid>
-        </Grid>
-
-        <ProfileInfo user={user} />
-      </Paper>
-    </Container>
-  </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 

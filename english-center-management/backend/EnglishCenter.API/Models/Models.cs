@@ -75,6 +75,9 @@ namespace EnglishCenter.API.Models
         [MaxLength(1000)]
         public string Qualifications { get; set; } = string.Empty;
 
+        [MaxLength(500)]
+        public string? Address { get; set; }
+
         public DateTime HireDate { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]

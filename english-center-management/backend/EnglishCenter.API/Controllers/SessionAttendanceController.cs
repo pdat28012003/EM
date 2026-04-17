@@ -181,7 +181,7 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 attendance.Status = dto.Status;
-                attendance.Notes = dto.Notes;
+                attendance.Notes = dto.Notes ?? string.Empty;
 
                 await _context.SaveChangesAsync();
 

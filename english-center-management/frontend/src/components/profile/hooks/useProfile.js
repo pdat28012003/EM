@@ -73,15 +73,32 @@ export const useProfile = () => {
     try {
       const response = await authAPI.updateProfile(formData);
       const updatedUser = response.data?.data || response.data;
-      
+
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       window.dispatchEvent(new CustomEvent('userUpdated', { detail: updatedUser }));
-      
+
       setSuccess('Cập nhật thông tin thành công!');
       return true;
     } catch (err) {
       setError('Cập nhật thông tin thất bại. Vui lòng thử lại.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changePassword = async (passwordData) => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await authAPI.changePassword(passwordData);
+      setSuccess('Đổi mật khẩu thành công!');
+      return true;
+    } catch (err) {
+      setError('Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu hiện tại.');
       return false;
     } finally {
       setLoading(false);
@@ -152,6 +169,7 @@ export const useProfile = () => {
     setSuccess,
     handleInputChange,
     updateProfile,
-    uploadAvatar
+    uploadAvatar,
+    changePassword
   };
 };

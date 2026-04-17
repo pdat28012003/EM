@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Grid, TextField, Button, CircularProgress, Typography, Paper } from '@mui/material';
-import { Save, Cancel, PersonOutline, Email, Phone, Home, CheckCircle } from '@mui/icons-material';
+import { Box, Grid, TextField, Button, CircularProgress, Typography, Paper, Chip } from '@mui/material';
+import { Save, Cancel, PersonOutline, Email, Phone, Home, CheckCircle, Edit } from '@mui/icons-material';
 
 const ProfileField = ({ label, value, icon, editMode, name, onChange, disabled = false, verified = false }) => {
   if (editMode) {
@@ -15,7 +15,7 @@ const ProfileField = ({ label, value, icon, editMode, name, onChange, disabled =
         variant="outlined"
         InputProps={{
           startAdornment: icon && (
-            <Box sx={{ color: 'text.secondary', mr: 1, display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ color: '#4F46E5', mr: 1, display: 'flex', alignItems: 'center' }}>
               {icon}
             </Box>
           ),
@@ -40,11 +40,11 @@ const ProfileField = ({ label, value, icon, editMode, name, onChange, disabled =
 
   // View mode - Facebook/LinkedIn style
   return (
-    <Paper 
-      elevation={0} 
-      sx={{ 
-        p: 2, 
-        backgroundColor: 'rgba(0,0,0,0.02)', 
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2,
+        backgroundColor: 'rgba(0,0,0,0.02)',
         borderRadius: 2,
         border: '1px solid rgba(0,0,0,0.08)'
       }}
@@ -63,23 +63,58 @@ const ProfileField = ({ label, value, icon, editMode, name, onChange, disabled =
           </Box>
         )}
       </Box>
-      <Typography variant="body1" fontWeight={500}>
-        {value || <span style={{ color: '#999', fontStyle: 'italic' }}>Chưa cập nhật</span>}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography variant="body1" fontWeight={500}>
+          {value || <span style={{ color: '#999', fontStyle: 'italic' }}>Chưa cập nhật</span>}
+        </Typography>
+        {!value && (
+          <Chip
+            icon={<Edit fontSize="small" />}
+            label="Thêm"
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '0.7rem',
+              '& .MuiChip-label': { pl: 0.5 },
+              '& .MuiChip-icon': { fontSize: 14, ml: 0.5 }
+            }}
+          />
+        )}
+      </Box>
     </Paper>
   );
 };
 
-const ProfileForm = ({ 
-  formData, 
-  editMode, 
-  loading, 
-  onInputChange, 
-  onSave, 
-  onCancel 
+const ProfileForm = ({
+  formData,
+  editMode,
+  loading,
+  onInputChange,
+  onSave,
+  onCancel,
+  onEditToggle
 }) => {
   return (
     <Box component="form">
+      {!editMode && (
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            variant="contained"
+            startIcon={<Edit />}
+            onClick={onEditToggle}
+            disabled={loading}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
+            }}
+          >
+            Chỉnh sửa thông tin
+          </Button>
+        </Box>
+      )}
+
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <ProfileField
@@ -126,13 +161,26 @@ const ProfileForm = ({
       </Grid>
 
       {editMode && (
-        <Box sx={{ mt: 4, display: 'flex', gap: 2, pt: 2, borderTop: '1px solid #eee' }}>
+        <Box sx={{ mt: 4, display: 'flex', gap: 2, pt: 2, borderTop: '1px solid #eee', justifyContent: 'flex-end' }}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<Cancel />}
+            onClick={onCancel}
+            disabled={loading}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none'
+            }}
+          >
+            Hủy
+          </Button>
           <Button
             variant="contained"
             startIcon={loading ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <Save />}
             onClick={onSave}
             disabled={loading}
-            sx={{ 
+            sx={{
               minWidth: 140,
               borderRadius: 2,
               textTransform: 'none',
@@ -140,19 +188,6 @@ const ProfileForm = ({
             }}
           >
             {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
-          </Button>
-          <Button
-            variant="outlined"
-            color="inherit"
-            startIcon={<Cancel />}
-            onClick={onCancel}
-            disabled={loading}
-            sx={{ 
-              borderRadius: 2,
-              textTransform: 'none'
-            }}
-          >
-            Hủy
           </Button>
         </Box>
       )}

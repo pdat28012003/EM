@@ -211,13 +211,24 @@ namespace EnglishCenter.API.Services
             if (user == null) return null;
 
             int? studentId = null;
-            
-            // If user is a Student, get the associated StudentId
+            int? teacherId = null;
+            string? address = null;
+
+            // If user is a Student, get the associated StudentId and Address
             if (user.Role.RoleName == "Student")
             {
                 var student = await _context.Students
                     .FirstOrDefaultAsync(s => s.UserId == userId);
                 studentId = student?.StudentId;
+                address = student?.Address;
+            }
+            // If user is a Teacher, get the associated TeacherId and Address
+            else if (user.Role.RoleName == "Teacher")
+            {
+                var teacher = await _context.Teachers
+                    .FirstOrDefaultAsync(t => t.UserId == userId);
+                teacherId = teacher?.TeacherId;
+                address = teacher?.Address ?? string.Empty;
             }
 
             return new UserDto
@@ -228,23 +239,78 @@ namespace EnglishCenter.API.Services
                 PhoneNumber = user.PhoneNumber,
                 Avatar = user.Avatar,
                 Role = user.Role.RoleName,
-                StudentId = studentId
+                StudentId = studentId,
+                TeacherId = teacherId,
+                Address = address
             };
         }
 
         public async Task<bool> UpdateProfileAsync(int userId, UpdateProfileRequest request, string? avatarUrl = null)
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
             if (user == null) return false;
 
             if (request.FullName != null) user.FullName = request.FullName;
             if (request.Email != null) user.Email = request.Email;
             if (request.PhoneNumber != null) user.PhoneNumber = request.PhoneNumber;
-            
+
             if (avatarUrl != null)
             {
                 user.Avatar = avatarUrl;
             }
+
+            // If user is a student, also update Student table
+            if (user.Role.RoleName == "Student")
+            {
+                var student = await _context.Students.FirstOrDefaultAsync(s => s.UserId == userId);
+                if (student != null)
+                {
+                    if (request.FullName != null) student.FullName = request.FullName;
+                    if (request.Email != null) student.Email = request.Email;
+                    if (request.PhoneNumber != null) student.PhoneNumber = request.PhoneNumber;
+                    if (request.Address != null) student.Address = request.Address;
+                }
+            }
+            // If user is a teacher, also update Teacher table
+            else if (user.Role.RoleName == "Teacher")
+            {
+                var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == userId);
+                if (teacher != null)
+                {
+                    if (request.FullName != null) teacher.FullName = request.FullName;
+                    if (request.Email != null) teacher.Email = request.Email;
+                    if (request.PhoneNumber != null) teacher.PhoneNumber = request.PhoneNumber;
+                    if (request.Address != null) teacher.Address = request.Address;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequest request)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            // Verify current password
+            if (!VerifyPasswordHash(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+            {
+                return false;
+            }
+
+            // Verify new password matches confirmation
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                return false;
+            }
+
+            // Update password
+            CreatePasswordHash(request.NewPassword, out byte[] passwordHash, out byte[] passwordSalt);
+            user.PasswordHash = passwordHash;
+            user.PasswordSalt = passwordSalt;
 
             await _context.SaveChangesAsync();
             return true;
