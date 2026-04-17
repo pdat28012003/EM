@@ -16,7 +16,9 @@ import {
   Menu as MuiMenu,
   MenuItem,
   Avatar,
+  InputBase,
   Tooltip,
+  Divider,
 } from '@mui/material';
 import {
   LayoutDashboard,
@@ -25,13 +27,15 @@ import {
   FileText,
   LogOut,
   Menu as MenuIcon,
+  Search,
   ChevronDown,
   Home,
-  GraduationCap
+  GraduationCap,
 } from 'lucide-react';
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
+import NotificationDropdown from '../header/NotificationDropdown';
 
 const drawerWidth = 280;
 const collapsedWidth = 80;
@@ -303,6 +307,43 @@ const TeacherLayout = ({ children }) => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{
+              display: { xs: 'none', sm: 'flex' },
+              alignItems: 'center',
+              bgcolor: 'rgba(0, 0, 0, 0.04)',
+              borderRadius: '12px',
+              px: 1.5,
+              py: 0.5,
+              mr: 1,
+              border: '1px solid transparent',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:focus-within': {
+                bgcolor: 'white',
+                borderColor: 'primary.main',
+                boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
+              }
+            }}>
+              <Search size={16} color="#64748b" />
+              <InputBase
+                placeholder="Tìm kiem..."
+                sx={{
+                  ml: 1,
+                  fontSize: '0.85rem',
+                  color: 'text.primary',
+                  width: 150,
+                  transition: 'width 0.3s',
+                  '& .MuiInputBase-input::placeholder': {
+                    color: 'text.secondary',
+                    opacity: 0.5
+                  },
+                  '&:focus-within': { width: 220 }
+                }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+              <NotificationDropdown />
+            </Box>
 
             <Button
               onClick={handleMenuClick}
@@ -350,9 +391,16 @@ const TeacherLayout = ({ children }) => {
                 }
               }}
             >
+              <MenuItem onClick={() => { navigate('/teacher/profile'); handleMenuClose(); }} sx={{ py: 1.5 }}>
+                <Avatar sx={{ width: 24, height: 24, mr: 1.5, fontSize: '0.8rem' }}>
+                  {user?.fullName?.[0] || 'G'}
+                </Avatar>
+                <ListItemText>Profile</ListItemText>
+              </MenuItem>
+              <Divider />
               <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: '#f87171' }}>
                 <LogOut size={18} style={{ marginRight: 12 }} />
-                Đăng xuất
+                <ListItemText>Logout</ListItemText>
               </MenuItem>
             </MuiMenu>
           </Box>
