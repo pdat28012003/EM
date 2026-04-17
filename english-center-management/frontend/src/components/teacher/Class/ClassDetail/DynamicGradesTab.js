@@ -36,8 +36,6 @@ import {
   Edit,
   Delete,
   ExpandMore,
-  GetApp,
-  BarChart,
   Done,
   Close
 } from '@mui/icons-material';
@@ -59,7 +57,6 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
   const [editingGradeId, setEditingGradeId] = useState(null);
   const [editingScore, setEditingScore] = useState('');
   const [assignmentTypeFilter, setAssignmentTypeFilter] = useState('all');
-  const [distributionDialogOpen, setDistributionDialogOpen] = useState(false);
   const [newGrade, setNewGrade] = useState({
     studentId: '',
     assignmentId: '',
@@ -242,41 +239,6 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
     };
   });
 
-  const gradeDistribution = [0, 0, 0, 0];
-  filteredGrades.forEach((grade) => {
-    const score = parseFloat(grade.score);
-    if (isNaN(score)) return;
-    if (score < 5) gradeDistribution[0] += 1;
-    else if (score < 7) gradeDistribution[1] += 1;
-    else if (score < 9) gradeDistribution[2] += 1;
-    else gradeDistribution[3] += 1;
-  });
-
-  const exportGradesCsv = () => {
-    const rows = [
-      ['Học viên', 'Mã học viên', 'Bài tập', 'Kỹ năng', 'Điểm', 'Điểm tối đa', 'Ghi chú']
-    ];
-    filteredGrades.forEach((grade) => {
-      rows.push([
-        grade.studentName || grade.StudentName || '',
-        grade.studentId || grade.StudentId || '',
-        grade.assignmentTitle || grade.AssignmentTitle || '',
-        grade.skillName || grade.SkillName || '',
-        grade.score,
-        grade.maxScore,
-        grade.comments || ''
-      ]);
-    });
-
-    const csvContent = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `BangDiem_${curriculumInfo?.curriculumName || curriculumId}.csv`;
-    link.click(); 
-    URL.revokeObjectURL(link.href);
-  };
-
   const handleStartInlineEdit = (grade) => {
     setEditingGradeId(grade.gradeId);
     setEditingScore(String(grade.score));
@@ -321,24 +283,6 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
           <Typography variant="h6" fontWeight="bold">
             Bảng điểm động - {curriculumInfo?.curriculumName}
           </Typography>
-          <Box display="flex" alignItems="center" gap={1} mt={1}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<GetApp />}
-              onClick={exportGradesCsv}
-            >
-              Xuất Excel
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<BarChart />}
-              onClick={() => setDistributionDialogOpen(true)}
-            >
-              Phổ điểm
-            </Button>
-          </Box>
         </Box>
         <Button
           variant="contained"
@@ -782,35 +726,6 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
           <Button onClick={handleEditGrade} variant="contained">
             Lưu
           </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Phổ điểm Dialog */}
-      <Dialog open={distributionDialogOpen} onClose={() => setDistributionDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Phổ điểm lớp</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 1 }}>
-            {['0-4.9', '5.0-6.9', '7.0-8.9', '9.0-10'].map((label, index) => {
-              const count = gradeDistribution[index];
-              const total = gradeDistribution.reduce((sum, value) => sum + value, 0) || 1;
-              const percent = Math.round((count / total) * 100);
-              const colors = [theme.palette.error.main, theme.palette.warning.main, theme.palette.info.main, theme.palette.success.main];
-              return (
-                <Box key={label} sx={{ mb: 2 }}>
-                  <Box display="flex" justifyContent="space-between" mb={0.5}>
-                    <Typography>{label}</Typography>
-                    <Typography>{count} học viên</Typography>
-                  </Box>
-                  <Box sx={{ bgcolor: '#e0e0e0', borderRadius: 1, height: 14, overflow: 'hidden' }}>
-                    <Box sx={{ width: `${percent}%`, bgcolor: colors[index], height: '100%' }} />
-                  </Box>
-                </Box>
-              );
-            })}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDistributionDialogOpen(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>
 

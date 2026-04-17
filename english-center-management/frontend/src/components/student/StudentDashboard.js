@@ -173,12 +173,12 @@ const StudentDashboard = () => {
         const firstSession = firstDay?.curriculumSessions?.[0];
         const teacherName = firstSession?.teacherName || 'Chưa phân công';
         const roomName = firstSession?.roomName || 'Chưa phân phòng';
-        
+
         // Calculate next session
-        const nextSession = firstDay && firstSession 
+        const nextSession = firstDay && firstSession
           ? `${dayjs(firstDay.scheduleDate).format('dddd')}, ${firstSession.startTime}`
           : 'Chưa có lịch';
-        
+
         // Limit displayed courses to max 2
         const maxDisplayCourses = 2;
         let courseName = 'Khóa học tiếng Anh';
@@ -189,7 +189,25 @@ const StudentDashboard = () => {
           }
           courseName = displayed.join(', ');
         }
-        
+
+        // Calculate progress based on current date
+        const startDate = dayjs(c.startDate);
+        const endDate = dayjs(c.endDate);
+        const currentDate = dayjs();
+        let progress = 0;
+
+        if (startDate.isValid() && endDate.isValid()) {
+          if (currentDate.isBefore(startDate)) {
+            progress = 0;
+          } else if (currentDate.isAfter(endDate)) {
+            progress = 100;
+          } else {
+            const totalDays = endDate.diff(startDate, 'day');
+            const daysElapsed = currentDate.diff(startDate, 'day');
+            progress = totalDays > 0 ? Math.round((daysElapsed / totalDays) * 100) : 0;
+          }
+        }
+
         return {
           id: c.curriculumId,
           name: c.curriculumName,
@@ -197,7 +215,7 @@ const StudentDashboard = () => {
           totalCourses: c.courses?.length || 0,
           teacherName,
           roomName,
-          progress: Math.floor(Math.random() * 100), // TODO: Calculate from attendance
+          progress,
           nextSession
         };
       }));
@@ -520,7 +538,7 @@ const StudentDashboard = () => {
                   </CardContent>
                 </Card>
               )) : (
-                <Typography variant="body2" color="text.secondary">Bạn chưa đăng ký chương trình học nào.</Typography>
+                <Typography variant="body2" color="text.secondary">Hiện tại không có chương trình học nào.</Typography>
               )}
             </Stack>
           </Paper>

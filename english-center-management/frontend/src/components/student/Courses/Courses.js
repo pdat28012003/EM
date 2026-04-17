@@ -147,16 +147,43 @@ const StudentClasses = () => {
 
       // Map curriculum data to class-like structure
       const curriculumsData = response.data || [];
-      const mappedClasses = Array.isArray(curriculumsData) ? curriculumsData.map(c => ({
-        curriculumId: c.curriculumId,
-        className: c.curriculumName,
-        courseName: c.courseName || (c.courses?.map(course => course.courseName).join(', ') || 'Khóa học tiếng Anh'),
-        startDate: c.startDate,
-        endDate: c.endDate,
-        status: c.status,
-        roomName: c.roomName,
-        teacherName: c.teacherName
-      })) : [];
+      const mappedClasses = Array.isArray(curriculumsData) ? curriculumsData.map(c => {
+        // Extract teacher and room from first session of first day
+        const firstDay = c.curriculumDays?.[0];
+        const firstSession = firstDay?.curriculumSessions?.[0];
+        const teacherName = firstSession?.teacherName || 'Chưa phân công';
+        const roomName = firstSession?.roomName || 'Chưa phân phòng';
+
+        // Calculate progress based on current date
+        const startDate = dayjs(c.startDate);
+        const endDate = dayjs(c.endDate);
+        const currentDate = dayjs();
+        let progress = 0;
+
+        if (startDate.isValid() && endDate.isValid()) {
+          if (currentDate.isBefore(startDate)) {
+            progress = 0;
+          } else if (currentDate.isAfter(endDate)) {
+            progress = 100;
+          } else {
+            const totalDays = endDate.diff(startDate, 'day');
+            const daysElapsed = currentDate.diff(startDate, 'day');
+            progress = totalDays > 0 ? Math.round((daysElapsed / totalDays) * 100) : 0;
+          }
+        }
+
+        return {
+          curriculumId: c.curriculumId,
+          className: c.className || c.curriculumName,
+          courseName: c.courseName || (c.courses?.map(course => course.courseName).join(', ') || 'Khóa học tiếng Anh'),
+          startDate: c.startDate,
+          endDate: c.endDate,
+          status: c.status,
+          roomName,
+          teacherName,
+          progress
+        };
+      }) : [];
 
       setClasses(mappedClasses);
 
@@ -225,13 +252,13 @@ const StudentClasses = () => {
 
           <Typography variant="h3" fontWeight="bold" gutterBottom>
 
-            Khóa học của tôi
+            Chương trình học
 
           </Typography>
 
           <Typography variant="h6" sx={{ opacity: 0.9 }}>
 
-            Quản lý các khóa học bạn đang tham gia tại trung tâm
+            Quản lý các chương trình học bạn đang tham gia tại trung tâm
 
           </Typography>
 
@@ -379,12 +406,12 @@ const StudentClasses = () => {
                         Tiến độ học tập
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                        {Math.floor(Math.random() * 60) + 20}%
+                        {classItem.progress}%
                       </Typography>
                     </Box>
                     <MuiLinearProgress
                       variant="determinate"
-                      value={Math.floor(Math.random() * 60) + 20}
+                      value={classItem.progress}
                       sx={{
                         height: 8,
                         borderRadius: 4,
