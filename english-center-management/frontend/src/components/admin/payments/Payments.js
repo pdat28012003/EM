@@ -24,7 +24,7 @@ import {
 import { DataGrid } from '@mui/x-data-grid';
 import { MoreVert, Receipt, CheckCircle, Print, Add } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
-import { paymentsAPI, studentsAPI } from '../../../services/api';
+import { paymentsAPI, studentsAPI, paymentAPI } from '../../../services/api';
 
 const Payments = () => {
   const theme = useTheme();
@@ -104,7 +104,7 @@ const Payments = () => {
         paymentsAPI.getAll(params),
         studentsAPI.getAll({ isActive: true }),
       ]);
-      
+
       const paymentsData = Array.isArray(paymentsRes.data?.data) ? paymentsRes.data.data : [];
       setPayments(paymentsData);
       setStudents(Array.isArray(studentsRes.data?.data) ? studentsRes.data.data : []);
@@ -199,6 +199,29 @@ const Payments = () => {
     }
   };
 
+  const handleStatusChange = async (paymentId, newStatus) => {
+    try {
+      await paymentAPI.update(paymentId, { status: newStatus });
+      // Update local state to reflect the change immediately
+      setPayments(prev => prev.map(payment =>
+        payment.paymentId === paymentId
+          ? { ...payment, status: newStatus }
+          : payment
+      ));
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      alert('Có lỗi xảy ra khi cập nhật trạng thái thanh toán');
+      // Reload data to restore original state
+      loadData();
+    }
+  };
+
+  // Normalize status value to handle case sensitivity
+  const normalizeStatus = (status) => {
+    if (!status) return 'pending';
+    return status.toString().toLowerCase();
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -249,26 +272,43 @@ const Payments = () => {
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => {
-        const status = params.value?.toLowerCase();
+        const status = normalizeStatus(params.value);
         const s = status === 'completed' ? statusStyle.completed :
-                 status === 'pending' ? statusStyle.pending :
-                 statusStyle.failed;
+          status === 'pending' ? statusStyle.pending :
+            statusStyle.failed;
+
         return (
-          <Chip
-            label={params.value}
-            size="small"
-            sx={{
-              bgcolor: s.bg,
-              color: s.text,
-              border: '1px solid',
-              borderColor: s.border,
-              fontWeight: 800,
-              borderRadius: 1.5,
-              fontSize: '0.7rem',
-              height: 22,
-              minWidth: 88,
-            }}
-          />
+          <FormControl size="small" sx={{ minWidth: 100 }}>
+            <Select
+              value={status}
+              onChange={(e) => handleStatusChange(params.row.paymentId, e.target.value)}
+              sx={{
+                bgcolor: s.bg,
+                color: s.text,
+                border: '1px solid',
+                borderColor: s.border,
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                height: 32,
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: s.border,
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: s.border,
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: s.border,
+                },
+                '& .MuiSelect-select': {
+                  py: 0.5,
+                },
+              }}
+            >
+              <MenuItem value="completed">Hoàn thành</MenuItem>
+              <MenuItem value="pending">Đang chờ</MenuItem>
+              <MenuItem value="failed">Thất bại</MenuItem>
+            </Select>
+          </FormControl>
         );
       },
     },
