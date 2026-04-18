@@ -35,7 +35,7 @@ import {
   CheckCircleOutline,
 } from '@mui/icons-material';
 import signalRService from '../../../services/signalr';
-import { paymentAPI, authAPI } from '../../../services/api';
+import { paymentAPI, authAPI, axiosInstance } from '../../../services/api';
 
 const StudentPayment = () => {
   const [studentId, setStudentId] = useState(null);
@@ -56,21 +56,28 @@ const StudentPayment = () => {
   useEffect(() => {
     // Get studentId from localStorage
     const userData = localStorage.getItem('user');
+    console.log('User data from localStorage:', userData);
+
     if (userData) {
       const parsedUser = JSON.parse(userData);
+      console.log('Parsed user data:', parsedUser);
       let id = parsedUser.studentId;
+      console.log('Student ID from parsed user:', id);
 
       // Fallback if studentId is missing
       if (!id) {
+        console.log('Student ID is missing, fetching from profile...');
         const fetchProfile = async () => {
           try {
             const profileRes = await authAPI.getProfile();
             const profileData = profileRes.data?.data || profileRes.data;
+            console.log('Profile data:', profileData);
             if (profileData && profileData.studentId) {
               id = profileData.studentId;
               const updatedUser = { ...parsedUser, studentId: id };
               localStorage.setItem('user', JSON.stringify(updatedUser));
               setStudentId(id);
+              console.log('Student ID set from profile:', id);
             }
           } catch (err) {
             console.error('Error fetching profile:', err);
@@ -79,14 +86,21 @@ const StudentPayment = () => {
         fetchProfile();
       } else {
         setStudentId(id);
+        console.log('Student ID set from localStorage:', id);
       }
+    } else {
+      console.log('No user data found in localStorage');
     }
   }, []);
 
   useEffect(() => {
+    console.log('useEffect for studentId triggered, studentId:', studentId);
     if (studentId) {
+      console.log('Calling load functions for studentId:', studentId);
       loadEnrolledCourses();
       loadPaymentHistory();
+    } else {
+      console.log('Student ID is null or undefined, not loading courses');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId]);
@@ -95,19 +109,53 @@ const StudentPayment = () => {
   const pollingRef = React.useRef(null);
 
   // Handle successful payment completion
-  const handlePaymentSuccess = React.useCallback(() => {
+  const handlePaymentSuccess = React.useCallback(async () => {
     // Clear polling
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
-    setTimeout(() => {
-      setQrDialog(false);
-      loadEnrolledCourses();
-      loadPaymentHistory();
+
+    // Close QR dialog immediately
+    setQrDialog(false);
+
+    // Force refresh data with timestamp to bypass cache
+    try {
+      // Add timestamp to force refresh and bypass cache
+      const timestamp = Date.now();
+      console.log('Force refreshing data with timestamp:', timestamp);
+
+      await Promise.all([
+        loadEnrolledCourses(true), // Force refresh to bypass cache
+        loadPaymentHistory(true)   // Force refresh to bypass cache
+      ]);
+
+      // Force component re-render by updating a dummy state
+      setTimeout(() => {
+        console.log('Triggering force re-render after payment success');
+        // This will force the component to re-render with new data
+        setLoading(false);
+        setLoading(true);
+        setTimeout(() => setLoading(false), 100);
+      }, 500);
+
+      // Clear selected courses after successful data refresh
+      setSelectedCourses([]);
+
+      // Show success dialog
+      setSuccessDialog(true);
+
+      // Force a re-render by updating a dummy state
+      setPaymentStatus('Completed');
+
+      console.log('Payment successful - data refreshed and UI updated');
+
+    } catch (error) {
+      console.error('Error refreshing data after payment:', error);
+      // Still show success dialog even if data refresh fails
       setSuccessDialog(true);
       setSelectedCourses([]);
-    }, 1500);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -122,11 +170,15 @@ const StudentPayment = () => {
         if (connectionRef.current.state === 'Disconnected') {
           await connectionRef.current.start();
           console.log('Connected to payment hub');
-        }
 
-        // Join group whenever we have a current payment and connection is connected
-        if (currentPayment && connectionRef.current.state === 'Connected') {
-          console.log('Joining payment group:', currentPayment.paymentId);
+          // Try to join group immediately after connection if we have current payment
+          if (currentPayment) {
+            console.log('Joining payment group after connection:', currentPayment.paymentId);
+            await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
+          }
+        } else if (connectionRef.current.state === 'Connected' && currentPayment) {
+          // Join group if connection is already established and we have payment
+          console.log('Joining payment group (already connected):', currentPayment.paymentId);
           await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
         }
       } catch (err) {
@@ -165,6 +217,15 @@ const StudentPayment = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPayment]);
 
+  // Auto-join SignalR group when currentPayment changes
+  useEffect(() => {
+    if (currentPayment && connectionRef.current && connectionRef.current.state === 'Connected') {
+      console.log('Auto-joining payment group for payment:', currentPayment.paymentId);
+      connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString())
+        .catch(err => console.error('Error joining payment group:', err));
+    }
+  }, [currentPayment]);
+
   // Polling fallback: poll payment status every 3s while QR dialog is open
   useEffect(() => {
     if (qrDialog && currentPayment) {
@@ -200,24 +261,42 @@ const StudentPayment = () => {
   }, [qrDialog, currentPayment]);
 
 
-  const loadEnrolledCourses = async () => {
+  const loadEnrolledCourses = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      const response = await paymentAPI.getStudentEnrolledCourses(studentId);
+      console.log('Loading enrolled courses for studentId:', studentId, 'forceRefresh:', forceRefresh);
+
+      // Add cache busting parameter if force refresh is requested
+      const url = forceRefresh
+        ? `/payments/student/${studentId}/enrolled-courses?t=${Date.now()}`
+        : `/payments/student/${studentId}/enrolled-courses`;
+
+      const response = await axiosInstance.get(url);
+      console.log('Enrolled courses response:', response.data);
       setEnrolledCourses(response.data);
     } catch (error) {
       console.error('Error loading enrolled courses:', error);
+      console.error('Error details:', error.response?.data);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadPaymentHistory = async () => {
+  const loadPaymentHistory = async (forceRefresh = false) => {
     try {
-      const response = await paymentAPI.getStudentPaymentHistory(studentId);
+      console.log('Loading payment history for studentId:', studentId, 'forceRefresh:', forceRefresh);
+
+      // Add cache busting parameter if force refresh is requested
+      const url = forceRefresh
+        ? `/payments/student/${studentId}/history?t=${Date.now()}`
+        : `/payments/student/${studentId}/history`;
+
+      const response = await axiosInstance.get(url);
+      console.log('Payment history response:', response.data);
       setPaymentHistory(response.data);
     } catch (error) {
       console.error('Error loading payment history:', error);
+      console.error('Error details:', error.response?.data);
     }
   };
 
