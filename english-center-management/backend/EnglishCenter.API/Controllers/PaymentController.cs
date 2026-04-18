@@ -44,26 +44,21 @@ namespace EnglishCenter.API.Controllers
         {
             try
             {
-                var student = await _context.Students
-                    .Include(s => s.Enrollments)
-                        .ThenInclude(e => e.Curriculum)
-                            .ThenInclude(c => c.CurriculumCourses)
-                            .ThenInclude(cc => cc.Course)
-                    .FirstOrDefaultAsync(s => s.StudentId == studentId);
+                var student = await _context.Students.FindAsync(studentId);
 
                 if (student == null)
                 {
                     return NotFound("Student not found");
                 }
 
-                if (student.Enrollments == null)
-                {
-                    return Ok(new StudentEnrolledCoursesDto { StudentId = studentId, StudentName = student.FullName });
-                }
-
-                var courses = student.Enrollments
-                    .Where(e => e.Status != "Dropped" && e.Status != "Cancelled" && e.Curriculum != null)
-                    .SelectMany(e => e.Curriculum.CurriculumCourses.Select(cc => cc.Course))
+                // Get courses from sessions where student is registered
+                var courses = await _context.SessionStudents
+                    .Where(ss => ss.StudentId == studentId)
+                    .Select(ss => ss.CurriculumSession)
+                        .Select(cs => cs.CurriculumDay)
+                            .Select(cd => cd.Curriculum)
+                                .SelectMany(c => c.CurriculumCourses)
+                                    .Select(cc => cc.Course)
                     .Distinct()
                     .Select(course => new CourseForPaymentDto
                     {
@@ -74,7 +69,7 @@ namespace EnglishCenter.API.Controllers
                         IsSelected = false,
                         IsPaid = false
                     })
-                    .ToList();
+                    .ToListAsync();
 
                 // Check which courses are already paid
                 var paidCourseIds = await _context.PaymentCourses
@@ -324,6 +319,24 @@ namespace EnglishCenter.API.Controllers
         [AllowAnonymous]
         [HttpPost("sepay/webhook")]
         public async Task<IActionResult> SePayWebhook([FromBody] SePayWebhookDto webhookData)
+        {
+            return await ProcessSePayWebhook(webhookData);
+        }
+
+        /// <summary>
+        /// SePay webhook endpoint (legacy route for compatibility)
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("/api/payment/sepay/webhook")]
+        public async Task<IActionResult> SePayWebhookLegacy([FromBody] SePayWebhookDto webhookData)
+        {
+            return await ProcessSePayWebhook(webhookData);
+        }
+
+        /// <summary>
+        /// Common webhook processing logic
+        /// </summary>
+        private async Task<IActionResult> ProcessSePayWebhook([FromBody] SePayWebhookDto webhookData)
         {
             try
             {

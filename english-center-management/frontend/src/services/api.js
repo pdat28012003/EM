@@ -686,25 +686,25 @@ export const paymentAPI = {
 
   // Get enrolled courses for a student
 
-  getStudentEnrolledCourses: (studentId) => api.get(`/payment/student/${studentId}/enrolled-courses`),
+  getStudentEnrolledCourses: (studentId) => api.get(`/payments/student/${studentId}/enrolled-courses`),
 
 
 
   // Create a new payment
 
-  createPayment: (data) => api.post('/payment/create-payment', data),
+  createPayment: (data) => api.post('/payments/create-payment', data),
 
 
 
   // Get payment by ID
 
-  getPaymentById: (id) => api.get(`/payment/${id}`),
+  getPaymentById: (id) => api.get(`/payments/${id}`),
 
 
 
   // Get payment history for a student
 
-  getStudentPaymentHistory: (studentId) => api.get(`/payment/student/${studentId}/history`),
+  getStudentPaymentHistory: (studentId) => api.get(`/payments/student/${studentId}/history`),
 
 
 
@@ -724,13 +724,13 @@ export const paymentAPI = {
 
   // Poll payment status (fallback for SignalR)
 
-  getPaymentStatus: (id) => api.get(`/payment/${id}/status`),
+  getPaymentStatus: (id) => api.get(`/payments/${id}/status`),
 
 };
 
 
 
 export default api;
-
+export { api as axiosInstance };
 export { UPLOAD_URL, BASE_URL };
 
