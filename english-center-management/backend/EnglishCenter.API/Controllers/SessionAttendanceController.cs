@@ -20,8 +20,12 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets a list of session attendance records. Can be filtered by session, student, or date.
+        /// Gets a list of session attendance records. Can be filtered by session, student, or date. (Lấy danh sách điểm danh buổi học. Có thể lọc theo buổi học, học sinh, hoặc ngày)
         /// </summary>
+        /// <param name="sessionId">Session ID (ID buổi học)</param>
+        /// <param name="studentId">Student ID (ID học sinh)</param>
+        /// <param name="date">Attendance date (Ngày điểm danh)</param>
+        /// <returns>List of session attendances (Danh sách điểm danh buổi học)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<SessionAttendanceDto>>> GetSessionAttendances(
             [FromQuery] int? sessionId = null,
@@ -66,8 +70,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets session attendance by ID.
+        /// Gets session attendance by ID. (Lấy điểm danh buổi học theo ID)
         /// </summary>
+        /// <param name="id">Session Attendance ID (ID điểm danh buổi học)</param>
+        /// <returns>Session attendance details (Chi tiết điểm danh buổi học)</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<SessionAttendanceDto>> GetSessionAttendance(int id)
         {
@@ -94,8 +100,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Creates a new session attendance record.
+        /// Creates a new session attendance record. (Tạo bản ghi điểm danh buổi học mới)
         /// </summary>
+        /// <param name="dto">Session attendance data (Dữ liệu điểm danh buổi học)</param>
+        /// <returns>Created session attendance (Điểm danh buổi học đã tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<SessionAttendanceDto>> CreateSessionAttendance(CreateSessionAttendanceDto dto)
         {
@@ -167,8 +175,11 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Updates a session attendance record.
+        /// Updates a session attendance record. (Cập nhật bản ghi điểm danh buổi học)
         /// </summary>
+        /// <param name="id">Session Attendance ID (ID điểm danh buổi học)</param>
+        /// <param name="dto">Update data (Dữ liệu cập nhật)</param>
+        /// <returns>No Content (Không có nội dung)</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateSessionAttendance(int id, UpdateSessionAttendanceDto dto)
         {
@@ -195,8 +206,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Deletes a session attendance record.
+        /// Deletes a session attendance record. (Xóa bản ghi điểm danh buổi học)
         /// </summary>
+        /// <param name="id">Session Attendance ID (ID điểm danh buổi học)</param>
+        /// <returns>No Content (Không có nội dung)</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSessionAttendance(int id)
         {
@@ -221,8 +234,11 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets attendance statistics for a session on a specific date.
+        /// Gets attendance statistics for a session on a specific date. (Lấy thống kê điểm danh cho một buổi học vào ngày cụ thể)
         /// </summary>
+        /// <param name="sessionId">Session ID (ID buổi học)</param>
+        /// <param name="date">Date to check (Ngày cần kiểm tra)</param>
+        /// <returns>Attendance statistics (Thống kê điểm danh)</returns>
         [HttpGet("stats/{sessionId}")]
         public async Task<ActionResult<object>> GetSessionAttendanceStats(int sessionId, [FromQuery] DateTime date)
         {

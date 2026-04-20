@@ -19,6 +19,11 @@ namespace EnglishCenter.API.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Uploads an avatar image file. (Tải lên file ảnh đại diện)
+        /// </summary>
+        /// <param name="file">Image file (File ảnh)</param>
+        /// <returns>File URL (Đường dẫn file)</returns>
         [HttpPost("avatar")]
         public async Task<IActionResult> UploadAvatar(IFormFile file)
         {
@@ -85,6 +90,12 @@ namespace EnglishCenter.API.Controllers
                 return StatusCode(500, new { message = "Có lỗi xảy ra khi upload file" });
             }
         }
+
+        /// <summary>
+        /// Uploads a submission file. (Tải lên file bài nộp)
+        /// </summary>
+        /// <param name="file">Submission file (File bài nộp)</param>
+        /// <returns>File URL and metadata (Đường dẫn file và thông tin)</returns>
         [HttpPost("submission")]
         public async Task<IActionResult> UploadSubmission(IFormFile file)
         {

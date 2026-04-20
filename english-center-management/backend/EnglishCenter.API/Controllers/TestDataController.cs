@@ -18,8 +18,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Create test grade data
+        /// Create test grade data. (Tạo dữ liệu điểm số thử nghiệm)
         /// </summary>
+        /// <returns>Created grade count (Số lượng điểm đã tạo)</returns>
         [HttpPost("create-grades")]
         public async Task<ActionResult> CreateTestGrades()
         {
@@ -84,8 +85,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Get current data status
+        /// Get current data status. (Lấy trạng thái dữ liệu hiện tại)
         /// </summary>
+        /// <returns>Data statistics (Thống kê dữ liệu)</returns>
         [HttpGet("status")]
         public async Task<ActionResult> GetDataStatus()
         {
@@ -105,8 +107,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Debug grades data
+        /// Debug grades data. (Debug dữ liệu điểm số)
         /// </summary>
+        /// <returns>Grades and enrollments debug info (Thông tin debug điểm số và đăng ký)</returns>
         [HttpGet("debug-grades")]
         public async Task<ActionResult> DebugGrades()
         {
@@ -156,8 +159,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Test GetGradesByCurriculum logic
+        /// Test GetGradesByCurriculum logic. (Kiểm tra logic lấy điểm theo chương trình học)
         /// </summary>
+        /// <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
+        /// <returns>Grades for curriculum (Điểm số theo chương trình học)</returns>
         [HttpGet("test-grades-by-curriculum/{curriculumId}")]
         public async Task<ActionResult> TestGradesByCurriculum(int curriculumId)
         {
@@ -196,8 +201,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Debug assignment and curriculum relationship
+        /// Debug assignment and curriculum relationship. (Debug mối quan hệ giữa bài tập và chương trình học)
         /// </summary>
+        /// <returns>Assignment and curriculum debug info (Thông tin debug bài tập và chương trình học)</returns>
         [HttpGet("debug-assignments")]
         public async Task<ActionResult> DebugAssignments()
         {
@@ -243,8 +249,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Debug enrollment for students with grades
+        /// Debug enrollment for students with grades. (Debug đăng ký cho học sinh có điểm)
         /// </summary>
+        /// <returns>Enrollment debug info (Thông tin debug đăng ký)</returns>
         [HttpGet("debug-enrollments")]
         public async Task<ActionResult> DebugEnrollments()
         {
@@ -278,8 +285,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Debug specific student enrollment
+        /// Debug specific student enrollment. (Debug đăng ký của học sinh cụ thể)
         /// </summary>
+        /// <param name="studentId">Student ID (ID học sinh)</param>
+        /// <returns>Student enrollment and grades debug info (Thông tin debug đăng ký và điểm số của học sinh)</returns>
         [HttpGet("debug-student/{studentId}")]
         public async Task<ActionResult> DebugStudent(int studentId)
         {

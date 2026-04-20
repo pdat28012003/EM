@@ -37,8 +37,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets enrolled courses for a student with payment status
+        /// Gets enrolled courses for a student with payment status. (Lấy các khóa học đã đăng ký của học sinh với trạng thái thanh toán)
         /// </summary>
+        /// <param name="studentId">Student ID (ID học sinh)</param>
+        /// <returns>Enrolled courses with payment status (Các khóa học đã đăng ký với trạng thái thanh toán)</returns>
         [HttpGet("student/{studentId}/enrolled-courses")]
         public async Task<ActionResult<StudentEnrolledCoursesDto>> GetStudentEnrolledCourses(int studentId)
         {
@@ -101,8 +103,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Creates a new payment with QR code
+        /// Creates a new payment with QR code. (Tạo thanh toán mới với mã QR)
         /// </summary>
+        /// <param name="createPaymentDto">Payment data (Dữ liệu thanh toán)</param>
+        /// <returns>Created payment with QR code (Thanh toán đã tạo với mã QR)</returns>
         [HttpPost("create-payment")]
         public async Task<ActionResult<PaymentDto>> CreatePayment([FromBody] CreatePaymentDto createPaymentDto)
         {
@@ -232,8 +236,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets payment by ID
+        /// Gets payment by ID. (Lấy thanh toán theo ID)
         /// </summary>
+        /// <param name="id">Payment ID (ID thanh toán)</param>
+        /// <returns>Payment details (Chi tiết thanh toán)</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<PaymentDto>> GetPayment(int id)
         {
@@ -285,8 +291,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Poll payment status (fallback for when webhook doesn't work)
+        /// Poll payment status (fallback for when webhook doesn't work). (Kiểm tra trạng thái thanh toán - dự phòng khi webhook không hoạt động)
         /// </summary>
+        /// <param name="id">Payment ID (ID thanh toán)</param>
+        /// <returns>Payment status (Trạng thái thanh toán)</returns>
         [HttpGet("{id}/status")]
         public async Task<ActionResult<object>> GetPaymentStatus(int id)
         {
@@ -314,8 +322,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// SePay webhook endpoint
+        /// SePay webhook endpoint. (Endpoint webhook SePay)
         /// </summary>
+        /// <param name="webhookData">Webhook data (Dữ liệu webhook)</param>
+        /// <returns>Webhook processing result (Kết quả xử lý webhook)</returns>
         [AllowAnonymous]
         [HttpPost("sepay/webhook")]
         public async Task<IActionResult> SePayWebhook([FromBody] SePayWebhookDto webhookData)
@@ -324,8 +334,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// SePay webhook endpoint (legacy route for compatibility)
+        /// SePay webhook endpoint (legacy route for compatibility). (Endpoint webhook SePay - route cũ để tương thích)
         /// </summary>
+        /// <param name="webhookData">Webhook data (Dữ liệu webhook)</param>
+        /// <returns>Webhook processing result (Kết quả xử lý webhook)</returns>
         [AllowAnonymous]
         [HttpPost("/api/payment/sepay/webhook")]
         public async Task<IActionResult> SePayWebhookLegacy([FromBody] SePayWebhookDto webhookData)
@@ -460,8 +472,11 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Updates payment status
+        /// Updates payment status. (Cập nhật trạng thái thanh toán)
         /// </summary>
+        /// <param name="id">Payment ID (ID thanh toán)</param>
+        /// <param name="updatePaymentDto">Update data (Dữ liệu cập nhật)</param>
+        /// <returns>Updated payment (Thanh toán đã cập nhật)</returns>
         [HttpPut("{id}")]
         public async Task<ActionResult<PaymentDto>> UpdatePayment(int id, [FromBody] UpdatePaymentDto updatePaymentDto)
         {
@@ -527,8 +542,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets payment history for a student
+        /// Gets payment history for a student. (Lấy lịch sử thanh toán của học sinh)
         /// </summary>
+        /// <param name="studentId">Student ID (ID học sinh)</param>
+        /// <returns>Payment history (Lịch sử thanh toán)</returns>
         [HttpGet("student/{studentId}/history")]
         public async Task<ActionResult<List<PaymentDto>>> GetPaymentHistory(int studentId)
         {
