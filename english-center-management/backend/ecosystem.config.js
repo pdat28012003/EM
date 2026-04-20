@@ -2,8 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'english-center-api',
-      script: 'dotnet',
-      args: 'EnglishCenter.API/bin/Release/net8.0/EnglishCenter.API.dll',
+      script: './start.sh',
       cwd: '.',
       interpreter: 'none',
       instances: 1,
