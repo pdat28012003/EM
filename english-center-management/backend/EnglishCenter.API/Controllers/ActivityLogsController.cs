@@ -26,8 +26,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets recent activities for the current user with pagination and advanced filtering (v2.0)
+        /// Gets recent activities for the current user with pagination and advanced filtering (v2.0). (Lấy các hoạt động gần đây cho người dùng hiện tại với phân trang và lọc nâng cao)
         /// </summary>
+        /// <param name="queryParams">Query parameters for filtering (Tham số truy vấn để lọc)</param>
+        /// <returns>Paged list of activities (Danh sách hoạt động có phân trang)</returns>
         [HttpGet("my-activities")]
         public async Task<ActionResult<PagedResult<ActivityLogDto>>> GetMyActivities(
             [FromQuery] ActivityLogQueryParams queryParams)
@@ -117,8 +119,10 @@ namespace EnglishCenter.API.Controllers
         
         
         /// <summary>
-        /// Creates a new activity log entry
+        /// Creates a new activity log entry. (Tạo bản ghi hoạt động mới)
         /// </summary>
+        /// <param name="dto">Activity log data (Dữ liệu hoạt động)</param>
+        /// <returns>Created activity log (Bản ghi hoạt động đã tạo)</returns>
         [HttpPost]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<ActivityLogDto>> CreateActivity(CreateActivityLogDto dto)
@@ -160,8 +164,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Deletes an old activity log (cleanup)
+        /// Deletes an old activity log (cleanup). (Xóa bản ghi hoạt động cũ - dọn dẹp)
         /// </summary>
+        /// <param name="id">Activity Log ID (ID hoạt động)</param>
+        /// <returns>No Content (Không có nội dung)</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteActivity(int id)
@@ -177,8 +183,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Auto-cleanup old activity logs (v2.0)
+        /// Auto-cleanup old activity logs (v2.0). (Tự động dọn dẹp các hoạt động cũ)
         /// </summary>
+        /// <param name="request">Cleanup parameters (Tham số dọn dẹp)</param>
+        /// <returns>Cleanup result (Kết quả dọn dẹp)</returns>
         [HttpPost("cleanup")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<CleanupResultDto>> CleanupOldActivityLogs([FromBody] CleanupActivityLogsDto request)
@@ -223,8 +231,11 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets activities with enhanced filtering for teacher (v2.0)
+        /// Gets activities with enhanced filtering for teacher (v2.0). (Lấy hoạt động với lọc nâng cao cho giáo viên)
         /// </summary>
+        /// <param name="teacherId">Teacher ID (ID giáo viên)</param>
+        /// <param name="queryParams">Query parameters for filtering (Tham số truy vấn để lọc)</param>
+        /// <returns>Paged list of activities (Danh sách hoạt động có phân trang)</returns>
         [HttpGet("teacher/{teacherId}")]
         public async Task<ActionResult<PagedResult<ActivityLogDto>>> GetTeacherActivities(
             int teacherId,
@@ -290,8 +301,11 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets activities with enhanced filtering for student (v2.0)
+        /// Gets activities with enhanced filtering for student (v2.0). (Lấy hoạt động với lọc nâng cao cho học sinh)
         /// </summary>
+        /// <param name="studentId">Student ID (ID học sinh)</param>
+        /// <param name="queryParams">Query parameters for filtering (Tham số truy vấn để lọc)</param>
+        /// <returns>Paged list of activities (Danh sách hoạt động có phân trang)</returns>
         [HttpGet("student/{studentId}")]
         public async Task<ActionResult<PagedResult<ActivityLogDto>>> GetStudentActivities(
             int studentId,

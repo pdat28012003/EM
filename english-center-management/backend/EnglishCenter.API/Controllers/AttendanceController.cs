@@ -20,10 +20,10 @@ namespace EnglishCenter.API.Controllers
         /// <summary>
         /// Gets a list of attendance information. Can be filtered by student, lesson, or date. (Lấy danh sách thông tin điểm danh. Có thể lọc theo học viên, buổi học, hoặc ngày.)
         /// </summary>
-        /// <param name="studentId">Student ID</param>
-        /// <param name="lessonId">Lesson ID</param>
-        /// <param name="date">Attendance date</param>
-        /// <returns>List of attendance records</returns>
+        /// <param name="studentId">Student ID (ID học viên)</param>
+        /// <param name="lessonId">Lesson ID (ID buổi học)</param>
+        /// <param name="date">Attendance date (Ngày điểm danh)</param>
+        /// <returns>List of attendance records (Danh sách bản ghi điểm danh)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AttendanceDto>>> GetAttendances(
             [FromQuery] int? studentId = null,
@@ -82,8 +82,8 @@ namespace EnglishCenter.API.Controllers
         /// <summary>
         /// Creates a new attendance record for a student in a lesson. (Tạo bản ghi điểm danh mới cho học viên trong một buổi học.)
         /// </summary>
-        /// <param name="dto">Attendance creation data</param>
-        /// <returns>The created attendance information</returns>
+        /// <param name="dto">Attendance creation data (Dữ liệu tạo điểm danh)</param>
+        /// <returns>The created attendance information (Thông tin điểm danh đã tạo)</returns>
         [HttpPost]
         public async Task<ActionResult<AttendanceDto>> CreateAttendance(CreateAttendanceDto dto)
         {

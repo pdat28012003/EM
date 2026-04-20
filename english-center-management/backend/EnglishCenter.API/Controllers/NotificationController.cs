@@ -24,8 +24,11 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// SSE stream for real-time notifications
+        /// SSE stream for real-time notifications. (Luồng SSE cho thông báo thời gian thực)
         /// </summary>
+        /// <param name="cancellationToken">Cancellation token (Token hủy)</param>
+        /// <param name="token">JWT token (Token JWT)</param>
+        /// <returns>SSE event stream (Luồng sự kiện SSE)</returns>
         [HttpGet("stream")]
         [AllowAnonymous] // Token checked manually
         public async Task StreamNotifications(
@@ -100,8 +103,11 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets notifications for current user
+        /// Gets notifications for current user. (Lấy thông báo cho người dùng hiện tại)
         /// </summary>
+        /// <param name="unreadOnly">Only unread notifications (Chỉ thông báo chưa đọc)</param>
+        /// <param name="limit">Maximum number of notifications (Số lượng thông báo tối đa)</param>
+        /// <returns>List of notifications (Danh sách thông báo)</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<NotificationDto>>> GetMyNotifications(
             [FromQuery] bool unreadOnly = false,
@@ -154,8 +160,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets unread notification count
+        /// Gets unread notification count. (Lấy số lượng thông báo chưa đọc)
         /// </summary>
+        /// <returns>Unread count (Số lượng chưa đọc)</returns>
         [HttpGet("unread-count")]
         public async Task<ActionResult<int>> GetUnreadCount()
         {
@@ -188,8 +195,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Creates a new notification
+        /// Creates a new notification. (Tạo thông báo mới)
         /// </summary>
+        /// <param name="dto">Notification data (Dữ liệu thông báo)</param>
+        /// <returns>Created notification (Thông báo đã tạo)</returns>
         [HttpPost]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<NotificationDto>> CreateNotification(CreateNotificationDto dto)
@@ -224,8 +233,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Marks a notification as read
+        /// Marks a notification as read. (Đánh dấu thông báo là đã đọc)
         /// </summary>
+        /// <param name="id">Notification ID (ID thông báo)</param>
+        /// <returns>No Content (Không có nội dung)</returns>
         [HttpPut("{id}/read")]
         public async Task<ActionResult> MarkAsRead(int id)
         {
@@ -250,8 +261,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Marks multiple notifications as read
+        /// Marks multiple notifications as read. (Đánh dấu nhiều thông báo là đã đọc)
         /// </summary>
+        /// <param name="dto">Notification IDs (Các ID thông báo)</param>
+        /// <returns>No Content (Không có nội dung)</returns>
         [HttpPut("mark-read")]
         public async Task<ActionResult> MarkMultipleAsRead(MarkAsReadDto dto)
         {
@@ -277,8 +290,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Marks all notifications as read for current user
+        /// Marks all notifications as read for current user. (Đánh dấu tất cả thông báo là đã đọc cho người dùng hiện tại)
         /// </summary>
+        /// <returns>No Content (Không có nội dung)</returns>
         [HttpPut("mark-all-read")]
         public async Task<ActionResult> MarkAllAsRead()
         {
@@ -303,8 +317,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Marks a notification as unread
+        /// Marks a notification as unread. (Đánh dấu thông báo là chưa đọc)
         /// </summary>
+        /// <param name="id">Notification ID (ID thông báo)</param>
+        /// <returns>No Content (Không có nội dung)</returns>
         [HttpPut("{id}/unread")]
         public async Task<ActionResult> MarkAsUnread(int id)
         {
@@ -329,8 +345,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Deletes a notification
+        /// Deletes a notification. (Xóa thông báo)
         /// </summary>
+        /// <param name="id">Notification ID (ID thông báo)</param>
+        /// <returns>No Content (Không có nội dung)</returns>
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteNotification(int id)
         {
