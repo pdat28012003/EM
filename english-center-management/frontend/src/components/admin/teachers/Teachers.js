@@ -168,13 +168,50 @@ const Teachers = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.fullName.trim()) newErrors.fullName = 'Vui lòng nhập họ và tên';
-    if (!formData.email.trim()) newErrors.email = 'Vui lòng nhập email';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Email không hợp lệ';
-    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Vui lòng nhập số điện thoại';
-    if (!editingTeacher && !formData.password.trim()) newErrors.password = 'Vui lòng nhập mật khẩu';
-    if (!formData.hourlyRate || formData.hourlyRate <= 0) newErrors.hourlyRate = 'Lương phải lớn hơn 0';
-    
+
+    // Họ và tên
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Vui lòng nhập họ và tên';
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = 'Họ và tên phải có ít nhất 2 ký tự';
+    }
+
+    // Email
+    if (!formData.email.trim()) {
+      newErrors.email = 'Vui lòng nhập email';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Email không hợp lệ';
+    }
+
+    // Số điện thoại
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Vui lòng nhập số điện thoại';
+    } else {
+      const phone = formData.phoneNumber.replace(/\s/g, '');
+      if (!/^0[3-9][0-9]{8}$/.test(phone)) {
+        newErrors.phoneNumber = 'Số điện thoại không hợp lệ (vd: 0912345678)';
+      }
+    }
+
+    // Mật khẩu
+    if (!editingTeacher) {
+      if (!formData.password.trim()) {
+        newErrors.password = 'Vui lòng nhập mật khẩu';
+      } else if (formData.password.length < 6) {
+        newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+      }
+    } else {
+      // Khi chỉnh sửa: nếu có nhập thì phải đủ 6 ký tự
+      if (formData.password && formData.password.length < 6) {
+        newErrors.password = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+      }
+    }
+
+    // Lương
+    if (!formData.hourlyRate || formData.hourlyRate <= 0) {
+      newErrors.hourlyRate = 'Lương phải lớn hơn 0';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

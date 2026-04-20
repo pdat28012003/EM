@@ -30,6 +30,11 @@ const ForgotPassword = () => {
       return;
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Email không hợp lệ.");
+      return;
+    }
+
     setLoading(true);
 
     try {

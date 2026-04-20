@@ -84,10 +84,21 @@ namespace EnglishCenter.API.DTOs
 
     public class UpdateProfileRequest
     {
+        [MaxLength(50, ErrorMessage = "Full name cannot exceed 50 characters")]
+        [MinLength(2, ErrorMessage = "Full name must be at least 2 characters")]
+        [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "Full name cannot contain numbers or special characters")]
         public string? FullName { get; set; }
+
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        [MaxLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
         public string? Email { get; set; }
+
+        [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
         public string? PhoneNumber { get; set; }
+
+        [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
         public string? Address { get; set; }
+
         public string? Avatar { get; set; }
         public IFormFile? AvatarFile { get; set; }
     }

@@ -41,6 +41,7 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="studentId">Student ID (ID học sinh)</param>
         /// <returns>Enrolled courses with payment status (Các khóa học đã đăng ký với trạng thái thanh toán)</returns>
+        [Authorize]
         [HttpGet("student/{studentId}/enrolled-courses")]
         public async Task<ActionResult<StudentEnrolledCoursesDto>> GetStudentEnrolledCourses(int studentId)
         {
@@ -107,6 +108,7 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="createPaymentDto">Payment data (Dữ liệu thanh toán)</param>
         /// <returns>Created payment with QR code (Thanh toán đã tạo với mã QR)</returns>
+        [Authorize]
         [HttpPost("create-payment")]
         public async Task<ActionResult<PaymentDto>> CreatePayment([FromBody] CreatePaymentDto createPaymentDto)
         {
@@ -240,6 +242,7 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="id">Payment ID (ID thanh toán)</param>
         /// <returns>Payment details (Chi tiết thanh toán)</returns>
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<PaymentDto>> GetPayment(int id)
         {
@@ -295,6 +298,7 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="id">Payment ID (ID thanh toán)</param>
         /// <returns>Payment status (Trạng thái thanh toán)</returns>
+        [Authorize]
         [HttpGet("{id}/status")]
         public async Task<ActionResult<object>> GetPaymentStatus(int id)
         {
@@ -477,6 +481,7 @@ namespace EnglishCenter.API.Controllers
         /// <param name="id">Payment ID (ID thanh toán)</param>
         /// <param name="updatePaymentDto">Update data (Dữ liệu cập nhật)</param>
         /// <returns>Updated payment (Thanh toán đã cập nhật)</returns>
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<ActionResult<PaymentDto>> UpdatePayment(int id, [FromBody] UpdatePaymentDto updatePaymentDto)
         {
@@ -546,6 +551,7 @@ namespace EnglishCenter.API.Controllers
         /// </summary>
         /// <param name="studentId">Student ID (ID học sinh)</param>
         /// <returns>Payment history (Lịch sử thanh toán)</returns>
+        [Authorize]
         [HttpGet("student/{studentId}/history")]
         public async Task<ActionResult<List<PaymentDto>>> GetPaymentHistory(int studentId)
         {

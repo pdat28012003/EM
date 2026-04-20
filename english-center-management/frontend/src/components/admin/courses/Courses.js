@@ -233,9 +233,23 @@ const Courses = () => {
     if (!formData.courseName.trim()) newErrors.courseName = 'Tên khóa học không được trống';
     if (!formData.courseCode.trim()) newErrors.courseCode = 'Mã khóa học không được trống';
     if (!formData.level) newErrors.level = 'Vui lòng chọn cấp độ';
-    if (formData.duration <= 0) newErrors.duration = 'Thời lượng phải lớn hơn 0';
-    if (formData.price < 0) newErrors.price = 'Học phí không được âm';
-    
+
+    const duration = parseInt(formData.duration, 10);
+    if (!formData.duration || isNaN(duration) || duration <= 0) {
+      newErrors.duration = 'Thời lượng phải lớn hơn 0';
+    } else if (duration > 52) {
+      newErrors.duration = 'Thời lượng không được vượt quá 52 tuần';
+    } else if (!Number.isInteger(Number(formData.duration))) {
+      newErrors.duration = 'Thời lượng phải là số nguyên';
+    }
+
+    const price = parseFloat(formData.price);
+    if (isNaN(price) || price < 0) {
+      newErrors.price = 'Học phí không được âm';
+    } else if (price > 100000000) {
+      newErrors.price = 'Học phí không được vượt quá 100,000,000 đ';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
