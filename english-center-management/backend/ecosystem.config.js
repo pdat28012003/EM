@@ -4,7 +4,7 @@ module.exports = {
       name: 'english-center-api',
       script: './start.sh',
       cwd: '.',
-      interpreter: 'none',
+      interpreter: '/bin/bash',
       instances: 1,
       autorestart: true,
       watch: false,
