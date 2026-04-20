@@ -84,8 +84,10 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
-        /// Gets grades by curriculum. (Lây theo chuong trnh)
+        /// Gets grades by curriculum. (Lấy điểm theo chương trình học)
         /// </summary>
+        /// <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
+        /// <returns>List of grades (Danh sách điểm số)</returns>
         [HttpGet("curriculum/{curriculumId}")]
         public async Task<ActionResult<IEnumerable<GradeDto>>> GetGradesByCurriculum(int curriculumId)
         {

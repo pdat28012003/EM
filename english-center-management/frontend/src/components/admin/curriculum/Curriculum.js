@@ -45,6 +45,7 @@ const Curriculum = () => {
     endDate: '',
     description: ''
   });
+  const [errors, setErrors] = useState({});
 
   const statusStyle = useMemo(() => {
     const active = theme.palette.success.main;
@@ -147,18 +148,33 @@ const Curriculum = () => {
       ...formData,
       [name]: value
     });
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.curriculumName.trim()) newErrors.curriculumName = 'Vui lòng nhập tên chương trình';
+    if (formData.courses.length === 0) newErrors.courses = 'Vui lòng chọn ít nhất 1 khóa học';
+    if (!formData.startDate) newErrors.startDate = 'Vui lòng chọn ngày bắt đầu';
+    if (!formData.endDate) newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
+    
+    if (formData.startDate && formData.endDate) {
+      if (new Date(formData.startDate) >= new Date(formData.endDate)) {
+        newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.curriculumName || formData.courses.length === 0 || !formData.startDate || !formData.endDate) {
-      alert('Vui lòng điền đầy đủ thông tin (tên chương trình, ít nhất 1 khóa học, ngày bắt đầu/kết thúc)');
-      return;
-    }
-
-    if (new Date(formData.startDate) >= new Date(formData.endDate)) {
-      alert('Start date must be before end date');
+    if (!validateForm()) {
       return;
     }
 
@@ -554,6 +570,7 @@ const Curriculum = () => {
                   onChange={handleInputChange}
                   required
                 />
+                {errors.curriculumName && <span className="error-message">{errors.curriculumName}</span>}
               </div>
 
               <FormControl fullWidth sx={{ mb: 2 }}>
@@ -570,6 +587,7 @@ const Curriculum = () => {
                       courseName: courses.find(c => c.courseId === id)?.courseName || ''
                     }));
                     setFormData({ ...formData, courses: selectedCourses });
+                    if (errors.courses) setErrors(prev => ({ ...prev, courses: '' }));
                   }}
                   input={<OutlinedInput label="Khóa học *" />}
                   renderValue={(selected) => (
@@ -599,6 +617,7 @@ const Curriculum = () => {
                     </MenuItem>
                   ))}
                 </Select>
+                {errors.courses && <span className="error-message">{errors.courses}</span>}
               </FormControl>
 
               <div className="form-group">
@@ -610,6 +629,7 @@ const Curriculum = () => {
                   onChange={handleInputChange}
                   required
                 />
+                {errors.startDate && <span className="error-message">{errors.startDate}</span>}
               </div>
 
               <div className="form-group">
@@ -621,6 +641,7 @@ const Curriculum = () => {
                   onChange={handleInputChange}
                   required
                 />
+                {errors.endDate && <span className="error-message">{errors.endDate}</span>}
               </div>
 
               <div className="form-group">
@@ -795,6 +816,12 @@ const Curriculum = () => {
           color: #666;
           font-size: 13px;
           margin-left: 5px;
+        }
+        .error-message {
+          color: #d32f2f;
+          font-size: 12px;
+          margin-top: 4px;
+          display: block;
         }
       `}</style>
     </Box>

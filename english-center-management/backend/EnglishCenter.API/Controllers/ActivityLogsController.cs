@@ -440,13 +440,30 @@ namespace EnglishCenter.API.Controllers
         public int? UserId { get; set; }
         public int? TeacherId { get; set; }
         public int? StudentId { get; set; }
+
+        [Required(ErrorMessage = "Action is required")]
+        [StringLength(50, ErrorMessage = "Action cannot exceed 50 characters")]
         public string Action { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Title is required")]
+        [StringLength(200, ErrorMessage = "Title cannot exceed 200 characters")]
         public string Title { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; } = string.Empty;
+
+        [StringLength(50, ErrorMessage = "IconType cannot exceed 50 characters")]
         public string? IconType { get; set; }
+
+        [StringLength(20, ErrorMessage = "Color cannot exceed 20 characters")]
         public string? Color { get; set; }
+
         public int? TargetId { get; set; }
+
+        [StringLength(50, ErrorMessage = "TargetType cannot exceed 50 characters")]
         public string? TargetType { get; set; }
+
+        [StringLength(2000, ErrorMessage = "Metadata cannot exceed 2000 characters")]
         public string? Metadata { get; set; }
     }
 

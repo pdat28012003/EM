@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace EnglishCenter.API.DTOs
 {
     public class DocumentDto
@@ -16,13 +18,18 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateDocumentDto
     {
+        [Required(ErrorMessage = "Type is required")]
+        [RegularExpression("^(material|exercise|presentation|audio|video|other)$", ErrorMessage = "Type must be one of: material, exercise, presentation, audio, video, other")]
         public string Type { get; set; } = string.Empty;
+
         public int? CurriculumId { get; set; }
     }
 
     public class UpdateDocumentDto
     {
+        [RegularExpression("^(material|exercise|presentation|audio|video|other)$", ErrorMessage = "Type must be one of: material, exercise, presentation, audio, video, other")]
         public string Type { get; set; } = string.Empty;
+
         public int? CurriculumId { get; set; }
     }
 }
