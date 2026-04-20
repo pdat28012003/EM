@@ -102,6 +102,7 @@ namespace EnglishCenter.API.DTOs
         [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
         public string Address { get; set; } = string.Empty;
 
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         [MaxLength(500, ErrorMessage = "Password cannot exceed 500 characters")]
         public string Password { get; set; } = string.Empty;
 
@@ -145,7 +146,9 @@ namespace EnglishCenter.API.DTOs
         [Phone(ErrorMessage = "Invalid phone number format")]
         [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
         public string PhoneNumber { get; set; } = string.Empty; 
-        [MaxLength(500, ErrorMessage = "Password cannot exceed 500 characters")]
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        [MaxLength(100, ErrorMessage = "Password cannot exceed 100 characters")]
         public string Password { get; set; } = string.Empty;
 
         public string Specialization { get; set; } = string.Empty;
@@ -203,6 +206,7 @@ namespace EnglishCenter.API.DTOs
         [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Level is required")]
         [RegularExpression("^(Beginner|Elementary|Intermediate|Advanced)$", ErrorMessage = "Level must be one of: Beginner, Elementary, Intermediate, Advanced")]
         public string Level { get; set; } = string.Empty;
 
@@ -218,9 +222,11 @@ namespace EnglishCenter.API.DTOs
 
     public class UpdateCourseDto
     {
+        [Required(ErrorMessage = "CourseName is required")]
         [StringLength(200, ErrorMessage = "CourseName cannot exceed 200 characters")]
         public string CourseName { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "CourseCode is required")]
         [StringLength(50, ErrorMessage = "CourseCode cannot exceed 50 characters")]
         public string CourseCode { get; set; } = string.Empty;
 
@@ -262,7 +268,7 @@ namespace EnglishCenter.API.DTOs
         public string Status { get; set; } = string.Empty;
     }
 
-    public class CreateClassDto
+    public class CreateClassDto : IValidatableObject
     {
         [Required(ErrorMessage = "ClassName is required")]
         [StringLength(100, ErrorMessage = "ClassName cannot exceed 100 characters")]
@@ -284,6 +290,14 @@ namespace EnglishCenter.API.DTOs
         public int MaxStudents { get; set; }
 
         public int? RoomId { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (EndDate <= StartDate)
+                yield return new ValidationResult(
+                    "EndDate phải sau StartDate.",
+                    new[] { nameof(EndDate) });
+        }
     }
 
     // Enrollment DTOs
@@ -436,7 +450,7 @@ namespace EnglishCenter.API.DTOs
         public int OrderIndex { get; set; } = 0;
     }
 
-    public class CreateCurriculumDto
+    public class CreateCurriculumDto : IValidatableObject
     {
         [Required(ErrorMessage = "CurriculumName is required")]
         [StringLength(200, ErrorMessage = "CurriculumName cannot exceed 200 characters")]
@@ -455,17 +469,28 @@ namespace EnglishCenter.API.DTOs
         public string Description { get; set; } = string.Empty;
 
         public List<int> ParticipantTeacherIds { get; set; } = new List<int>();
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (EndDate <= StartDate)
+                yield return new ValidationResult(
+                    "EndDate phải sau StartDate.",
+                    new[] { nameof(EndDate) });
+        }
     }
 
-    public class UpdateCurriculumDto
+    public class UpdateCurriculumDto : IValidatableObject
     {
+        [Required(ErrorMessage = "CurriculumName is required")]
         [StringLength(200, ErrorMessage = "CurriculumName cannot exceed 200 characters")]
         public string CurriculumName { get; set; } = string.Empty;
 
         public List<CreateCurriculumCourseItemDto> Courses { get; set; } = new List<CreateCurriculumCourseItemDto>();
 
+        [Required(ErrorMessage = "StartDate is required")]
         public DateTime StartDate { get; set; }
 
+        [Required(ErrorMessage = "EndDate is required")]
         public DateTime EndDate { get; set; }
 
         [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
@@ -475,6 +500,14 @@ namespace EnglishCenter.API.DTOs
         public string Status { get; set; } = string.Empty;
 
         public List<int> ParticipantTeacherIds { get; set; } = new List<int>();
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (EndDate <= StartDate)
+                yield return new ValidationResult(
+                    "EndDate phải sau StartDate.",
+                    new[] { nameof(EndDate) });
+        }
     }
 
     public class AddStudentToCourseDto

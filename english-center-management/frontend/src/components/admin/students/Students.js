@@ -232,11 +232,70 @@ const Students = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.fullName.trim()) newErrors.fullName = 'Vui lòng nhập họ và tên';
-    if (!formData.email.trim()) newErrors.email = 'Vui lòng nhập email';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Email không hợp lệ';
-    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Vui lòng nhập số điện thoại';
-    
+
+    // Họ và tên
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Vui lòng nhập họ và tên';
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = 'Họ và tên phải có ít nhất 2 ký tự';
+    }
+
+    // Email
+    if (!formData.email.trim()) {
+      newErrors.email = 'Vui lòng nhập email';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Email không hợp lệ';
+    }
+
+    // Số điện thoại
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Vui lòng nhập số điện thoại';
+    } else {
+      const phone = formData.phoneNumber.replace(/\s/g, '');
+      if (!/^0[3-9][0-9]{8}$/.test(phone)) {
+        newErrors.phoneNumber = 'Số điện thoại không hợp lệ (vd: 0912345678)';
+      }
+    }
+
+    // Ngày sinh
+    if (!editingStudent) {
+      // Bắt buộc khi tạo mới
+      if (!formData.dateOfBirth) {
+        newErrors.dateOfBirth = 'Vui lòng nhập ngày sinh';
+      } else {
+        const dob = new Date(formData.dateOfBirth);
+        const today = new Date();
+        if (dob >= today) {
+          newErrors.dateOfBirth = 'Ngày sinh phải là ngày trong quá khứ';
+        } else {
+          const ageMs = today - dob;
+          const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.25);
+          if (ageYears < 5) {
+            newErrors.dateOfBirth = 'Học viên phải ít nhất 5 tuổi';
+          }
+        }
+      }
+    } else if (formData.dateOfBirth) {
+      // Nếu có nhập ngày sinh khi chỉnh sửa, vẫn validate
+      const dob = new Date(formData.dateOfBirth);
+      const today = new Date();
+      if (dob >= today) {
+        newErrors.dateOfBirth = 'Ngày sinh phải là ngày trong quá khứ';
+      }
+    }
+
+    // Mật khẩu khi tạo mới
+    if (!editingStudent) {
+      if (formData.password && formData.password.length < 6) {
+        newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+      }
+    } else {
+      // Khi chỉnh sửa: nếu có nhập thì phải đủ 6 ký tự
+      if (formData.password && formData.password.length < 6) {
+        newErrors.password = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
