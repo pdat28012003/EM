@@ -192,24 +192,53 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateCourseDto
     {
+        [Required(ErrorMessage = "CourseName is required")]
+        [StringLength(200, ErrorMessage = "CourseName cannot exceed 200 characters")]
         public string CourseName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "CourseCode is required")]
+        [StringLength(50, ErrorMessage = "CourseCode cannot exceed 50 characters")]
         public string CourseCode { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; } = string.Empty;
+
+        [RegularExpression("^(Beginner|Elementary|Intermediate|Advanced)$", ErrorMessage = "Level must be one of: Beginner, Elementary, Intermediate, Advanced")]
         public string Level { get; set; } = string.Empty;
+
+        [Range(1, 52, ErrorMessage = "DurationInWeeks must be between 1 and 52 weeks")]
         public int DurationInWeeks { get; set; }
+
+        [Range(1, 500, ErrorMessage = "TotalHours must be between 1 and 500 hours")]
         public int TotalHours { get; set; }
+
+        [Range(0, 100000000, ErrorMessage = "Fee must be a valid amount")]
         public decimal Fee { get; set; }
     }
 
     public class UpdateCourseDto
     {
+        [StringLength(200, ErrorMessage = "CourseName cannot exceed 200 characters")]
         public string CourseName { get; set; } = string.Empty;
+
+        [StringLength(50, ErrorMessage = "CourseCode cannot exceed 50 characters")]
         public string CourseCode { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; } = string.Empty;
+
+        [RegularExpression("^(Beginner|Elementary|Intermediate|Advanced)$", ErrorMessage = "Level must be one of: Beginner, Elementary, Intermediate, Advanced")]
         public string Level { get; set; } = string.Empty;
+
+        [Range(1, 52, ErrorMessage = "DurationInWeeks must be between 1 and 52 weeks")]
         public int DurationInWeeks { get; set; }
+
+        [Range(1, 500, ErrorMessage = "TotalHours must be between 1 and 500 hours")]
         public int TotalHours { get; set; }
+
+        [Range(0, 100000000, ErrorMessage = "Fee must be a valid amount")]
         public decimal Fee { get; set; }
+
         public bool IsActive { get; set; }
     }
 
@@ -235,13 +264,25 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateClassDto
     {
+        [Required(ErrorMessage = "ClassName is required")]
+        [StringLength(100, ErrorMessage = "ClassName cannot exceed 100 characters")]
         public string ClassName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "CourseId is required")]
         public int CourseId { get; set; }
+
         public int? CurriculumId { get; set; }
         public int? TeacherId { get; set; }
+
+        [Required(ErrorMessage = "StartDate is required")]
         public DateTime StartDate { get; set; }
+
+        [Required(ErrorMessage = "EndDate is required")]
         public DateTime EndDate { get; set; }
+
+        [Range(1, 100, ErrorMessage = "MaxStudents must be between 1 and 100")]
         public int MaxStudents { get; set; }
+
         public int? RoomId { get; set; }
     }
 
@@ -261,12 +302,16 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateEnrollmentDto
     {
+        [Required(ErrorMessage = "StudentId is required")]
         public int StudentId { get; set; }
+
+        [Required(ErrorMessage = "CurriculumId is required")]
         public int CurriculumId { get; set; }
     }
 
     public class AddStudentToCurriculumDto
     {
+        [Required(ErrorMessage = "StudentId is required")]
         public int StudentId { get; set; }
     }
 
@@ -290,22 +335,47 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateTestScoreDto
     {
+        [Required(ErrorMessage = "StudentId is required")]
         public int StudentId { get; set; }
+
+        [Required(ErrorMessage = "CurriculumId is required")]
         public int CurriculumId { get; set; }
+
+        [Required(ErrorMessage = "TestName is required")]
+        [StringLength(100, ErrorMessage = "TestName cannot exceed 100 characters")]
         public string TestName { get; set; } = string.Empty;
+
+        [Range(0, 9, ErrorMessage = "ListeningScore must be between 0 and 9")]
         public decimal ListeningScore { get; set; }
+
+        [Range(0, 9, ErrorMessage = "ReadingScore must be between 0 and 9")]
         public decimal ReadingScore { get; set; }
+
+        [Range(0, 9, ErrorMessage = "WritingScore must be between 0 and 9")]
         public decimal WritingScore { get; set; }
+
+        [Range(0, 9, ErrorMessage = "SpeakingScore must be between 0 and 9")]
         public decimal SpeakingScore { get; set; }
+
+        [StringLength(500, ErrorMessage = "Comments cannot exceed 500 characters")]
         public string Comments { get; set; } = string.Empty;
     }
 
     public class UpdateTestScoreDto
     {
+        [Range(0, 9, ErrorMessage = "ListeningScore must be between 0 and 9")]
         public decimal ListeningScore { get; set; }
+
+        [Range(0, 9, ErrorMessage = "ReadingScore must be between 0 and 9")]
         public decimal ReadingScore { get; set; }
+
+        [Range(0, 9, ErrorMessage = "WritingScore must be between 0 and 9")]
         public decimal WritingScore { get; set; }
+
+        [Range(0, 9, ErrorMessage = "SpeakingScore must be between 0 and 9")]
         public decimal SpeakingScore { get; set; }
+
+        [StringLength(500, ErrorMessage = "Comments cannot exceed 500 characters")]
         public string Comments { get; set; } = string.Empty;
     }
 
@@ -321,8 +391,14 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateRoomDto
     {
+        [Required(ErrorMessage = "RoomName is required")]
+        [StringLength(100, ErrorMessage = "RoomName cannot exceed 100 characters")]
         public string RoomName { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
         public string Description { get; set; } = string.Empty;
+
+        [Range(1, 200, ErrorMessage = "Capacity must be between 1 and 200")]
         public int Capacity { get; set; }
     }
 
@@ -353,39 +429,65 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateCurriculumCourseItemDto
     {
+        [Required(ErrorMessage = "CourseId is required")]
         public int CourseId { get; set; }
+
+        [Range(0, int.MaxValue, ErrorMessage = "OrderIndex must be non-negative")]
         public int OrderIndex { get; set; } = 0;
     }
 
     public class CreateCurriculumDto
     {
+        [Required(ErrorMessage = "CurriculumName is required")]
+        [StringLength(200, ErrorMessage = "CurriculumName cannot exceed 200 characters")]
         public string CurriculumName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Courses is required")]
         public List<CreateCurriculumCourseItemDto> Courses { get; set; } = new List<CreateCurriculumCourseItemDto>();
+
+        [Required(ErrorMessage = "StartDate is required")]
         public DateTime StartDate { get; set; }
+
+        [Required(ErrorMessage = "EndDate is required")]
         public DateTime EndDate { get; set; }
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; } = string.Empty;
+
         public List<int> ParticipantTeacherIds { get; set; } = new List<int>();
     }
 
     public class UpdateCurriculumDto
     {
+        [StringLength(200, ErrorMessage = "CurriculumName cannot exceed 200 characters")]
         public string CurriculumName { get; set; } = string.Empty;
+
         public List<CreateCurriculumCourseItemDto> Courses { get; set; } = new List<CreateCurriculumCourseItemDto>();
+
         public DateTime StartDate { get; set; }
+
         public DateTime EndDate { get; set; }
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; } = string.Empty;
+
+        [RegularExpression("^(Active|Inactive|Completed)$", ErrorMessage = "Status must be one of: Active, Inactive, Completed")]
         public string Status { get; set; } = string.Empty;
+
         public List<int> ParticipantTeacherIds { get; set; } = new List<int>();
     }
 
     public class AddStudentToCourseDto
     {
+        [Required(ErrorMessage = "StudentId is required")]
         public int StudentId { get; set; }
+
         public int? CurriculumId { get; set; } // Optional: curriculum containing this course
     }
 
     public class AddStudentToSessionDto
     {
+        [Required(ErrorMessage = "StudentId is required")]
         public int StudentId { get; set; }
         public string? Notes { get; set; }
     }
@@ -395,7 +497,9 @@ namespace EnglishCenter.API.DTOs
         public int CurriculumDayId { get; set; }
         public int CurriculumId { get; set; }
         public DateTime ScheduleDate { get; set; }
+        [StringLength(200, ErrorMessage = "Topic cannot exceed 200 characters")]
         public string Topic { get; set; } = string.Empty;
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; } = string.Empty;
         public int SessionCount { get; set; }
         public List<CurriculumSessionDto> CurriculumSessions { get; set; } = new List<CurriculumSessionDto>();
@@ -403,15 +507,25 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateCurriculumDayDto
     {
+        [Required(ErrorMessage = "CurriculumId is required")]
         public int CurriculumId { get; set; }
+
+        [Required(ErrorMessage = "ScheduleDate is required")]
         public DateTime ScheduleDate { get; set; }
+
+        [StringLength(200, ErrorMessage = "Topic cannot exceed 200 characters")]
         public string Topic { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; } = string.Empty;
     }
 
     public class UpdateCurriculumDayDto
     {
+        [StringLength(200, ErrorMessage = "Topic cannot exceed 200 characters")]
         public string Topic { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; } = string.Empty;
     }
 
@@ -422,7 +536,9 @@ namespace EnglishCenter.API.DTOs
         public int SessionNumber { get; set; }
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
+        [StringLength(200, ErrorMessage = "SessionName cannot exceed 200 characters")]
         public string SessionName { get; set; } = string.Empty;
+        [StringLength(1000, ErrorMessage = "SessionDescription cannot exceed 1000 characters")]
         public string SessionDescription { get; set; } = string.Empty;
         public int? RoomId { get; set; }
         public string RoomName { get; set; } = string.Empty;
@@ -436,12 +552,24 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateCurriculumSessionDto
     {
+        [Required(ErrorMessage = "CurriculumDayId is required")]
         public int CurriculumDayId { get; set; }
+
+        [Range(1, int.MaxValue, ErrorMessage = "SessionNumber must be at least 1")]
         public int SessionNumber { get; set; }
+
+        [Required(ErrorMessage = "StartTime is required")]
         public TimeSpan StartTime { get; set; }
+
+        [Required(ErrorMessage = "EndTime is required")]
         public TimeSpan EndTime { get; set; }
+
+        [StringLength(200, ErrorMessage = "SessionName cannot exceed 200 characters")]
         public string SessionName { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "SessionDescription cannot exceed 1000 characters")]
         public string SessionDescription { get; set; } = string.Empty;
+
         public int? RoomId { get; set; }
         public int? TeacherId { get; set; }
         public int? DocumentId { get; set; }
@@ -451,8 +579,13 @@ namespace EnglishCenter.API.DTOs
     {
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
+
+        [StringLength(200, ErrorMessage = "SessionName cannot exceed 200 characters")]
         public string SessionName { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "SessionDescription cannot exceed 1000 characters")]
         public string SessionDescription { get; set; } = string.Empty;
+
         public int? RoomId { get; set; }
         public int? TeacherId { get; set; }
         public int? DocumentId { get; set; }
@@ -463,30 +596,55 @@ namespace EnglishCenter.API.DTOs
         public int LessonId { get; set; }
         public int CurriculumSessionId { get; set; }
         public int LessonNumber { get; set; }
+        [StringLength(200, ErrorMessage = "LessonTitle cannot exceed 200 characters")]
         public string LessonTitle { get; set; } = string.Empty;
+        [StringLength(5000, ErrorMessage = "Content cannot exceed 5000 characters")]
         public string Content { get; set; } = string.Empty;
         public TimeSpan Duration { get; set; }
+        [StringLength(2000, ErrorMessage = "Resources cannot exceed 2000 characters")]
         public string Resources { get; set; } = string.Empty;
+        [StringLength(2000, ErrorMessage = "Notes cannot exceed 2000 characters")]
         public string Notes { get; set; } = string.Empty;
     }
 
     public class CreateLessonDto
     {
+        [Required(ErrorMessage = "CurriculumSessionId is required")]
         public int CurriculumSessionId { get; set; }
+
+        [Range(1, int.MaxValue, ErrorMessage = "LessonNumber must be at least 1")]
         public int LessonNumber { get; set; }
+
+        [Required(ErrorMessage = "LessonTitle is required")]
+        [StringLength(200, ErrorMessage = "LessonTitle cannot exceed 200 characters")]
         public string LessonTitle { get; set; } = string.Empty;
+
+        [StringLength(5000, ErrorMessage = "Content cannot exceed 5000 characters")]
         public string Content { get; set; } = string.Empty;
+
         public TimeSpan Duration { get; set; }
+
+        [StringLength(2000, ErrorMessage = "Resources cannot exceed 2000 characters")]
         public string Resources { get; set; } = string.Empty;
+
+        [StringLength(2000, ErrorMessage = "Notes cannot exceed 2000 characters")]
         public string Notes { get; set; } = string.Empty;
     }
 
     public class UpdateLessonDto
     {
+        [StringLength(200, ErrorMessage = "LessonTitle cannot exceed 200 characters")]
         public string LessonTitle { get; set; } = string.Empty;
+
+        [StringLength(5000, ErrorMessage = "Content cannot exceed 5000 characters")]
         public string Content { get; set; } = string.Empty;
+
         public TimeSpan Duration { get; set; }
+
+        [StringLength(2000, ErrorMessage = "Resources cannot exceed 2000 characters")]
         public string Resources { get; set; } = string.Empty;
+
+        [StringLength(2000, ErrorMessage = "Notes cannot exceed 2000 characters")]
         public string Notes { get; set; } = string.Empty;
     }
 
@@ -499,7 +657,9 @@ namespace EnglishCenter.API.DTOs
         public int LessonId { get; set; }
         public string LessonTitle { get; set; } = string.Empty;
         public DateTime AttendanceDate { get; set; }
+        [RegularExpression("^(Present|Absent|Late|Excused)$", ErrorMessage = "Status must be one of: Present, Absent, Late, Excused")]
         public string Status { get; set; } = string.Empty;
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
         public string Notes { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
@@ -507,16 +667,28 @@ namespace EnglishCenter.API.DTOs
 
     public class CreateAttendanceDto
     {
+        [Required(ErrorMessage = "StudentId is required")]
         public int StudentId { get; set; }
+
+        [Required(ErrorMessage = "LessonId is required")]
         public int LessonId { get; set; }
+
+        [Required(ErrorMessage = "AttendanceDate is required")]
         public DateTime AttendanceDate { get; set; }
+
+        [RegularExpression("^(Present|Absent|Late|Excused)$", ErrorMessage = "Status must be one of: Present, Absent, Late, Excused")]
         public string Status { get; set; } = "Present";
+
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
         public string Notes { get; set; } = string.Empty;
     }
 
     public class UpdateAttendanceDto
     {
-        public string Status { get; set; } = "Present";
+        [RegularExpression("^(Present|Absent|Late|Excused)$", ErrorMessage = "Status must be one of: Present, Absent, Late, Excused")]
+        public string Status { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
         public string Notes { get; set; } = string.Empty;
     }
 
@@ -832,27 +1004,51 @@ namespace EnglishCenter.API.DTOs
         public int StudentId { get; set; }
         public string StudentName { get; set; } = string.Empty;
         public DateTime AttendanceDate { get; set; }
+        [RegularExpression("^(Present|Absent|Late|Excused)$", ErrorMessage = "Status must be one of: Present, Absent, Late, Excused")]
         public string Status { get; set; } = "Present";
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
         public string Notes { get; set; } = string.Empty;
     }
 
     public class CreateSessionAttendanceDto
     {
+        [Required(ErrorMessage = "SessionId is required")]
         public int SessionId { get; set; }
+
+        [Required(ErrorMessage = "StudentId is required")]
         public int StudentId { get; set; }
+
+        [Required(ErrorMessage = "Date is required")]
         public DateTime Date { get; set; }
+
+        [RegularExpression("^(Present|Absent|Late|Excused)$", ErrorMessage = "Status must be one of: Present, Absent, Late, Excused")]
         public string Status { get; set; } = "Present";
+
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
         public string? Notes { get; set; }
     }
 
     public class UpdateSessionAttendanceDto
     {
-        public string Status { get; set; } = "Present";
+        [RegularExpression("^(Present|Absent|Late|Excused)$", ErrorMessage = "Status must be one of: Present, Absent, Late, Excused")]
+        public string Status { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
         public string? Notes { get; set; }
     }
 
     public class UpdatePaymentDto
     {
+        [StringLength(50, ErrorMessage = "PaymentMethod cannot exceed 50 characters")]
+        public string? PaymentMethod { get; set; }
+
+        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
+        public decimal? Amount { get; set; }
+
+        [RegularExpression("^(Pending|Completed|Failed|Cancelled|Refunded)$", ErrorMessage = "Status must be one of: Pending, Completed, Failed, Cancelled, Refunded")]
         public string? Status { get; set; }
+
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
+        public string? Notes { get; set; }
     }
 }

@@ -46,6 +46,24 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
+    // Client-side validation
+    if (!formData.email.trim()) {
+      setError("Vui lòng nhập email.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError("Email không hợp lệ.");
+      return;
+    }
+    if (!formData.password.trim()) {
+      setError("Vui lòng nhập mật khẩu.");
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+
     if (!captchaToken) {
       setError("Vui lòng xác nhận CAPTCHA.");
       return;

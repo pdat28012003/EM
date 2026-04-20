@@ -44,6 +44,7 @@ const Rooms = () => {
     availableEndTime: '21:00',
     isActive: true,
   });
+  const [errors, setErrors] = useState({});
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [rowCount, setRowCount] = useState(0);
 
@@ -104,9 +105,23 @@ const Rooms = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.roomName.trim()) newErrors.roomName = 'Vui lòng nhập tên phòng';
+    if (!formData.capacity || formData.capacity <= 0) newErrors.capacity = 'Sức chứa phải lớn hơn 0';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
+    if (!validateForm()) return;
     try {
       // Format times to HH:mm:ss for backend TimeSpan
       const dataToSave = {
@@ -363,6 +378,8 @@ const Rooms = () => {
               label="Tên Phòng"
               value={formData.roomName}
               onChange={handleInputChange}
+              error={!!errors.roomName}
+              helperText={errors.roomName}
               required
               fullWidth
             />
@@ -372,6 +389,8 @@ const Rooms = () => {
               type="number"
               value={formData.capacity}
               onChange={handleInputChange}
+              error={!!errors.capacity}
+              helperText={errors.capacity}
               required
               fullWidth
             />
