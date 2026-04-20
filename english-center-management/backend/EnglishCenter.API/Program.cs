@@ -409,4 +409,12 @@ app.MapHub<PaymentHub>("/paymentHub");
 
 
 
+app.UsePathBase("/gateway/em");
+app.Use(async (ctx, next) =>
+{
+    ctx.Request.PathBase = "/gateway/em";
+    await next();
+});
+
+
 app.Run();
