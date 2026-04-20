@@ -1,4 +1,4 @@
 #!/bin/bash
 cd /home/que/EM/english-center-management/backend
 unset PM2_HOME
-dotnet run --project EnglishCenter.API/EnglishCenter.API.csproj
+dotnet EnglishCenter.API/bin/Release/net8.0/EnglishCenter.API.dll
