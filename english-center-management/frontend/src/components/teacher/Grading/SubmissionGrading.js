@@ -3,13 +3,8 @@ import {
   Box,
   Typography,
   Button,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
   Chip,
-  Stack,
-  Divider,
+  Paper,
   Alert,
   Tooltip,
   TextField,
@@ -17,6 +12,14 @@ import {
   FormControl,
   Select,
   MenuItem,
+  Stack,
+  Pagination,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import {
@@ -25,13 +28,6 @@ import {
   getScoreColor,
   formatDateTime,
 } from './gradingUtils';
-
-const FILTERS = {
-  ALL: 'all',
-  PENDING: 'pending',
-  GRADED: 'graded',
-  LATE: 'late',
-};
 
 const SORT_OPTIONS = {
   NEWEST: 'newest',
@@ -51,6 +47,7 @@ const SubmissionGrading = ({
   onDownloadFile,
   onFilterChange,
   loading,
+  totalPages: propTotalPages,
 }) => {
   // Stats from BE
   const { 
@@ -61,20 +58,15 @@ const SubmissionGrading = ({
     averageScore = "0" 
   } = stats || {};
   
-  // Filter, search, sort states
+  // Search, sort, status states
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState(FILTERS.ALL);
   const [sortBy, setSortBy] = useState(SORT_OPTIONS.NEWEST);
-
-  // Map filter to API status param
-  const getApiStatus = (filter) => {
-    switch (filter) {
-      case FILTERS.PENDING: return 'Submitted';
-      case FILTERS.GRADED: return 'Graded';
-      case FILTERS.LATE: return 'Late';
-      default: return null;
-    }
-  };
+  const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const totalPages = propTotalPages || 1;
 
   // Map sort to API params
   const getApiSort = (sort) => {
@@ -89,19 +81,26 @@ const SubmissionGrading = ({
     }
   };
 
-  // Call API when filters change (with debounce for search)
+  // Call API when search/sort/status changes (with debounce for search)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const apiFilters = {
-        status: getApiStatus(activeFilter),
         search: searchQuery.trim() || null,
+        status: statusFilter === 'all' ? null : statusFilter,
         ...getApiSort(sortBy),
+        page,
+        pageSize,
       };
       onFilterChange?.(apiFilters);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, activeFilter, sortBy, onFilterChange]);
+  }, [searchQuery, sortBy, statusFilter, page, pageSize, onFilterChange]);
+
+  // Reset page when search/status changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter]);
 
 
   if (loading) {
@@ -199,6 +198,20 @@ const SubmissionGrading = ({
             }}
           />
           
+          {/* Status Filter */}
+          <FormControl size="small" sx={{ minWidth: 140 }} disabled={loading}>
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              displayEmpty
+            >
+              <MenuItem value="all">Tất cả trạng thái</MenuItem>
+              <MenuItem value="Submitted">Chưa chấm</MenuItem>
+              <MenuItem value="Graded">Đã chấm</MenuItem>
+              <MenuItem value="Late">Nộp muộn</MenuItem>
+            </Select>
+          </FormControl>
+          
           {/* Sort */}
           <FormControl size="small" sx={{ minWidth: 140 }} disabled={loading}>
             <Select
@@ -216,39 +229,6 @@ const SubmissionGrading = ({
           </FormControl>
         </Box>
         
-        {/* Filter Chips */}
-        <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap' }}>
-          <Chip
-            label={`Tất cả (${total})`}
-            onClick={() => !loading && setActiveFilter(FILTERS.ALL)}
-            color={activeFilter === FILTERS.ALL ? 'primary' : 'default'}
-            variant={activeFilter === FILTERS.ALL ? 'filled' : 'outlined'}
-            sx={{ cursor: loading ? 'default' : 'pointer', ...(loading && { opacity: 0.6 }) }}
-          />
-          <Chip
-            label={`Chưa chấm (${pendingCount})`}
-            onClick={() => !loading && setActiveFilter(FILTERS.PENDING)}
-            color={activeFilter === FILTERS.PENDING ? 'warning' : 'default'}
-            variant={activeFilter === FILTERS.PENDING ? 'filled' : 'outlined'}
-            sx={{ cursor: loading ? 'default' : 'pointer', ...(loading && { opacity: 0.6 }) }}
-          />
-          <Chip
-            label={`Đã chấm (${gradedCount})`}
-            onClick={() => !loading && setActiveFilter(FILTERS.GRADED)}
-            color={activeFilter === FILTERS.GRADED ? 'success' : 'default'}
-            variant={activeFilter === FILTERS.GRADED ? 'filled' : 'outlined'}
-            sx={{ cursor: loading ? 'default' : 'pointer', ...(loading && { opacity: 0.6 }) }}
-          />
-          {lateCount > 0 && (
-            <Chip
-              label={`Nộp muộn (${lateCount})`}
-              onClick={() => !loading && setActiveFilter(FILTERS.LATE)}
-              color={activeFilter === FILTERS.LATE ? 'error' : 'default'}
-              variant={activeFilter === FILTERS.LATE ? 'filled' : 'outlined'}
-              sx={{ cursor: loading ? 'default' : 'pointer', ...(loading && { opacity: 0.6 }) }}
-            />
-          )}
-        </Stack>
       </Paper>
 
       {submissions.length === 0 ? (
@@ -256,29 +236,66 @@ const SubmissionGrading = ({
           {searchQuery ? 'Không tìm thấy bài nộp phù hợp.' : 'Chưa có học viên nào nộp bài.'}
         </Alert>
       ) : (
-        <Paper>
-          <List disablePadding>
-            {submissions.map((submission, index) => {
-              const isGraded = submission.status?.toLowerCase() === 'graded';
-              const maxScore = selectedAssignment?.maxScore || 100;
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Học viên</TableCell>
+                <TableCell>Ngày nộp</TableCell>
+                <TableCell align="center">Trạng thái</TableCell>
+                <TableCell align="center">Điểm</TableCell>
+                <TableCell align="center">Thao tác</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {submissions.map((submission) => {
+                const isGraded = submission.status?.toLowerCase() === 'graded';
+                const maxScore = selectedAssignment?.maxScore || 100;
 
-              return (
-                <React.Fragment key={submission.submissionId}>
-                  <ListItem
+                return (
+                  <TableRow
+                    key={submission.submissionId}
+                    hover
                     sx={{
                       bgcolor: isGraded ? 'success.50' : 'background.paper',
-                      py: 2,
                     }}
-                    secondaryAction={
-                      <Stack direction="row" spacing={1} alignItems="center">
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="600">
+                        {submission.studentName}
+                      </Typography>
+                      {submission.originalFileName && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          File: {submission.originalFileName}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>{formatDateTime(submission.submittedAt)}</TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={getStatusLabel(submission.status)}
+                        size="small"
+                        color={getStatusColor(submission.status)}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      {isGraded ? (
+                        <Chip
+                          label={`${submission.score}/${maxScore}`}
+                          color={getScoreColor(submission.score, maxScore)}
+                          size="small"
+                        />
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">-</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={1} justifyContent="center">
                         {submission.attachmentUrl && (
                           <Button
                             variant="outlined"
                             size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDownloadFile(submission.submissionId, submission.originalFileName);
-                            }}
+                            onClick={() => onDownloadFile(submission.submissionId, submission.originalFileName)}
                           >
                             Tải file
                           </Button>
@@ -292,60 +309,39 @@ const SubmissionGrading = ({
                           {isGraded ? 'Sửa điểm' : 'Chấm điểm'}
                         </Button>
                       </Stack>
-                    }
-                  >
-                    <ListItemText
-                      disableTypography
-                      primary={
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                          <Typography variant="subtitle1" fontWeight="600">
-                            {submission.studentName}
-                          </Typography>
-                          <Chip
-                            label={getStatusLabel(submission.status)}
-                            size="small"
-                            color={getStatusColor(submission.status)}
-                          />
-                        </div>
-                      }
-                      secondary={
-                        <div>
-                          <Typography variant="body2" color="text.secondary" display="block">
-                            Nộp lúc: {formatDateTime(submission.submittedAt)}
-                          </Typography>
-                          {isGraded && (
-                            <div style={{ marginTop: 8 }}>
-                              <Typography variant="body2" component="span">
-                                Điểm:{' '}
-                              </Typography>
-                              <Chip
-                                label={`${submission.score}/${maxScore}`}
-                                color={getScoreColor(submission.score, maxScore)}
-                                size="small"
-                              />
-                            </div>
-                          )}
-                          {submission.feedback && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }} display="block">
-                              Nhận xét: {submission.feedback}
-                            </Typography>
-                          )}
-                          {submission.originalFileName && (
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }} display="block">
-                              File: {submission.originalFileName}
-                            </Typography>
-                          )}
-                        </div>
-                      }
-                    />
-                  </ListItem>
-                  {index < submissions.length - 1 && <Divider />}
-                </React.Fragment>
-              );
-            })}
-          </List>
-        </Paper>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
+      
+      {/* Pagination */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, gap: 2, flexWrap: 'wrap' }}>
+        <Pagination
+          count={totalPages}
+          page={page}
+          onChange={(e, value) => setPage(value)}
+          color="primary"
+          disabled={loading}
+        />
+        <FormControl size="small" sx={{ minWidth: 80 }} disabled={loading}>
+          <Select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(e.target.value);
+              setPage(1);
+            }}
+          >
+            <MenuItem value={5}>5</MenuItem>
+            <MenuItem value={10}>10</MenuItem>
+            <MenuItem value={20}>20</MenuItem>
+            <MenuItem value={50}>50</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
     </Box>
   );
 };

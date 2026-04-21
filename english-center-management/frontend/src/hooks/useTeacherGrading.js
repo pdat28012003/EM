@@ -8,8 +8,20 @@ export const useTeacherGrading = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [assignmentsPagination, setAssignmentsPagination] = useState({
+    page: 1,
+    pageSize: 10,
+    totalCount: 0,
+    totalPages: 1,
+  });
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [submissions, setSubmissions] = useState([]);
+  const [submissionsPagination, setSubmissionsPagination] = useState({
+    page: 1,
+    pageSize: 10,
+    totalCount: 0,
+    totalPages: 1,
+  });
   const [submissionStats, setSubmissionStats] = useState({
     gradedCount: 0,
     pendingCount: 0,
@@ -92,7 +104,14 @@ export const useTeacherGrading = () => {
       
       const response = await assignmentsAPI.getAll(params);
       const data = Array.isArray(response.data?.data) ? response.data.data : [];
+      const pagination = response.data || {};
       setAssignments(data);
+      setAssignmentsPagination({
+        page: pagination.page || 1,
+        pageSize: pagination.pageSize || 10,
+        totalCount: pagination.totalCount || data.length,
+        totalPages: pagination.totalPages || 1,
+      });
       onSuccess?.(data);
     } catch (err) {
       const errorMsg = 'Lỗi khi tải danh sách bài tập';
@@ -133,8 +152,15 @@ export const useTeacherGrading = () => {
       
       const response = await assignmentsAPI.getSubmissions(assignmentId, params);
       const data = Array.isArray(response.data?.data) ? response.data.data : [];
-      const metadata = response.data?.metadata || {};
+      const pagination = response.data || {};
+      const metadata = pagination.metadata || {};
       setSubmissions(data);
+      setSubmissionsPagination({
+        page: pagination.page || 1,
+        pageSize: pagination.pageSize || 10,
+        totalCount: pagination.totalCount || data.length,
+        totalPages: pagination.totalPages || 1,
+      });
       setSubmissionStats({
           gradedCount: metadata.gradedCount || 0,
           pendingCount: metadata.pendingCount || 0,
@@ -197,8 +223,10 @@ export const useTeacherGrading = () => {
     classes,
     selectedClass,
     assignments,
+    assignmentsPagination,
     selectedAssignment,
     submissions,
+    submissionsPagination,
     submissionStats,
     loading,
     error,

@@ -403,10 +403,10 @@ const StudentDashboard = () => {
           <Box sx={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
           <Box sx={{ position: 'absolute', bottom: -30, right: 100, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
 
-          <Box sx={{ p: 4, position: 'relative', zIndex: 1 }}>
-            <Grid container spacing={3} alignItems="center">
+          <Box sx={{ px: 3, py: 3, position: 'relative', zIndex: 1 }}>
+            <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} md={8}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                   <Avatar
                     sx={{ width: 72, height: 72, border: '3px solid rgba(255,255,255,0.3)', bgcolor: 'rgba(255,255,255,0.15)', fontSize: '1.75rem', fontWeight: 600 }}
                     src={student?.avatar}
@@ -422,7 +422,7 @@ const StudentDashboard = () => {
                   </Box>
                 </Box>
 
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 2, bgcolor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', borderRadius: 2, px: 3, py: 2 }}>
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 2, bgcolor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', borderRadius: 2, px: 2.5, py: 1.5 }}>
                   <CalendarToday sx={{ fontSize: 24 }} />
                   <Box>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>Tiến độ học tập tốt!</Typography>
@@ -431,7 +431,7 @@ const StudentDashboard = () => {
                 </Box>
               </Grid>
 
-              <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
+              <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'center', md: 'right' } }}>
                 <Button
                   variant="contained" size="large" startIcon={<PlayArrow />}
                   onClick={() => navigate('/student/schedule')}
@@ -461,20 +461,20 @@ const StudentDashboard = () => {
 
       {/* Quick Actions */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b', mb: 2, ml: 0.5 }}>Truy cập nhanh</Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: { xs: 'center', md: 'flex-start' } }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b', mb: 2 }}>Truy cập nhanh</Typography>
+        <Grid container spacing={2}>
           {menuItems.map((item, index) => (
-            <Box key={index} sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(33.333% - 11px)', md: '1 1 calc(20% - 13px)' }, minWidth: { xs: 140, md: 180 }, maxWidth: { md: 220 } }}>
+            <Grid item xs={6} sm={4} md={2.4} key={index}>
               <QuickActionCard item={item} />
-            </Box>
+            </Grid>
           ))}
-        </Box>
+        </Grid>
       </Box>
 
-      {/* Bottom Grid: Recent Classes, Activity & Grade Progress */}
+      {/* Bottom Grid: Recent Classes & Learning Activity */}
       <Grid container spacing={3}>
         {/* Recent Classes */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, height: '100%', borderRadius: 3, border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -552,7 +552,7 @@ const StudentDashboard = () => {
         </Grid>
 
         {/* Learning Activity */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -561,7 +561,7 @@ const StudentDashboard = () => {
               </Box>
             </Box>
             
-            <Box sx={{ maxHeight: 280, overflowY: 'auto', pr: 1 }}>
+            <Box sx={{ maxHeight: 600, overflowY: 'auto', pr: 1 }}>
               <Box sx={{ position: 'relative' }}>
                 <Box sx={{ position: 'absolute', left: 20, top: 0, bottom: 0, width: 2, bgcolor: 'rgba(0,0,0,0.06)', borderRadius: 1 }} />
                 <Stack spacing={0}>

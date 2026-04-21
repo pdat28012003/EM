@@ -3,9 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  Grid,
-  Card,
-  CardContent,
   Chip,
   Alert,
   Tooltip,
@@ -16,17 +13,18 @@ import {
   MenuItem,
   Paper,
   Stack,
+  Pagination,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { formatDate } from './gradingUtils';
-
-const FILTERS = {
-  ALL: 'all',
-  HAS_SUBMISSIONS: 'has_submissions',
-  FULLY_GRADED: 'fully_graded',
-  PENDING: 'pending',
-  NO_SKILL: 'no_skill',
-};
 
 const SORT_OPTIONS = {
   NEWEST: 'newest',
@@ -38,26 +36,20 @@ const SORT_OPTIONS = {
 const AssignmentSelection = ({
   selectedClass,
   assignments,
+  totalPages: propTotalPages,
   onBack,
   onSelectAssignment,
   onFilterChange,
   loading,
 }) => {
-  // Filter, search, sort states
+  // Search, sort states
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState(FILTERS.ALL);
   const [sortBy, setSortBy] = useState(SORT_OPTIONS.NEWEST);
-
-  // Map filter to API params
-  const getApiFilters = (filter) => {
-    switch (filter) {
-      case FILTERS.HAS_SUBMISSIONS: return { hasSubmissions: true };
-      case FILTERS.FULLY_GRADED: return { fullyGraded: true };
-      case FILTERS.PENDING: return { hasPending: true };
-      case FILTERS.NO_SKILL: return { skillId: 0 };
-      default: return {};
-    }
-  };
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const totalPages = propTotalPages || 1;
 
   // Map sort to API params
   const getApiSort = (sort) => {
@@ -69,33 +61,26 @@ const AssignmentSelection = ({
     }
   };
 
-  // Call API when filters change (with debounce for search)
+  // Call API when search/sort changes (with debounce for search)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const apiFilters = {
         search: searchQuery.trim() || null,
-        ...getApiFilters(activeFilter),
         ...getApiSort(sortBy),
+        page,
+        pageSize,
       };
       onFilterChange?.(apiFilters);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, activeFilter, sortBy, onFilterChange]);
+  }, [searchQuery, sortBy, page, pageSize, onFilterChange]);
 
-  // Count for display
-  const hasSubmissionsCount = assignments.filter(a => (a.submissionsCount || 0) > 0).length;
-  const fullyGradedCount = assignments.filter(a => {
-    const subs = a.submissionsCount || 0;
-    const graded = a.gradedCount || 0;
-    return subs > 0 && subs === graded;
-  }).length;
-  const pendingCount = assignments.filter(a => {
-    const subs = a.submissionsCount || 0;
-    const graded = a.gradedCount || 0;
-    return subs > graded;
-  }).length;
-  const noSkillCount = assignments.filter(a => !a.skillId && !a.skillName).length;
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
 
   if (loading) {
     return (
@@ -161,48 +146,6 @@ const AssignmentSelection = ({
           </FormControl>
         </Box>
         
-        {/* Filter Chips */}
-        <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap' }}>
-          <Chip
-            label={`Tất cả (${assignments.length})`}
-            onClick={() => !loading && setActiveFilter(FILTERS.ALL)}
-            color={activeFilter === FILTERS.ALL ? 'primary' : 'default'}
-            variant={activeFilter === FILTERS.ALL ? 'filled' : 'outlined'}
-            sx={{ cursor: loading ? 'default' : 'pointer', ...(loading && { opacity: 0.6 }) }}
-          />
-          <Chip
-            label={`Có bài nộp (${hasSubmissionsCount})`}
-            onClick={() => !loading && setActiveFilter(FILTERS.HAS_SUBMISSIONS)}
-            color={activeFilter === FILTERS.HAS_SUBMISSIONS ? 'primary' : 'default'}
-            variant={activeFilter === FILTERS.HAS_SUBMISSIONS ? 'filled' : 'outlined'}
-            sx={{ cursor: loading ? 'default' : 'pointer', ...(loading && { opacity: 0.6 }) }}
-          />
-          <Chip
-            label={`Chấm xong (${fullyGradedCount})`}
-            onClick={() => !loading && setActiveFilter(FILTERS.FULLY_GRADED)}
-            color={activeFilter === FILTERS.FULLY_GRADED ? 'success' : 'default'}
-            variant={activeFilter === FILTERS.FULLY_GRADED ? 'filled' : 'outlined'}
-            sx={{ cursor: loading ? 'default' : 'pointer', ...(loading && { opacity: 0.6 }) }}
-          />
-          {pendingCount > 0 && (
-            <Chip
-              label={`Chờ chấm (${pendingCount})`}
-              onClick={() => !loading && setActiveFilter(FILTERS.PENDING)}
-              color={activeFilter === FILTERS.PENDING ? 'warning' : 'default'}
-              variant={activeFilter === FILTERS.PENDING ? 'filled' : 'outlined'}
-              sx={{ cursor: loading ? 'default' : 'pointer', ...(loading && { opacity: 0.6 }) }}
-            />
-          )}
-          {noSkillCount > 0 && (
-            <Chip
-              label={`Chưa gắn kỹ năng (${noSkillCount})`}
-              onClick={() => !loading && setActiveFilter(FILTERS.NO_SKILL)}
-              color={activeFilter === FILTERS.NO_SKILL ? 'error' : 'default'}
-              variant={activeFilter === FILTERS.NO_SKILL ? 'filled' : 'outlined'}
-              sx={{ cursor: loading ? 'default' : 'pointer', ...(loading && { opacity: 0.6 }) }}
-            />
-          )}
-        </Stack>
       </Paper>
 
       {assignments.length === 0 ? (
@@ -210,108 +153,134 @@ const AssignmentSelection = ({
           {searchQuery ? 'Không tìm thấy bài tập phù hợp.' : 'Lớp này chưa có bài tập nào.'}
         </Alert>
       ) : (
-        <Grid container spacing={2}>
-          {assignments.map((assignment) => {
-            const submissionsCount = assignment.submissionsCount || 0;
-            const gradedCount = assignment.gradedCount || 0;
-            const pendingCount = submissionsCount - gradedCount;
-            const isFullyGraded = submissionsCount > 0 && pendingCount === 0;
-            const hasSkill = assignment.skillId || assignment.skillName;
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Bài tập</TableCell>
+                <TableCell>Hạn nộp</TableCell>
+                <TableCell>Kỹ năng</TableCell>
+                <TableCell align="center">Bài nộp</TableCell>
+                <TableCell align="center">Trạng thái</TableCell>
+                <TableCell align="center">Thao tác</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {assignments.map((assignment) => {
+                const submissionsCount = assignment.submissionsCount || 0;
+                const gradedCount = assignment.gradedCount || 0;
+                const pendingCount = submissionsCount - gradedCount;
+                const isFullyGraded = submissionsCount > 0 && pendingCount === 0;
+                const hasSkill = assignment.skillId || assignment.skillName;
 
-            return (
-              <Grid item xs={12} sm={6} key={assignment.assignmentId}>
-                <Card
-                  sx={{
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease-in-out',
-                    '&:hover': { 
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                      transform: 'translateY(-2px)',
-                    },
-                    ...(isFullyGraded && {
-                      borderColor: 'success.main',
-                      borderWidth: 1,
-                      borderStyle: 'solid',
-                    }),
-                    ...(!hasSkill && {
-                      borderColor: 'warning.main',
-                      borderWidth: 1,
-                      borderStyle: 'dashed',
-                    }),
-                  }}
-                  onClick={() => onSelectAssignment(assignment)}
-                >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <Box flex={1}>
-                        <Box>
-                          <Typography variant="subtitle1" fontWeight="600">
-                            {assignment.title}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Hạn nộp: {formatDate(assignment.dueDate)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Điểm tối đa: {assignment.maxScore || 100}
-                          </Typography>
-                        </Box>
-                        {/* Skill Info */}
-                        <Box sx={{ mt: 1 }}>
-                          {hasSkill ? (
-                            <Chip
-                              label={assignment.skillName || 'Có kỹ năng'}
-                              size="small"
-                              color="info"
-                              variant="outlined"
-                            />
-                          ) : (
-                            <Tooltip title="Bài tập chưa gắn kỹ năng - Điểm sẽ không vào bảng điểm">
-                              <Chip
-                                label="Chưa gắn kỹ năng"
-                                size="small"
-                                color="warning"
-                                variant="outlined"
-                              />
-                            </Tooltip>
-                          )}
-                        </Box>
-                      </Box>
+                return (
+                  <TableRow
+                    key={assignment.assignmentId}
+                    hover
+                    sx={{
+                      cursor: 'pointer',
+                      ...(isFullyGraded && { backgroundColor: 'success.50' }),
+                      ...(!hasSkill && { backgroundColor: 'warning.50' }),
+                    }}
+                    onClick={() => onSelectAssignment(assignment)}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="600">
+                        {assignment.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Điểm tối đa: {assignment.maxScore || 100}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{formatDate(assignment.dueDate)}</TableCell>
+                    <TableCell>
+                      {hasSkill ? (
+                        <Chip
+                          label={assignment.skillName || 'Có kỹ năng'}
+                          size="small"
+                          color="info"
+                          variant="outlined"
+                        />
+                      ) : (
+                        <Tooltip title="Bài tập chưa gắn kỹ năng - Điểm sẽ không vào bảng điểm">
+                          <Chip
+                            label="Chưa gắn"
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                          />
+                        </Tooltip>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
                       <Chip
-                        label={`${submissionsCount} nộp`}
+                        label={submissionsCount}
                         size="small"
                         color={submissionsCount > 0 ? 'primary' : 'default'}
                       />
-                    </Box>
-                    
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" color="text.secondary" noWrap>
-                        {assignment.description || 'Không có mô tả'}
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Chip
-                        label={`${gradedCount} đã chấm`}
-                        size="small"
-                        color="success"
-                        variant="outlined"
-                      />
-                      {pendingCount > 0 && (
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
                         <Chip
-                          label={`${pendingCount} chờ chấm`}
+                          label={`${gradedCount} đã chấm`}
                           size="small"
-                          color="warning"
+                          color="success"
                           variant="outlined"
                         />
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            );
-          })}
-        </Grid>
+                        {pendingCount > 0 && (
+                          <Chip
+                            label={`${pendingCount} chờ`}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectAssignment(assignment);
+                        }}
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
+      
+      {/* Pagination */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, gap: 2, flexWrap: 'wrap' }}>
+        <Pagination
+          count={totalPages}
+          page={page}
+          onChange={(e, value) => setPage(value)}
+          color="primary"
+          disabled={loading}
+        />
+        <FormControl size="small" sx={{ minWidth: 80 }} disabled={loading}>
+          <Select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(e.target.value);
+              setPage(1);
+            }}
+          >
+            <MenuItem value={5}>5</MenuItem>
+            <MenuItem value={10}>10</MenuItem>
+            <MenuItem value={20}>20</MenuItem>
+            <MenuItem value={50}>50</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
     </Box>
   );
 };

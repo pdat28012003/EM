@@ -19,7 +19,6 @@ import {
   TableRow,
   Chip,
   TextField,
-  InputAdornment,
   FormControl,
   InputLabel,
   Select,
@@ -27,7 +26,6 @@ import {
 } from '@mui/material';
 import {
   Description,
-  Search,
   Download,
   Visibility,
   FilterList,
@@ -297,7 +295,7 @@ const Documents = () => {
 
         {/* Stats Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={4}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -316,8 +314,8 @@ const Documents = () => {
               </CardContent>
             </Card>
           </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
+
+          <Grid item xs={12} sm={6} md={4}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -336,8 +334,8 @@ const Documents = () => {
               </CardContent>
             </Card>
           </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
+
+          <Grid item xs={12} sm={6} md={4}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -357,25 +355,6 @@ const Documents = () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ color: '#9c27b0', p: 1, borderRadius: 1, bgcolor: 'rgba(156,39,176,0.1)' }}>
-                    <Search sx={{ fontSize: 32 }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" fontWeight="bold">
-                      {documents.filter(d => d.uploadDate === new Date().toISOString().split('T')[0]).length}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Hôm nay
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
         </Grid>
 
         {/* Filters and Search */}
@@ -386,13 +365,6 @@ const Documents = () => {
               placeholder="Tìm kiếm tài liệu..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search />
-                  </InputAdornment>
-                ),
-              }}
             />
           </Grid>
           <Grid item xs={12} md={2}>
@@ -480,14 +452,13 @@ const Documents = () => {
                       <TableCell sx={{ fontWeight: 'bold' }}>Chương trình</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="right">Dung lượng</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="center">Ngày tải</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }} align="center">Lượt tải</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="center">Thao tác</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {documents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                        <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                           <Description sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                           <Typography variant="h6" color="textSecondary">
                             Chưa có tài liệu nào
@@ -526,7 +497,6 @@ const Documents = () => {
                           <TableCell>{doc.curriculumName || doc.className || 'Dùng chung'}</TableCell>
                           <TableCell align="right">{formatFileSize(doc.fileSize)}</TableCell>
                           <TableCell align="center">{new Date(doc.uploadDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' })}</TableCell>
-                          <TableCell align="center">{doc.downloadCount || 0}</TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                               <Tooltip title="Xem">

@@ -27,8 +27,10 @@ const TeacherGrading = () => {
     classes,
     selectedClass,
     assignments,
+    assignmentsPagination,
     selectedAssignment,
     submissions,
+    submissionsPagination,
     submissionStats,
     loading,
     error,
@@ -173,6 +175,7 @@ const TeacherGrading = () => {
           <AssignmentSelection
             selectedClass={selectedClass}
             assignments={assignments}
+            totalPages={assignmentsPagination?.totalPages || 1}
             onBack={handleBack}
             onSelectAssignment={onSelectAssignment}
             onFilterChange={handleAssignmentFilterChange}
@@ -184,6 +187,7 @@ const TeacherGrading = () => {
             selectedAssignment={selectedAssignment}
             submissions={submissions}
             stats={submissionStats}
+            totalPages={submissionsPagination?.totalPages || 1}
             onBack={handleBack}
             onOpenGradeDialog={handleOpenGradeDialog}
             onDownloadFile={handleDownloadFile}
