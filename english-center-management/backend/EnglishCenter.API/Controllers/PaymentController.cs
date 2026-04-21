@@ -70,7 +70,8 @@ namespace EnglishCenter.API.Controllers
                         CourseCode = course.CourseCode,
                         Fee = course.Fee,
                         IsSelected = false,
-                        IsPaid = false
+                        IsPaid = false,
+                        EnrollmentDate = DateTime.Now // Default value since this endpoint doesn't track enrollment date
                     })
                     .ToListAsync();
 
@@ -224,7 +225,8 @@ namespace EnglishCenter.API.Controllers
                         CourseCode = c.CourseCode,
                         Fee = c.Fee,
                         IsSelected = true,
-                        IsPaid = false
+                        IsPaid = false,
+                        EnrollmentDate = DateTime.Now
                     }).ToList()
                 };
 
@@ -280,7 +282,8 @@ namespace EnglishCenter.API.Controllers
                         CourseCode = pc.Course.CourseCode,
                         Fee = pc.CourseFee,
                         IsSelected = true,
-                        IsPaid = payment.Status == "Completed"
+                        IsPaid = payment.Status == "Completed",
+                        EnrollmentDate = pc.CreatedAt
                     }).ToList()
                 };
 
@@ -455,6 +458,17 @@ namespace EnglishCenter.API.Controllers
                                         completedDate = payment.PaymentCompletedDate
                                     });
 
+                                // Also send to student group for real-time UI updates
+                                _logger.LogInformation("Sending SignalR PaymentStatusChanged for Payment {PaymentId} to group student_{StudentId}", paymentId, payment.StudentId);
+                                await _hubContext.Clients.Group($"student_{payment.StudentId}")
+                                    .SendAsync("PaymentStatusChanged", new
+                                    {
+                                        paymentId = payment.PaymentId,
+                                        studentId = payment.StudentId,
+                                        status = payment.Status,
+                                        completedDate = payment.PaymentCompletedDate
+                                    });
+
                                 _logger.LogInformation("Payment {PaymentId} marked as Completed and SignalR sent", paymentId);
                             }
                             else
@@ -533,7 +547,8 @@ namespace EnglishCenter.API.Controllers
                         CourseCode = pc.Course.CourseCode,
                         Fee = pc.CourseFee,
                         IsSelected = true,
-                        IsPaid = payment.Status == "Completed"
+                        IsPaid = payment.Status == "Completed",
+                        EnrollmentDate = pc.CreatedAt
                     }).ToList() ?? new List<CourseForPaymentDto>()
                 };
 
@@ -542,6 +557,81 @@ namespace EnglishCenter.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating payment {PaymentId}", id);
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Gets courses that need payment for a student. (Lấy các khóa học cần thanh toán của học sinh)
+        /// </summary>
+        /// <param name="studentId">Student ID (ID học sinh)</param>
+        /// <returns>Courses that need payment (Các khóa học cần thanh toán)</returns>
+        [Authorize]
+        [HttpGet("student/{studentId}/pending-payments")]
+        public async Task<ActionResult<StudentPendingPaymentsDto>> GetStudentPendingPayments(int studentId)
+        {
+            try
+            {
+                var student = await _context.Students.FindAsync(studentId);
+                if (student == null)
+                {
+                    return NotFound("Student not found");
+                }
+
+                // Get all course enrollments for this student that are active
+                var courseEnrollments = await _context.CourseEnrollments
+                    .Include(ce => ce.Course)
+                    .Where(ce => ce.StudentId == studentId && ce.Status == "Active")
+                    .ToListAsync();
+
+                if (!courseEnrollments.Any())
+                {
+                    return Ok(new StudentPendingPaymentsDto
+                    {
+                        StudentId = studentId,
+                        StudentName = student.FullName,
+                        Courses = new List<CourseForPaymentDto>(),
+                        TotalPendingAmount = 0
+                    });
+                }
+
+                // Get all paid course IDs for this student
+                var paidCourseIds = await _context.PaymentCourses
+                    .Include(pc => pc.Payment)
+                    .Where(pc => pc.Payment.StudentId == studentId && pc.Payment.Status == "Completed")
+                    .Select(pc => pc.CourseId)
+                    .ToListAsync();
+
+                // Filter courses that are not yet paid
+                var pendingCourses = courseEnrollments
+                    .Where(ce => !paidCourseIds.Contains(ce.CourseId))
+                    .Select(ce => new CourseForPaymentDto
+                    {
+                        CourseId = ce.Course.CourseId,
+                        CourseName = ce.Course.CourseName,
+                        CourseCode = ce.Course.CourseCode,
+                        Fee = ce.Course.Fee,
+                        IsSelected = false,
+                        IsPaid = false,
+                        EnrollmentDate = ce.EnrollmentDate
+                    })
+                    .ToList();
+
+                var totalPendingAmount = pendingCourses.Sum(c => c.Fee);
+
+                var result = new StudentPendingPaymentsDto
+                {
+                    StudentId = studentId,
+                    StudentName = student.FullName,
+                    Courses = pendingCourses,
+                    TotalPendingAmount = totalPendingAmount
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting pending payments for student {StudentId}", studentId);
                 return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
@@ -589,7 +679,8 @@ namespace EnglishCenter.API.Controllers
                                 CourseCode = pc.Course.CourseCode,
                                 Fee = pc.CourseFee,
                                 IsSelected = true,
-                                IsPaid = p.Status == "Completed"
+                                IsPaid = p.Status == "Completed",
+                                EnrollmentDate = pc.CreatedAt
                             }).ToList()
                         : new List<CourseForPaymentDto>()
                 }).ToList();

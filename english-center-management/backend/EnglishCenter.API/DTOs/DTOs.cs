@@ -943,6 +943,7 @@ namespace EnglishCenter.API.DTOs
         public decimal Fee { get; set; }
         public bool IsSelected { get; set; } = false;
         public bool IsPaid { get; set; } = false;
+        public DateTime EnrollmentDate { get; set; }
     }
 
     public class StudentEnrolledCoursesDto
@@ -951,6 +952,14 @@ namespace EnglishCenter.API.DTOs
         public string StudentName { get; set; } = string.Empty;
         public List<CourseForPaymentDto> Courses { get; set; } = new List<CourseForPaymentDto>();
         public decimal TotalSelectedAmount { get; set; } = 0;
+    }
+
+    public class StudentPendingPaymentsDto
+    {
+        public int StudentId { get; set; }
+        public string StudentName { get; set; } = string.Empty;
+        public List<CourseForPaymentDto> Courses { get; set; } = new List<CourseForPaymentDto>();
+        public decimal TotalPendingAmount { get; set; } = 0;
     }
 
     public class CreatePaymentDto

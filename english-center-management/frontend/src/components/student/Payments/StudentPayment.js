@@ -171,15 +171,29 @@ const StudentPayment = () => {
           await connectionRef.current.start();
           console.log('Connected to payment hub');
 
-          // Try to join group immediately after connection if we have current payment
+          // Always join student-specific group to receive payment updates
+          if (studentId) {
+            console.log('Joining student payment group:', studentId);
+            await connectionRef.current.invoke('JoinStudentPaymentGroup', studentId.toString());
+          }
+
+          // Try to join payment group immediately after connection if we have current payment
           if (currentPayment) {
             console.log('Joining payment group after connection:', currentPayment.paymentId);
             await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
           }
-        } else if (connectionRef.current.state === 'Connected' && currentPayment) {
-          // Join group if connection is already established and we have payment
-          console.log('Joining payment group (already connected):', currentPayment.paymentId);
-          await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
+        } else if (connectionRef.current.state === 'Connected') {
+          // Join student group if connection is already established
+          if (studentId) {
+            console.log('Joining student payment group (already connected):', studentId);
+            await connectionRef.current.invoke('JoinStudentPaymentGroup', studentId.toString());
+          }
+
+          // Join payment group if we have payment
+          if (currentPayment) {
+            console.log('Joining payment group (already connected):', currentPayment.paymentId);
+            await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
+          }
         }
       } catch (err) {
         if (err.name !== 'AbortError') {
@@ -197,11 +211,29 @@ const StudentPayment = () => {
       const pId = data.paymentId || data.PaymentId;
       const status = data.status || data.Status;
 
-      if (currentPayment && pId === currentPayment.paymentId) {
-        setPaymentStatus(status);
-        if (status === 'Completed' || status === 'Complete') {
+      // Always refresh data when payment is completed, regardless of currentPayment
+      if (status === 'Completed' || status === 'Complete') {
+        console.log('Payment completed detected, refreshing data...');
+
+        // Force refresh enrolled courses to remove paid courses
+        loadEnrolledCourses(true);
+
+        // Also refresh payment history
+        loadPaymentHistory(true);
+
+        // Clear selected courses
+        setSelectedCourses([]);
+
+        // If this is the current payment, handle success
+        if (currentPayment && pId === currentPayment.paymentId) {
+          setPaymentStatus(status);
           handlePaymentSuccess();
         }
+      }
+
+      // Handle current payment status updates
+      if (currentPayment && pId === currentPayment.paymentId) {
+        setPaymentStatus(status);
       }
     };
 
@@ -215,7 +247,7 @@ const StudentPayment = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPayment]);
+  }, [currentPayment, studentId]);
 
   // Auto-join SignalR group when currentPayment changes
   useEffect(() => {
@@ -264,18 +296,27 @@ const StudentPayment = () => {
   const loadEnrolledCourses = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      console.log('Loading enrolled courses for studentId:', studentId, 'forceRefresh:', forceRefresh);
+      console.log('Loading pending payments for studentId:', studentId, 'forceRefresh:', forceRefresh);
 
       // Add cache busting parameter if force refresh is requested
       const url = forceRefresh
-        ? `/payments/student/${studentId}/enrolled-courses?t=${Date.now()}`
-        : `/payments/student/${studentId}/enrolled-courses`;
+        ? `/payments/student/${studentId}/pending-payments?t=${Date.now()}`
+        : `/payments/student/${studentId}/pending-payments`;
 
       const response = await axiosInstance.get(url);
-      console.log('Enrolled courses response:', response.data);
-      setEnrolledCourses(response.data);
+      console.log('Pending payments response:', response.data);
+
+      // Transform response to match expected format
+      const transformedData = {
+        studentId: response.data.studentId,
+        studentName: response.data.studentName,
+        courses: response.data.courses,
+        totalSelectedAmount: response.data.totalPendingAmount
+      };
+
+      setEnrolledCourses(transformedData);
     } catch (error) {
-      console.error('Error loading enrolled courses:', error);
+      console.error('Error loading pending payments:', error);
       console.error('Error details:', error.response?.data);
     } finally {
       setLoading(false);
@@ -459,12 +500,12 @@ const StudentPayment = () => {
 
       <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Các Khóa Học Đã Đăng Ký
+          Các Khóa Học Cần Thanh Toán
         </Typography>
 
         {!enrolledCourses || enrolledCourses.courses?.length === 0 ? (
           <Alert severity="info">
-            Bạn chưa đăng ký khóa học nào.
+            Bạn không có khóa học nào cần thanh toán.
           </Alert>
         ) : (
           <>
@@ -537,16 +578,16 @@ const StudentPayment = () => {
                 <Checkbox
                   indeterminate={
                     selectedCourses.length > 0 &&
-                    selectedCourses.length < enrolledCourses?.courses.filter(c => !c.isPaid).length
+                    selectedCourses.length < enrolledCourses?.courses?.length
                   }
                   checked={
-                    selectedCourses.length === enrolledCourses?.courses?.filter(c => !c.isPaid).length &&
+                    selectedCourses.length === enrolledCourses?.courses?.length &&
                     selectedCourses.length > 0
                   }
                   onChange={(e) => {
                     if (e.target.checked) {
                       setSelectedCourses(
-                        enrolledCourses?.courses?.filter(c => !c.isPaid).map(c => c.courseId) || []
+                        enrolledCourses?.courses?.map(c => c.courseId) || []
                       );
                     } else {
                       setSelectedCourses([]);
@@ -555,7 +596,7 @@ const StudentPayment = () => {
                   sx={{ mr: 1 }}
                 />
                 <Typography variant="body2" component="span">
-                  Chọn tất cả ({enrolledCourses?.courses?.filter(c => !c.isPaid).length} khóa chưa thanh toán)
+                  Chọn tất cả ({enrolledCourses?.courses?.length} khóa học)
                 </Typography>
               </Box>
             </Box>
@@ -570,16 +611,16 @@ const StudentPayment = () => {
                         <Checkbox
                           indeterminate={
                             selectedCourses.length > 0 &&
-                            selectedCourses.length < enrolledCourses?.courses.filter(c => !c.isPaid).length
+                            selectedCourses.length < enrolledCourses?.courses?.length
                           }
                           checked={
-                            selectedCourses.length === enrolledCourses?.courses?.filter(c => !c.isPaid).length &&
+                            selectedCourses.length === enrolledCourses?.courses?.length &&
                             selectedCourses.length > 0
                           }
                           onChange={(e) => {
                             if (e.target.checked) {
                               setSelectedCourses(
-                                enrolledCourses?.courses?.filter(c => !c.isPaid).map(c => c.courseId) || []
+                                enrolledCourses?.courses?.map(c => c.courseId) || []
                               );
                             } else {
                               setSelectedCourses([]);
