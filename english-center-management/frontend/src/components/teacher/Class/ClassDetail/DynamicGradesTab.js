@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
-  Avatar,
   Box,
   Typography,
   Table,
@@ -24,12 +23,15 @@ import {
   FormControl,
   InputLabel,
   Select,
-  CircularProgress,
   IconButton,
   Tooltip,
+  CircularProgress,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Skeleton,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   Add,
@@ -37,26 +39,44 @@ import {
   Delete,
   ExpandMore,
   Done,
-  Close
+  Close,
+  Search,
+  School
 } from '@mui/icons-material';
-import { assignmentsAPI, skillsAPI, gradesAPI, assignmentSkillsAPI } from '../../../../services/api';
+import { assignmentsAPI, skillsAPI, gradesAPI, assignmentSkillsAPI, curriculumAPI } from '../../../../services/api';
+import { useAsyncLoading } from '../../../../hooks/useDocuments';
+
+// Normalize ID helper - đảm bảo so sánh number
+const normId = (v) => Number(v);
 
 export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
-  const [students] = useState([]);
+  const [students, setStudents] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [skills, setSkills] = useState([]);
-  const [assignmentSkills, setAssignmentSkills] = useState([]);
   const [grades, setGrades] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // assignmentSkills state local cho dialog (tránh global state)
+  const [dialogAssignmentSkills, setDialogAssignmentSkills] = useState([]);
+  
+  // Sử dụng custom hook cho loading
+  const { initialLoading, startLoading, stopLoading, getAbortSignal } = useAsyncLoading();
   const [addGradeDialogOpen, setAddGradeDialogOpen] = useState(false);
   const [editGradeDialogOpen, setEditGradeDialogOpen] = useState(false);
   const [viewStudentDetailDialogOpen, setViewStudentDetailDialogOpen] = useState(false);
-  const [viewingStudent] = useState(null);
+  const [viewingStudent, setViewingStudent] = useState(null);
   const [editStudentDialogOpen, setEditStudentDialogOpen] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(null);
-  const [editingGradeId, setEditingGradeId] = useState(null);
-  const [editingScore, setEditingScore] = useState('');
+  // Inline edit state dạng map để tránh re-render toàn table
+  const [editingMap, setEditingMap] = useState({}); // { [gradeId]: { score: string, originalScore: number } }
   const [assignmentTypeFilter, setAssignmentTypeFilter] = useState('all');
+  const [studentSearch, setStudentSearch] = useState('');
+  const [skillFilter, setSkillFilter] = useState('all');
+  const [minScoreFilter, setMinScoreFilter] = useState('');
+  const [maxScoreFilter, setMaxScoreFilter] = useState('');
+  
+  // Debounced filter states
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedMinScore, setDebouncedMinScore] = useState('');
+  const [debouncedMaxScore, setDebouncedMaxScore] = useState('');
   const [newGrade, setNewGrade] = useState({
     studentId: '',
     assignmentId: '',
@@ -68,42 +88,103 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
 
   const theme = useTheme();
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (filters = {}) => {
+    const isFirstLoad = initialLoading;
+    startLoading(isFirstLoad);
+    
+    if (!curriculumId) {
+      stopLoading(isFirstLoad);
+      return;
+    }
+    
+    const signal = getAbortSignal();
+    
     try {
-      setLoading(true);
-      
-      // Load all data in parallel
-      if (!curriculumId) {
-        setLoading(false);
-        return;
-      }
-      
-      const [assignmentsRes, skillsRes, gradesRes] = await Promise.all([
-        assignmentsAPI.getAll({ curriculumId }),
-        skillsAPI.getAll(),
-        gradesAPI.getByCurriculum(curriculumId)
+      const [assignmentsRes, skillsRes, gradesRes, studentsRes] = await Promise.all([
+        assignmentsAPI.getAll({ curriculumId, signal }),
+        skillsAPI.getAll({ signal }),
+        gradesAPI.getFiltered(curriculumId, { 
+          ...filters, 
+          signal
+        }),
+        curriculumAPI.getStudents(curriculumId, { signal })
       ]);
 
       const assignmentsData = assignmentsRes.data?.data || [];
       const skillsData = Array.isArray(skillsRes.data) ? skillsRes.data : (skillsRes.data?.data || []);
       const gradesData = gradesRes.data || [];
+      const studentsData = studentsRes.data?.students || studentsRes.data?.data?.students || [];
 
       setAssignments(assignmentsData);
       setSkills(skillsData);
       setGrades(gradesData);
+      setStudents(studentsData);
 
     } catch (error) {
-      console.error('Error loading dynamic grades:', error);
+      if (error.name !== 'AbortError') {
+        console.error('Error loading dynamic grades:', error);
+      }
     } finally {
-      setLoading(false);
+      stopLoading(isFirstLoad);
+    }
+  }, [curriculumId, initialLoading, startLoading, stopLoading, getAbortSignal]);
+
+  // Chỉ reload grades sau CRUD - giữ cache students/assignments/skills
+  const reloadGradesOnly = useCallback(async (filters = {}) => {
+    try {
+      const gradesRes = await gradesAPI.getFiltered(curriculumId, filters);
+      setGrades(gradesRes.data || []);
+    } catch (error) {
+      console.error('Error reloading grades:', error);
     }
   }, [curriculumId]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(studentSearch);
+    }, 300); // 300ms debounce
+    return () => clearTimeout(timer);
+  }, [studentSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedMinScore(minScoreFilter);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [minScoreFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedMaxScore(maxScoreFilter);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [maxScoreFilter]);
+
+  // BE Filters: tất cả filter đều gọi API
+  const filters = useMemo(() => ({
+    studentName: debouncedSearch.trim() || undefined,
+    assignmentType: assignmentTypeFilter !== 'all' ? assignmentTypeFilter : undefined,
+    skillId: skillFilter !== 'all' ? parseInt(skillFilter) : undefined,
+    minScore: debouncedMinScore ? parseFloat(debouncedMinScore) : undefined,
+    maxScore: debouncedMaxScore ? parseFloat(debouncedMaxScore) : undefined
+  }), [debouncedSearch, assignmentTypeFilter, skillFilter, debouncedMinScore, debouncedMaxScore]);
+
+  // Gọi API khi filters đổi
+  useEffect(() => {
+    loadData(filters);
+  }, [filters, loadData]);
 
   const handleAddGrade = async () => {
+    // Validation
+    if (!newGrade.studentId || !newGrade.assignmentId || !newGrade.skillId) {
+      alert('Vui lòng chọn đầy đủ: Học viên, Bài tập, Kỹ năng');
+      return;
+    }
+    if (!newGrade.score || isNaN(parseFloat(newGrade.score))) {
+      alert('Vui lòng nhập điểm hợp lệ');
+      return;
+    }
+    
     try {
       const gradeData = {
         studentId: parseInt(newGrade.studentId),
@@ -117,7 +198,7 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
       await gradesAPI.create(gradeData);
       setAddGradeDialogOpen(false);
       resetNewGrade();
-      loadData();
+      reloadGradesOnly(filters);
     } catch (error) {
       console.error('Error adding grade:', error);
       alert('Lỗi khi thêm điểm: ' + (error.response?.data?.message || error.message));
@@ -125,6 +206,11 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
   };
 
   const handleEditGrade = async () => {
+    if (!selectedGrade.score || isNaN(parseFloat(selectedGrade.score))) {
+      alert('Vui lòng nhập điểm hợp lệ');
+      return;
+    }
+    
     try {
       const updateData = {
         score: parseFloat(selectedGrade.score) || 0,
@@ -134,7 +220,7 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
       await gradesAPI.update(selectedGrade.gradeId, updateData);
       setEditGradeDialogOpen(false);
       setSelectedGrade(null);
-      loadData();
+      reloadGradesOnly(filters);
     } catch (error) {
       console.error('Error updating grade:', error);
       alert('Lỗi khi cập nhật điểm: ' + (error.response?.data?.message || error.message));
@@ -145,7 +231,7 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
     if (window.confirm('Bạn có chắc chắn muốn xóa điểm này?')) {
       try {
         await gradesAPI.delete(gradeId);
-        loadData();
+        reloadGradesOnly(filters);
       } catch (error) {
         console.error('Error deleting grade:', error);
         alert('Lỗi khi xóa điểm: ' + (error.response?.data?.message || error.message));
@@ -166,111 +252,189 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
 
 
 
-  const getGradeColor = (score) => {
-    if (score >= 9.0) return "success";
-    if (score >= 5.0) return "warning";
-    return "error";
-  };
-
-  const getInitials = (name) => {
-    return name
-      ? name
-          .split(' ')
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((part) => part[0].toUpperCase())
-          .join('')
-      : 'HS';
-  };
-
-  const assignmentTypes = Array.from(
+  const assignmentTypes = useMemo(() => Array.from(
     new Set(
       assignments
         .map((assignment) => (assignment.type || assignment.Type || '').trim())
         .filter(Boolean)
     )
-  );
+  ), [assignments]);
 
-  const filteredGrades = assignmentTypeFilter === 'all'
-    ? grades
-    : grades.filter((grade) => {
-        const assignment = assignments.find((a) => a.assignmentId === grade.assignmentId || a.AssignmentId === grade.assignmentId);
-        return assignment && (assignment.type || assignment.Type || '').toLowerCase() === assignmentTypeFilter.toLowerCase();
-      });
+  // Normalize grades với id chuẩn (API đã filter)
+  const normalizedGrades = useMemo(() => {
+    return grades.map(g => ({
+      ...g,
+      studentId: normId(g.studentId),
+      assignmentId: normId(g.assignmentId),
+      skillId: normId(g.skillId)
+    }));
+  }, [grades]);
+
+  // Grades đã được filter từ API
+  const filteredGrades = normalizedGrades;
 
 
 
-  // Group grades by assignment
-  const gradesByAssignment = filteredGrades.reduce((acc, grade) => {
-    if (!acc[grade.assignmentId]) {
-      acc[grade.assignmentId] = {
-        assignment: assignments.find(a => a.assignmentId === grade.assignmentId),
-        grades: []
-      };
+  // Pre-filter valid skills
+  const validSkills = useMemo(() => skills.filter(s => s.skillId != null), [skills]);
+
+  // Hiện tất cả students trong lớp
+  const filteredStudents = useMemo(() => students, [students]);
+
+  // Index grades by student - O(1) lookup
+  const gradesByStudent = useMemo(() => {
+    const map = {};
+    for (const g of filteredGrades) {
+      if (!map[g.studentId]) map[g.studentId] = [];
+      map[g.studentId].push(g);
     }
-    acc[grade.assignmentId].grades.push(grade);
-    return acc;
-  }, {});
+    return map;
+  }, [filteredGrades]);
 
-  // Calculate statistics for each student
-  const studentStats = students.map(student => {
-    const studentGrades = filteredGrades.filter(g => g.studentId === student.studentId);
-    const averageScore = studentGrades.length > 0 
-      ? studentGrades.reduce((sum, g) => sum + g.score, 0) / studentGrades.length 
-      : 0;
-    
-    const skillBreakdown = skills.map(skill => {
-      const skillGrades = studentGrades.filter(g => g.skillId === skill.skillId);
-      return {
-        skillName: skill.name,
-        averageScore: skillGrades.length > 0 
-          ? skillGrades.reduce((sum, g) => sum + g.score, 0) / skillGrades.length 
-          : 0,
-        count: skillGrades.length
-      };
+  // Group grades by assignment - memoized
+  const gradesByAssignment = useMemo(() => {
+    const acc = {};
+    const assignmentMap = {};
+    assignments.forEach(a => {
+      assignmentMap[a.assignmentId] = a;
     });
 
-    return {
-      studentId: student.studentId,
-      studentName: student.fullName,
-      averageScore: averageScore.toFixed(2),
-      totalGrades: studentGrades.length,
-      skillBreakdown
-    };
-  });
+    for (const grade of filteredGrades) {
+      if (!acc[grade.assignmentId]) {
+        acc[grade.assignmentId] = {
+          assignment: assignmentMap[grade.assignmentId],
+          grades: []
+        };
+      }
+      acc[grade.assignmentId].grades.push(grade);
+    }
+    return acc;
+  }, [filteredGrades, assignments]);
 
-  const handleStartInlineEdit = (grade) => {
-    setEditingGradeId(grade.gradeId);
-    setEditingScore(String(grade.score));
-  };
+  // Pre-index cho performance - tách riêng để memoize
+  const { gradesByStudentSkill, studentAverages } = useMemo(() => {
+    // Index by (studentId, skillId)
+    const byStudentSkill = {};
+    // Index by studentId cho average
+    const byStudent = {};
+    
+    filteredGrades.forEach(g => {
+      const studentId = normId(g.studentId);
+      const skillId = normId(g.skillId);
+      
+      // By student-skill
+      const key = `${studentId}_${skillId}`;
+      if (!byStudentSkill[key]) byStudentSkill[key] = [];
+      byStudentSkill[key].push(g);
+      
+      // By student only
+      if (!byStudent[studentId]) byStudent[studentId] = [];
+      byStudent[studentId].push(g);
+    });
+    
+    // Pre-calculate averages
+    const averages = {};
+    Object.keys(byStudent).forEach(studentId => {
+      const grades = byStudent[studentId];
+      averages[studentId] = grades.length > 0
+        ? grades.reduce((sum, g) => sum + (g.score ?? 0), 0) / grades.length
+        : 0;
+    });
+    
+    return { gradesByStudentSkill: byStudentSkill, studentAverages: averages };
+  }, [filteredGrades]);
 
-  const handleCancelInlineEdit = () => {
-    setEditingGradeId(null);
-    setEditingScore('');
-  };
+  // Calculate statistics - O(students × skills) nhưng lookup O(1)
+  const studentStats = useMemo(() => {
+    return filteredStudents.map(student => {
+      const studentId = normId(student.studentId);
+      const studentGrades = gradesByStudent[studentId] || [];
+      const averageScore = studentAverages[studentId] || 0;
 
-  const handleSaveInlineGrade = async (grade) => {
+      const skillBreakdown = skills.map(skill => {
+        const key = `${studentId}_${normId(skill.skillId)}`;
+        const skillGrades = gradesByStudentSkill[key] || [];
+        const skillAverage = skillGrades.length > 0
+          ? skillGrades.reduce((sum, g) => sum + (g.score ?? 0), 0) / skillGrades.length
+          : 0;
+        return {
+          skillId: skill.skillId,
+          skillName: skill.name,
+          averageScore: skillAverage,
+          count: skillGrades.length
+        };
+      });
+
+      return {
+        studentId: student.studentId,
+        studentName: student.fullName,
+        averageScore: averageScore.toFixed(2),
+        totalGrades: studentGrades.length,
+        skillBreakdown
+      };
+    });
+  }, [filteredStudents, gradesByStudent, skills, gradesByStudentSkill, studentAverages]);
+
+  const handleStartInlineEdit = useCallback((grade) => {
+    setEditingMap(prev => ({
+      ...prev,
+      [grade.gradeId]: { score: String(grade.score), originalScore: grade.score }
+    }));
+  }, []);
+
+  const handleCancelInlineEdit = useCallback((gradeId) => {
+    setEditingMap(prev => {
+      const newMap = { ...prev };
+      delete newMap[gradeId];
+      return newMap;
+    });
+  }, []);
+
+  const [savingInlineId, setSavingInlineId] = useState(null); // Loading state cho inline edit
+
+  const handleSaveInlineGrade = useCallback(async (grade, valueToSave) => {
+    if (savingInlineId === grade.gradeId) return; // Prevent spam click
+    
     try {
-      const value = parseFloat(editingScore);
+      const value = parseFloat(valueToSave);
       if (isNaN(value)) {
         alert('Điểm phải là số hợp lệ');
         return;
       }
+      setSavingInlineId(grade.gradeId);
       await gradesAPI.update(grade.gradeId, { score: value });
-      setEditingGradeId(null);
-      setEditingScore('');
-      loadData();
+      setEditingMap(prev => {
+        const newMap = { ...prev };
+        delete newMap[grade.gradeId];
+        return newMap;
+      });
+      reloadGradesOnly(filters);
     } catch (err) {
       console.error('Error saving inline grade:', err);
       alert('Lỗi khi lưu điểm nhanh');
+    } finally {
+      setSavingInlineId(null);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, savingInlineId]);
 
-  if (loading) {
+  // Skeleton loading component - chỉ hiện lần đầu
+  if (initialLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress />
-        <Typography ml={2}>Đang tải bảng điểm động...</Typography>
+      <Box sx={{ p: 3 }}>
+        <Skeleton variant="text" width={300} height={40} sx={{ mb: 2 }} />
+        <Box display="flex" gap={2} mb={3}>
+          <Skeleton variant="rectangular" width={200} height={40} />
+          <Skeleton variant="rectangular" width={100} height={40} />
+          <Skeleton variant="rectangular" width={100} height={40} />
+        </Box>
+        <Grid container spacing={2}>
+          {[1,2,3,4,5,6].map(i => (
+            <Grid item xs={12} md={6} lg={4} key={i}>
+              <Skeleton variant="rectangular" height={120} />
+            </Grid>
+          ))}
+        </Grid>
       </Box>
     );
   }
@@ -283,6 +447,9 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
           <Typography variant="h6" fontWeight="bold">
             Bảng điểm động - {curriculumInfo?.curriculumName}
           </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {filteredStudents.length} học viên | {filteredGrades.length} điểm
+          </Typography>
         </Box>
         <Button
           variant="contained"
@@ -294,75 +461,133 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
       </Box>
 
       {assignmentTypes.length > 0 && (
-        <Box mb={3} display="flex" alignItems="center" flexWrap="wrap" gap={1}>
-          <Typography variant="subtitle2" color="text.secondary">
-            Lọc theo loại bài tập:
-          </Typography>
-          <Chip
-            label="Tất cả"
-            clickable
-            color={assignmentTypeFilter === 'all' ? 'primary' : 'default'}
-            variant={assignmentTypeFilter === 'all' ? 'filled' : 'outlined'}
-            onClick={() => setAssignmentTypeFilter('all')}
+        <Box mb={3} display="flex" alignItems="center" flexWrap="wrap" gap={2}>
+          <TextField
+            placeholder="Tìm học viên..."
+            size="small"
+            value={studentSearch}
+            onChange={(e) => setStudentSearch(e.target.value)}
+            sx={{ minWidth: 200 }}
+            InputProps={{
+              startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
+            }}
           />
-          {assignmentTypes.map((type) => (
-            <Chip
-              key={type}
-              label={type}
-              clickable
-              color={assignmentTypeFilter === type ? 'primary' : 'default'}
-              variant={assignmentTypeFilter === type ? 'filled' : 'outlined'}
-              onClick={() => setAssignmentTypeFilter(type)}
-            />
-          ))}
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Loại bài tập</InputLabel>
+            <Select
+              value={assignmentTypeFilter}
+              onChange={(e) => setAssignmentTypeFilter(e.target.value)}
+              label="Loại bài tập"
+            >
+              <MenuItem value="all">Tất cả</MenuItem>
+              {assignmentTypes.map((type) => (
+                <MenuItem key={type} value={type}>{type}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Kỹ năng</InputLabel>
+            <Select
+              value={skillFilter}
+              onChange={(e) => setSkillFilter(e.target.value)}
+              label="Kỹ năng"
+            >
+              <MenuItem value="all">Tất cả</MenuItem>
+              {validSkills.map((skill) => (
+                <MenuItem key={skill.skillId} value={skill.skillId}>{skill.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            placeholder="Điểm từ"
+            size="small"
+            type="number"
+            value={minScoreFilter}
+            onChange={(e) => setMinScoreFilter(e.target.value)}
+            sx={{ minWidth: 80 }}
+          />
+          <TextField
+            placeholder="Điểm đến"
+            size="small"
+            type="number"
+            value={maxScoreFilter}
+            onChange={(e) => setMaxScoreFilter(e.target.value)}
+            sx={{ minWidth: 80 }}
+          />
         </Box>
       )}
 
-      {/* Student Statistics */}
+      {/* Student Statistics - Table View */}
       <Box mb={3}>
         <Typography variant="subtitle1" fontWeight="bold" mb={2}>
           Thống kê điểm theo học viên
         </Typography>
-        <TableContainer component={Paper}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  sx={{
-                    position: 'sticky',
-                    left: 0,
-                    background: theme.palette.background.paper,
-                    zIndex: 2,
-                    minWidth: 240,
-                    boxShadow: '2px 0 4px rgb(0 0 0 / 4%)'
-                  }}
-                ><strong>Họ tên</strong></TableCell>
-                <TableCell align="center"><strong>Điểm TB</strong></TableCell>
-                {skills.map((skill) => (
-                  <TableCell align="center" key={skill.skillId}>
-                    <strong>{skill.name}</strong>
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {studentStats.map((stat) => (
-                <TableRow key={stat.studentId} hover>
+        
+        {studentStats.length === 0 ? (
+          // Empty State
+          <Card sx={{ textAlign: 'center', py: 6, bgcolor: 'background.default' }}>
+            <CardContent>
+              <School sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Chưa có dữ liệu điểm
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                {studentSearch 
+                  ? 'Không tìm thấy học viên phù hợp' 
+                  : 'Bắt đầu bằng cách thêm điểm cho học viên'}
+              </Typography>
+              <Button 
+                variant="contained" 
+                startIcon={<Add />}
+                onClick={() => setAddGradeDialogOpen(true)}
+              >
+                Thêm điểm đầu tiên
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
                   <TableCell
                     sx={{
                       position: 'sticky',
                       left: 0,
                       background: theme.palette.background.paper,
-                      zIndex: 1,
+                      zIndex: 2,
                       minWidth: 240,
-                      boxShadow: '2px 0 4px rgb(0 0 0 / 4%)'
+                      boxShadow: '1px 0 0 rgba(0,0,0,0.08)'
                     }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Avatar sx={{ width: 32, height: 32, fontSize: 14 }}>
-                        {getInitials(stat.studentName)}
-                      </Avatar>
-                      <Box>
+                  ><strong>Họ tên</strong></TableCell>
+                  <TableCell align="center"><strong>Điểm TB</strong></TableCell>
+                  {validSkills.map((skill) => (
+                    <TableCell align="center" key={skill.skillId}>
+                      <strong>{skill.name}</strong>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {studentStats.map((stat) => (
+                  <TableRow key={stat.studentId} hover>
+                    <TableCell
+                      sx={{
+                        position: 'sticky',
+                        left: 0,
+                        background: theme.palette.background.paper,
+                        zIndex: 1,
+                        minWidth: 240,
+                        boxShadow: '1px 0 0 rgba(0,0,0,0.08)'
+                      }}
+                    >
+                      <Box
+                        onClick={() => {
+                          setViewingStudent(stat);
+                          setViewStudentDetailDialogOpen(true);
+                        }}
+                        sx={{ cursor: 'pointer' }}
+                      >
                         <Typography variant="body2" fontWeight="bold">
                           {stat.studentName}
                         </Typography>
@@ -370,40 +595,29 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
                           #{stat.studentId}
                         </Typography>
                       </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip 
-                      label={stat.averageScore}
-                      color={getGradeColor(parseFloat(stat.averageScore))}
-                      size="small"
-                    />
-                  </TableCell>
-                  {stat.skillBreakdown.map((skill) => (
-                    <TableCell align="center" key={skill.skillName}>
-                      {skill.count > 0 ? (
-                        <Typography
-                          key={skill.skillId}
-                          variant="body2"
-                          sx={{
-                            fontSize: '0.75rem',
-                            color: getGradeColor(skill.averageScore),
-                            mr: 0.5,
-                            mb: 0.25
-                          }}
-                        >
-                          {skill.name} {skill.averageScore.toFixed(1)}
-                        </Typography>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">-</Typography>
-                      )}
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                    <TableCell align="center">
+                      <Typography variant="body2">
+                        {stat.averageScore}
+                      </Typography>
+                    </TableCell>
+                    {stat.skillBreakdown.map((skill) => (
+                      <TableCell align="center" key={skill.skillId}>
+                        {skill.count > 0 ? (
+                          <Typography variant="body2">
+                            {skill.averageScore.toFixed(1)}
+                          </Typography>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">-</Typography>
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Box>
 
       {/* Grades by Assignment */}
@@ -442,7 +656,7 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
                             background: theme.palette.background.paper,
                             zIndex: 2,
                             minWidth: 240,
-                            boxShadow: '2px 0 4px rgb(0 0 0 / 4%)'
+                            boxShadow: '1px 0 0 rgba(0,0,0,0.08)'
                           }}
                         ><strong>Học viên</strong></TableCell>
                         <TableCell><strong>Kỹ năng</strong></TableCell>
@@ -462,57 +676,67 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
                               background: theme.palette.background.paper,
                               zIndex: 1,
                               minWidth: 240,
-                              boxShadow: '2px 0 4px rgb(0 0 0 / 4%)'
+                              boxShadow: '1px 0 0 rgba(0,0,0,0.08)'
                             }}
                           >
-                            <Box display="flex" alignItems="center" gap={1}>
-                              <Avatar sx={{ width: 32, height: 32, fontSize: 14 }}>
-                                {getInitials(grade.studentName)}
-                              </Avatar>
-                              <Box>
-                                <Typography variant="body2" fontWeight="bold">
-                                  {grade.studentName}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  #{grade.studentId}
-                                </Typography>
-                              </Box>
+                            <Box>
+                              <Typography variant="body2" fontWeight="bold">
+                                {grade.studentName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                #{grade.studentId}
+                              </Typography>
                             </Box>
                           </TableCell>
                           <TableCell>
                             <Chip 
-                              label={`${grade.skillName}: ${grade.score.toFixed(1)}`}
+                              label={`${grade.skillName}: ${Number(grade.score ?? 0).toFixed(1)}`}
                               size="small"
                               color="primary"
                               variant="outlined"
                             />
                           </TableCell>
                           <TableCell align="center">
-                            {editingGradeId === grade.gradeId ? (
+                            {editingMap[grade.gradeId] ? (
                               <Box display="flex" alignItems="center" gap={1} justifyContent="center">
                                 <TextField
-                                  value={editingScore}
-                                  onChange={(e) => setEditingScore(e.target.value)}
+                                  value={editingMap[grade.gradeId].score}
+                                  onChange={(e) => setEditingMap(prev => ({
+                                    ...prev,
+                                    [grade.gradeId]: { ...prev[grade.gradeId], score: e.target.value }
+                                  }))}
+                                  onKeyDown={(e) => {
+                                    if (savingInlineId) return; // Không cho phép khi đang lưu
+                                    if (e.key === 'Enter') handleSaveInlineGrade(grade, editingMap[grade.gradeId].score);
+                                    if (e.key === 'Escape') handleCancelInlineEdit(grade.gradeId);
+                                  }}
                                   type="number"
                                   size="small"
                                   inputProps={{ min: 0, max: grade.maxScore || 10, step: 0.1 }}
                                   sx={{ width: 90 }}
+                                  autoFocus
+                                  disabled={savingInlineId === grade.gradeId}
                                 />
-                                <IconButton size="small" color="success" onClick={() => handleSaveInlineGrade(grade)}>
-                                  <Done fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" color="inherit" onClick={handleCancelInlineEdit}>
-                                  <Close fontSize="small" />
-                                </IconButton>
+                                {savingInlineId === grade.gradeId ? (
+                                  <CircularProgress size={20} />
+                                ) : (
+                                  <>
+                                    <IconButton size="small" color="success" onClick={() => handleSaveInlineGrade(grade, editingMap[grade.gradeId].score)}>
+                                      <Done fontSize="small" />
+                                    </IconButton>
+                                    <IconButton size="small" color="inherit" onClick={() => handleCancelInlineEdit(grade.gradeId)}>
+                                      <Close fontSize="small" />
+                                    </IconButton>
+                                  </>
+                                )}
                               </Box>
                             ) : (
                               <Tooltip title="Nhấp để sửa nhanh">
                                 <Chip
                                   label={grade.score}
-                                  color={getGradeColor(grade.score)}
                                   size="small"
                                   onClick={() => handleStartInlineEdit(grade)}
-                                  sx={{ cursor: 'pointer' }}
+                                  sx={{ cursor: savingInlineId ? 'not-allowed' : 'pointer', opacity: savingInlineId ? 0.5 : 1 }}
                                 />
                               </Tooltip>
                             )}
@@ -590,18 +814,22 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
                   value={newGrade.assignmentId || ''}
                   onChange={async (e) => {
                     const assignmentId = e.target.value;
-                    setNewGrade({ ...newGrade, assignmentId: assignmentId || null, skillId: '' });
+                    setNewGrade(prev => ({ 
+                      ...prev, 
+                      assignmentId: assignmentId || null, 
+                      skillId: '' 
+                    }));
                     if (assignmentId) {
                       try {
                         const response = await assignmentSkillsAPI.getByAssignment(assignmentId);
                         const skillsData = response.data?.Data || response.data?.data || [];
-                        setAssignmentSkills(Array.isArray(skillsData) ? skillsData : []);
+                        setDialogAssignmentSkills(Array.isArray(skillsData) ? skillsData : []);
                       } catch (err) {
                         console.error('Error loading assignment skills:', err);
-                        setAssignmentSkills([]);
+                        setDialogAssignmentSkills([]);
                       }
                     } else {
-                      setAssignmentSkills([]);
+                      setDialogAssignmentSkills([]);
                     }
                   }}
                   displayEmpty
@@ -619,10 +847,10 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={newGrade.assignmentId ? assignmentSkills.length === 0 : skills.length === 0}>
+              <FormControl fullWidth disabled={newGrade.assignmentId ? dialogAssignmentSkills.length === 0 : skills.length === 0}>
                 <InputLabel>
                   {newGrade.assignmentId
-                    ? (assignmentSkills.length === 0 ? 'Bài tập chưa có kỹ năng' : 'Kỹ năng')
+                    ? (dialogAssignmentSkills.length === 0 ? 'Bài tập chưa có kỹ năng' : 'Kỹ năng')
                     : 'Kỹ năng'}
                 </InputLabel>
                 <Select
@@ -630,7 +858,7 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
                   onChange={(e) => setNewGrade({ ...newGrade, skillId: e.target.value })}
                 >
                   {newGrade.assignmentId
-                    ? assignmentSkills.map((assignmentSkill) => (
+                    ? dialogAssignmentSkills.map((assignmentSkill) => (
                         <MenuItem key={assignmentSkill.skillId} value={assignmentSkill.skillId}>
                           {assignmentSkill.skillName}
                         </MenuItem>
@@ -705,7 +933,7 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
                 type="number"
                 label="Điểm"
                 value={selectedGrade?.score || ''}
-                onChange={(e) => setSelectedGrade({ ...selectedGrade, score: e.target.value })}
+                onChange={(e) => setSelectedGrade(prev => prev ? { ...prev, score: e.target.value } : null)}
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
               />
             </Grid>
@@ -714,7 +942,7 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
                 fullWidth
                 label="Ghi chú"
                 value={selectedGrade?.comments || ''}
-                onChange={(e) => setSelectedGrade({ ...selectedGrade, comments: e.target.value })}
+                onChange={(e) => setSelectedGrade(prev => prev ? { ...prev, comments: e.target.value } : null)}
                 multiline
                 rows={3}
               />
@@ -746,14 +974,12 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
                 Chi tiết theo kỹ năng
               </Typography>
               {viewingStudent?.skillBreakdown?.map((skill) => (
-                <Box key={skill.skillName} sx={{ mb: 2 }}>
+                <Box key={skill.skillId} sx={{ mb: 2 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Typography variant="body1">{skill.skillName}</Typography>
-                    <Chip
-                      label={skill.count > 0 ? skill.averageScore.toFixed(1) : '-'}
-                      color={skill.count > 0 ? getGradeColor(skill.averageScore) : 'default'}
-                      size="small"
-                    />
+                    <Typography variant="body2">
+                      {skill.count > 0 ? skill.averageScore.toFixed(1) : '-'}
+                    </Typography>
                   </Box>
                   <Typography variant="caption" color="text.secondary">
                     {skill.count > 0 ? `${skill.count} điểm` : 'Chưa có điểm'}
@@ -777,14 +1003,12 @@ export default function DynamicGradesTab({ curriculumId, curriculumInfo }) {
               Chi tiết điểm theo kỹ năng
             </Typography>
             {viewingStudent?.skillBreakdown?.map((skill) => (
-              <Box key={skill.skillName} sx={{ mb: 3 }}>
+              <Box key={skill.skillId} sx={{ mb: 3 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                   <Typography variant="body1" fontWeight="medium">{skill.skillName}</Typography>
-                  <Chip
-                    label={skill.count > 0 ? skill.averageScore.toFixed(1) : '-'}
-                    color={skill.count > 0 ? getGradeColor(skill.averageScore) : 'default'}
-                    size="small"
-                  />
+                  <Typography variant="body2">
+                    {skill.count > 0 ? skill.averageScore.toFixed(1) : '-'}
+                  </Typography>
                 </Box>
                 {skill.count > 0 && (
                   <TextField

@@ -12,7 +12,8 @@ import {
   Paper,
   Button,
   Badge,
-  Stack
+  Stack,
+  Skeleton
 } from '@mui/material';
 import {
   Group,
@@ -35,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI, curriculumAPI, activityLogsAPI } from '../../../services/api';
+import { useAsyncLoading } from '../../../hooks/useDocuments';
 
 // Safe text render - no highlighting
 const HighlightText = ({ text }) => {
@@ -50,7 +52,6 @@ const TeacherDashboard = () => {
     pendingAssignments: { currentValue: 0, changeFromLastWeek: 0, changeType: 'increase' },
     weeklySchedule: { currentValue: 0, changeFromLastWeek: 0, changeType: 'increase' },
   });
-  const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState([]);
   const [menuBadges, setMenuBadges] = useState({
     curriculums: 0,
@@ -58,6 +59,9 @@ const TeacherDashboard = () => {
   });
   const navigate = useNavigate();
   const hasLoaded = React.useRef(false);
+
+  // Sử dụng custom hook cho loading
+  const { initialLoading, stopLoading } = useAsyncLoading();
 
   const formatTimeAgo = (dateString) => {
     if (!dateString) return '';
@@ -125,13 +129,17 @@ const TeacherDashboard = () => {
       
       const curriculumsResponse = await curriculumAPI.getCurriculumsByTeacher(teacherId);
       const curriculumsData = curriculumsResponse.data || [];
-      const mappedCurriculums = Array.isArray(curriculumsData) ? curriculumsData.map(curr => ({
-        id: curr.curriculumId,
-        name: curr.curriculumName || curr.courseName || 'Chương trình không tên',
-        students: curr.currentStudents || 0,
-        nextClass: curr.roomName || 'Chưa có lịch',
-        progress: curr.progress || 0
-      })) : [];
+      const mappedCurriculums = Array.isArray(curriculumsData) 
+        ? curriculumsData
+          .filter(curr => curr.status === "Active")
+          .map(curr => ({
+            id: curr.curriculumId,
+            name: curr.curriculumName || curr.courseName || 'Chương trình không tên',
+            students: curr.currentStudents || 0,
+            nextClass: curr.roomName || 'Chưa có lịch',
+            progress: curr.progress || 0
+          }))
+        : [];
       setRecentCurriculums(mappedCurriculums);
       
       const activitiesResponse = await activityLogsAPI.getMyActivities({ 
@@ -158,7 +166,7 @@ const TeacherDashboard = () => {
     } catch (error) {
       console.error('Error loading teacher dashboard data:', error);
     } finally {
-      setLoading(false);
+      stopLoading(true);
     }
   };
 
@@ -298,10 +306,18 @@ const TeacherDashboard = () => {
     </Card>
   );
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography>Đang tải...</Typography>
+        {/* Dashboard Skeleton */}
+        <Skeleton variant="rounded" height={200} sx={{ mb: 3, borderRadius: 3 }} />
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4].map(i => (
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <Skeleton variant="rounded" height={120} sx={{ borderRadius: 2 }} />
+            </Grid>
+          ))}
+        </Grid>
       </Container>
     );
   }
