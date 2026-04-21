@@ -395,7 +395,7 @@ app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/gateway/em/swagger/v1/swagger.json", "English Center Management API V1");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "English Center Management API V1");
     c.RoutePrefix = "swagger";
 });
 

@@ -1,0 +1,1441 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>EnglishCenter.API</name>
+    </assembly>
+    <members>
+        <member name="T:EnglishCenter.API.Controllers.ActivityLogsController">
+            <summary>
+            Activity Logs Controller - Quản lý timeline hoạt động học tập (Refactored v2.0)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.ActivityLogsController.GetMyActivities(EnglishCenter.API.Controllers.ActivityLogQueryParams)">
+            <summary>
+            Gets recent activities for the current user with pagination and advanced filtering (v2.0). (Lấy các hoạt động gần đây cho người dùng hiện tại với phân trang và lọc nâng cao)
+            </summary>
+            <param name="queryParams">Query parameters for filtering (Tham số truy vấn để lọc)</param>
+            <returns>Paged list of activities (Danh sách hoạt động có phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.ActivityLogsController.CreateActivity(EnglishCenter.API.Controllers.CreateActivityLogDto)">
+            <summary>
+            Creates a new activity log entry. (Tạo bản ghi hoạt động mới)
+            </summary>
+            <param name="dto">Activity log data (Dữ liệu hoạt động)</param>
+            <returns>Created activity log (Bản ghi hoạt động đã tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.ActivityLogsController.DeleteActivity(System.Int32)">
+            <summary>
+            Deletes an old activity log (cleanup). (Xóa bản ghi hoạt động cũ - dọn dẹp)
+            </summary>
+            <param name="id">Activity Log ID (ID hoạt động)</param>
+            <returns>No Content (Không có nội dung)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.ActivityLogsController.CleanupOldActivityLogs(EnglishCenter.API.Controllers.CleanupActivityLogsDto)">
+            <summary>
+            Auto-cleanup old activity logs (v2.0). (Tự động dọn dẹp các hoạt động cũ)
+            </summary>
+            <param name="request">Cleanup parameters (Tham số dọn dẹp)</param>
+            <returns>Cleanup result (Kết quả dọn dẹp)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.ActivityLogsController.GetTeacherActivities(System.Int32,EnglishCenter.API.Controllers.ActivityLogQueryParams)">
+            <summary>
+            Gets activities with enhanced filtering for teacher (v2.0). (Lấy hoạt động với lọc nâng cao cho giáo viên)
+            </summary>
+            <param name="teacherId">Teacher ID (ID giáo viên)</param>
+            <param name="queryParams">Query parameters for filtering (Tham số truy vấn để lọc)</param>
+            <returns>Paged list of activities (Danh sách hoạt động có phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.ActivityLogsController.GetStudentActivities(System.Int32,EnglishCenter.API.Controllers.ActivityLogQueryParams)">
+            <summary>
+            Gets activities with enhanced filtering for student (v2.0). (Lấy hoạt động với lọc nâng cao cho học sinh)
+            </summary>
+            <param name="studentId">Student ID (ID học sinh)</param>
+            <param name="queryParams">Query parameters for filtering (Tham số truy vấn để lọc)</param>
+            <returns>Paged list of activities (Danh sách hoạt động có phân trang)</returns>
+        </member>
+        <member name="T:EnglishCenter.API.Controllers.ActivityLogQueryParams">
+            <summary>
+            Query parameters for activity logs with pagination and filtering (v2.0)
+            </summary>
+        </member>
+        <member name="T:EnglishCenter.API.Controllers.ActivityStatsDto">
+            <summary>
+            Activity statistics for dashboard (v2.0)
+            </summary>
+        </member>
+        <member name="T:EnglishCenter.API.Controllers.ActivityActionStats">
+            <summary>
+            Statistics for each action type (v2.0)
+            </summary>
+        </member>
+        <member name="T:EnglishCenter.API.Controllers.CleanupActivityLogsDto">
+            <summary>
+            Auto-cleanup request for old activity logs (v2.0)
+            </summary>
+        </member>
+        <member name="T:EnglishCenter.API.Controllers.CleanupResultDto">
+            <summary>
+            Cleanup result for activity logs (v2.0)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.GetAssignments(System.Nullable{System.Int32},System.Nullable{System.Int32},System.Int32,System.Int32,System.String)">
+            <summary>
+            Gets assignments for a curriculum with pagination. (Lấy danh sách bài tập của một khóa học với phân trang.)
+            </summary>
+            <param name="curriculumId">Curriculum ID (ID khóa học)</param>
+            <param name="studentId">Student ID (ID học viên)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Kích thước trang)</param>
+            <param name="status">Assignment status (Trạng thái bài tập)</param>
+            <returns>Paginated list of assignments (Danh sách bài tập phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.GetAssignment(System.Int32)">
+            <summary>
+            Gets assignment by ID. (Lấy thông tin bài tập theo ID.)
+            </summary>
+            <param name="id">Assignment ID (ID bài tập)</param>
+            <returns>Assignment details (Chi tiết bài tập)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.CreateAssignment(EnglishCenter.API.DTOs.CreateAssignmentDto)">
+            <summary>
+            Creates a new assignment. (Tạo bài tập mới.)
+            </summary>
+            <param name="createDto">Assignment data (Dữ liệu bài tập)</param>
+            <returns>Created assignment (Bài tập đã tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.UpdateAssignment(System.Int32,EnglishCenter.API.DTOs.UpdateAssignmentDto)">
+            <summary>
+            Updates an assignment. (Cập nhật bài tập.)
+            </summary>
+            <param name="id">Assignment ID (ID bài tập)</param>
+            <param name="updateDto">Update data (Dữ liệu cập nhật)</param>
+            <returns>Updated assignment (Bài tập đã cập nhật)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.DeleteAssignment(System.Int32)">
+            <summary>
+            Deletes an assignment. (Xóa bài tập.)
+            </summary>
+            <param name="id">Assignment ID (ID bài tập)</param>
+            <returns>Delete result (Kết quả xóa)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.ReopenAssignment(System.Int32)">
+            <summary>
+            Reopens a closed assignment. (Mở lại bài tập đã đóng.)
+            </summary>
+            <param name="id">Assignment ID (ID bài tập)</param>
+            <returns>Reopened assignment (Bài tập đã mở lại)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.CloseAssignment(System.Int32)">
+            <summary>
+            Closes an assignment. (Đóng bài tập.)
+            </summary>
+            <param name="id">Assignment ID (ID bài tập)</param>
+            <returns>Closed assignment (Bài tập đã đóng)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.CreateSubmission(System.Int32,EnglishCenter.API.DTOs.CreateSubmissionDto)">
+            <summary>
+            Creates a new submission for an assignment. (Học viên nộp bài tập.)
+            </summary>
+            <param name="assignmentId">Assignment ID (ID bài tập)</param>
+            <param name="dto">Submission data (Dữ liệu bài nộp)</param>
+            <returns>Created submission (Bài nộp đã tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.GetSubmissions(System.Int32,System.Int32,System.Int32,System.String)">
+            <summary>
+            Gets assignment submissions. (Lấy danh sách bài nộp của bài tập.)
+            </summary>
+            <param name="assignmentId">Assignment ID (ID bài tập)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Kích thước trang)</param>
+            <param name="status">Submission status (Trạng thái bài nộp)</param>
+            <returns>Paginated list of submissions (Danh sách bài nộp phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.GetMySubmission(System.Int32,System.Int32)">
+            <summary>
+            Gets the current student's submission for an assignment.
+            (Lấy bài nộp của học viên hiện tại cho một bài tập.)
+            </summary>
+            <param name="assignmentId">Assignment ID (ID bài tập)</param>
+            <param name="studentId">Student ID (ID học viên)</param>
+            <returns>Student's submission or 404 if not submitted (Bài nộp của học viên hoặc 404 nếu chưa nộp)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.GetAllStudentResults(System.Int32)">
+            <summary>
+            Gets all student results for a specific assignment, including those who haven't submitted yet.
+            (Lấy tất cả kết quả của sinh viên cho một bài tập cụ thể, bao gồm cả những người chưa nộp.)
+            </summary>
+            <param name="assignmentId">Assignment ID (ID bài tập)</param>
+            <returns>List of results for all students in the class (Danh sách kết quả của tất cả sinh viên trong lớp)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.ResetStudentSubmission(System.Int32,System.Int32)">
+            <summary>
+            Resets a student's submission and quiz attempts for an assignment. 
+            (Reset lại bài làm và các lần thử quiz của sinh viên đối với mộ bài tập.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.GradeSubmission(System.Int32,EnglishCenter.API.DTOs.GradeSubmissionDto)">
+            <summary>
+            Grades a submission. (Chấm điểm bài nộp.)
+            </summary>
+            <param name="submissionId">Submission ID (ID bài nộp)</param>
+            <param name="gradeDto">Grading data (Dữ liệu chấm điểm)</param>
+            <returns>Graded submission (Bài nộp đã chấm điểm)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.GetQuizQuestions(System.Int32)">
+            <summary>
+            Gets quiz questions for an assignment. (Lấy danh sách câu hỏi quiz của bài tập.)
+            </summary>
+            <param name="assignmentId">Assignment ID (ID bài tập)</param>
+            <returns>List of quiz questions (Danh sách câu hỏi)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.CreateQuizQuestion(System.Int32,EnglishCenter.API.DTOs.CreateQuizQuestionDto)">
+            <summary>
+            Creates a quiz question for an assignment. (Tạo câu hỏi quiz mới.)
+            </summary>
+            <param name="assignmentId">Assignment ID (ID bài tập)</param>
+            <param name="createDto">Question data (Dữ liệu câu hỏi)</param>
+            <returns>Created question (Câu hỏi đã tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.UpdateQuizQuestion(System.Int32,EnglishCenter.API.DTOs.UpdateQuizQuestionDto)">
+            <summary>
+            Updates a quiz question. (Cập nhật câu hỏi quiz.)
+            </summary>
+            <param name="questionId">Question ID (ID câu hỏi)</param>
+            <param name="updateDto">Update data (Dữ liệu cập nhật)</param>
+            <returns>Updated question (Câu hỏi đã cập nhật)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.UpdateAssignmentMaxScore(System.Int32)">
+            <summary>
+            Updates the MaxScore of an assignment based on total points of all questions.
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.SubmitQuiz(System.Int32,EnglishCenter.API.DTOs.SubmitQuizDto)">
+            <summary>
+            Submits a quiz and auto-grades it. (Nộp Quiz và tự động chấm điểm.)
+            </summary>
+            <param name="assignmentId">Assignment ID</param>
+            <param name="dto">Student answers</param>
+            <returns>Quiz result</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.GetQuizResult(System.Int32,System.Int32)">
+            <summary>
+            Gets the latest quiz result for a student. (Lấy kết quả Quiz gần nhất của học viên.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.DeleteQuizQuestion(System.Int32)">
+            <summary>
+            Deletes a quiz question. (Xóa câu hỏi quiz.)
+            </summary>
+            <param name="questionId">Question ID (ID câu hỏi)</param>
+            <returns>Delete result (Kết quả xóa)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.DeleteQuizAnswer(System.Int32)">
+            <summary>
+            Deletes a quiz answer. (Xóa đáp án.)
+            </summary>
+            <param name="answerId">Answer ID (ID đáp án)</param>
+            <returns>Delete result (Kết quả xóa)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AssignmentController.DownloadSubmissionFile(System.Int32)">
+            <summary>
+            Downloads a submission file.
+            (Tải xuống file bài nộp.)
+            </summary>
+            <param name="submissionId">Submission ID (ID bài nộp)</param>
+            <returns>File content (Nội dung file)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AttendanceController.GetAttendances(System.Nullable{System.Int32},System.Nullable{System.Int32},System.Nullable{System.DateTime})">
+            <summary>
+            Gets a list of attendance information. Can be filtered by student, lesson, or date. (Lấy danh sách thông tin điểm danh. Có thể lọc theo học viên, buổi học, hoặc ngày.)
+            </summary>
+            <param name="studentId">Student ID (ID học viên)</param>
+            <param name="lessonId">Lesson ID (ID buổi học)</param>
+            <param name="date">Attendance date (Ngày điểm danh)</param>
+            <returns>List of attendance records (Danh sách bản ghi điểm danh)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AttendanceController.GetAttendance(System.Int32)">
+            <summary>
+            Gets attendance by ID. (Lấy thông tin điểm danh chi tiết theo ID.)
+            </summary>
+            <param name="id">Attendance ID (ID của bản ghi điểm danh)</param>
+            <returns>Attendance record (Thông tin điểm danh)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AttendanceController.CreateAttendance(EnglishCenter.API.DTOs.CreateAttendanceDto)">
+            <summary>
+            Creates a new attendance record for a student in a lesson. (Tạo bản ghi điểm danh mới cho học viên trong một buổi học.)
+            </summary>
+            <param name="dto">Attendance creation data (Dữ liệu tạo điểm danh)</param>
+            <returns>The created attendance information (Thông tin điểm danh đã tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AttendanceController.UpdateAttendance(System.Int32,EnglishCenter.API.DTOs.UpdateAttendanceDto)">
+            <summary>
+            Updates an attendance record. (Cập nhật thông tin điểm danh.)
+            </summary>
+            <param name="id">Attendance ID (ID điểm danh)</param>
+            <param name="dto">Update data (Dữ liệu cập nhật)</param>
+            <returns>No Content</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AttendanceController.DeleteAttendance(System.Int32)">
+            <summary>
+            Deletes an attendance record. (Xóa bản ghi điểm danh.)
+            </summary>
+            <param name="id">Attendance ID (ID điểm danh)</param>
+            <returns>No Content</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AttendanceController.GetAttendancesByLesson(System.Int32,System.Int32)">
+            <summary>
+            Gets attendances for a specific lesson. (Lấy danh sách điểm danh của một buổi học cụ thể.)
+            </summary>
+            <param name="lessonId">Lesson ID (ID buổi học)</param>
+            <param name="classId">Class ID (ID lớp học)</param>
+            <returns>List of attendance records (Danh sách các bản ghi điểm danh)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.Register(EnglishCenter.API.DTOs.RegisterRequest)">
+            <summary>
+            Registers a new account. (Admin only)
+            (Đăng ký tài khoản mới. Chỉ dành cho Admin)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.ResendOtp(System.String,System.String)">
+            <summary>
+            Resends the OTP code.
+            (Gửi lại mã OTP)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.Login(EnglishCenter.API.DTOs.LoginRequest)">
+            <summary>
+            User login.
+            (Đăng nhập)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.RefreshToken(EnglishCenter.API.DTOs.RefreshTokenRequest)">
+            <summary>
+            Refreshes the access token.
+            (Làm mới access token)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.Logout">
+            <summary>
+            User logout.
+            (Đăng xuất)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.ForgotPassword(EnglishCenter.API.DTOs.ForgotPasswordRequest)">
+            <summary>
+            Forgot password.
+            (Quên mật khẩu)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.ResetPassword(EnglishCenter.API.DTOs.ResetPasswordRequest)">
+            <summary>
+            Resets the password using the OTP code.
+            (Đặt lại mật khẩu bằng mã OTP)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.GetMe">
+            <summary>
+            Gets current user information.
+            (Lấy thông tin người dùng hiện tại)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.UpdateProfile(EnglishCenter.API.DTOs.UpdateProfileRequest)">
+            <summary>
+            Edits user information.
+            (Chỉnh sửa thông tin người dùng)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.ChangePassword(EnglishCenter.API.DTOs.ChangePasswordRequest)">
+            <summary>
+            Changes user password.
+            (Đổi mật khẩu người dùng)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.AuthController.CreateFirstAdmin(EnglishCenter.API.DTOs.RegisterRequest)">
+            <summary>
+            Creates the first admin account (no authorization required - only use once).
+            (Tạo tài khoản admin đầu tiên - chỉ sử dụng một lần)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetAllCurriculums(System.Int32,System.Int32)">
+            <summary>
+            Gets all curriculums. (Lấy danh sách khung chương trình.)
+            </summary>
+            <returns>List of curriculums (Danh sách khung chương trình)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetCurriculumById(System.Int32)">
+            <summary>
+            Gets a curriculum by ID. (Lấy thông tin khung chương trình theo ID.)
+            </summary>
+            <param name="id">Curriculum ID (ID khung chương trình)</param>
+            <returns>Curriculum details (Thông tin khung chương trình)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetCurriculumsByCourse(System.Int32)">
+            <summary>
+            Gets curriculums for a specific course. (Lấy khung chương trình của một khóa học cụ thể.)
+            </summary>
+            <param name="courseId">Course ID (ID khóa học)</param>
+            <returns>List of curriculums (Danh sách khung chương trình)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetTeacherCurriculums(System.Int32)">
+            <summary>
+            Gets curriculums for a specific teacher. (Lây danh sách khung ch trình c giáo viên)
+            </summary>
+            <param name="teacherId">Teacher ID (ID giáo viên)</param>
+            <returns>List of curriculums (Danh sách khung ch trình)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.CreateCurriculum(EnglishCenter.API.DTOs.CreateCurriculumDto)">
+            <summary>
+            Creates a new curriculum. (Tạo khung chương trình mới.)
+            </summary>
+            <param name="createCurriculumDto">Curriculum creation data (Dữ liệu tạo khung chương trình)</param>
+            <returns>Created curriculum (Thông tin khung chương trình vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.UpdateCurriculum(System.Int32,EnglishCenter.API.DTOs.UpdateCurriculumDto)">
+            <summary>
+            Updates a curriculum. (Cập nhật thông tin khung chương trình.)
+            </summary>
+            <param name="id">Curriculum ID (ID khung chương trình)</param>
+            <param name="updateCurriculumDto">Update data (Dữ liệu cập nhật)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.DeleteCurriculum(System.Int32)">
+            <summary>
+            Deletes a curriculum. (Xóa khung chương trình.)
+            </summary>
+            <param name="id">Curriculum ID (ID khung chương trình)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.CreateCurriculumDay(EnglishCenter.API.DTOs.CreateCurriculumDayDto)">
+            <summary>
+            Creates a new curriculum day. (Tạo mới thông tin ngày học trong chương trình.)
+            </summary>
+            <param name="createCurriculumDayDto">Curriculum day creation data (Dữ liệu tạo ngày học)</param>
+            <returns>Created curriculum day (Thông tin ngày học vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetCurriculumDayById(System.Int32)">
+            <summary>
+            Gets a curriculum day by ID. (Lấy thông tin ngày học theo ID.)
+            </summary>
+            <param name="id">Curriculum day ID (ID ngày học)</param>
+            <returns>Curriculum day details (Thông tin ngày học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.UpdateCurriculumDay(System.Int32,EnglishCenter.API.DTOs.UpdateCurriculumDayDto)">
+            <summary>
+            Updates a curriculum day. (Cập nhật thông tin ngày học.)
+            </summary>
+            <param name="id">Curriculum day ID (ID ngày học)</param>
+            <param name="updateCurriculumDayDto">Update data (Dữ liệu cập nhật)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.DeleteCurriculumDay(System.Int32)">
+            <summary>
+            Deletes a curriculum day. (Xóa thông tin ngày học.)
+            </summary>
+            <param name="id">Curriculum day ID (ID ngày học)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.CreateCurriculumSession(EnglishCenter.API.DTOs.CreateCurriculumSessionDto)">
+            <summary>
+            Creates a new curriculum session. (Tạo mới một ca học/phần học.)
+            </summary>
+            <param name="createCurriculumSessionDto">Curriculum session creation data (Dữ liệu tạo ca học)</param>
+            <returns>Created curriculum session (Thông tin ca học vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetCurriculumSessionById(System.Int32)">
+            <summary>
+            Gets a curriculum session by ID. (Lấy thông tin ca học theo ID.)
+            </summary>
+            <param name="id">Curriculum session ID (ID ca học)</param>
+            <returns>Curriculum session details (Thông tin ca học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.UpdateCurriculumSession(System.Int32,EnglishCenter.API.DTOs.UpdateCurriculumSessionDto)">
+            <summary>
+            Updates a curriculum session. (Cập nhật thông tin ca học.)
+            </summary>
+            <param name="id">Curriculum session ID (ID ca học)</param>
+            <param name="updateCurriculumSessionDto">Update data (Dữ liệu cập nhật)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.DeleteCurriculumSession(System.Int32)">
+            <summary>
+            Deletes a curriculum session. (Xóa thông tin ca học.)
+            </summary>
+            <param name="id">Curriculum session ID (ID ca học)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.CreateLesson(EnglishCenter.API.DTOs.CreateLessonDto)">
+            <summary>
+            Creates a new lesson. (Tạo mới một bài học/buổi học.)
+            </summary>
+            <param name="createLessonDto">Lesson creation data (Dữ liệu tạo bài học)</param>
+            <returns>Created lesson (Thông tin bài học vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetLessonById(System.Int32)">
+            <summary>
+            Gets a lesson by ID. (Lấy thông tin bài học theo ID.)
+            </summary>
+            <param name="id">Lesson ID (ID bài học)</param>
+            <returns>Lesson details (Thông tin bài học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.UpdateLesson(System.Int32,EnglishCenter.API.DTOs.UpdateLessonDto)">
+            <summary>
+            Updates a lesson. (Cập nhật thông tin bài học.)
+            </summary>
+            <param name="id">Lesson ID (ID bài học)</param>
+            <param name="updateLessonDto">Update data (Dữ liệu cập nhật)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.DeleteLesson(System.Int32)">
+            <summary>
+            Deletes a lesson. (Xóa thông tin bài học.)
+            </summary>
+            <param name="id">Lesson ID (ID bài học)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetCurriculumStudents(System.Int32)">
+            <summary>
+            Gets all students from all sessions in a curriculum. (Lấy tất cả học viên từ các buổi học.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.RemoveStudentFromCurriculum(System.Int32,System.Int32)">
+            <summary>
+            Removes a student from a curriculum. (Xóa học viên khỏi chương trình học.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetSessionStudents(System.Int32)">
+            <summary>
+            Gets all students registered for a specific session. (Lấy danh sách học viên đăng ký buổi học.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.AddStudentToSession(System.Int32,EnglishCenter.API.DTOs.AddStudentToSessionDto)">
+            <summary>
+            Registers a student to a specific session. (Đăng ký học viên vào buổi học.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.RemoveStudentFromSession(System.Int32,System.Int32)">
+            <summary>
+            Removes a student from a specific session. (Hủy đăng ký học viên khỏi buổi học.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetAvailableStudentsForSession(System.Int32)">
+            <summary>
+            Gets available students for a session from enrolled courses. (Lấy danh sách học viên từ khóa học.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetCurriculumsByTeacher(System.Int32)">
+            <summary>
+            Gets all curriculums for a specific teacher. (Lấy danh sách khóa học của giảng viên.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CurriculumController.GetStudentsByTeacherSessions(System.Int32)">
+            <summary>
+            Gets students for sessions taught by a specific teacher. (Lấy danh sách học viên theo buổi giảng viên dạy.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.DocumentsController.GetAllDocuments(System.String,System.String,System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Int32,System.Int32)">
+            <summary>
+            Gets all documents (Admin only). (Lấy tất cả tài liệu - Admin.)
+            </summary>
+            <param name="search">Search term (Tìm kiếm)</param>
+            <param name="type">Document type (Loại tài liệu)</param>
+            <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
+            <param name="date">Upload date (Ngày tải lên)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Kích thước trang)</param>
+            <returns>Paged list of documents (Danh sách tài liệu phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.DocumentsController.GetStudentDocuments(System.Int32,System.String,System.String,System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Int32,System.Int32)">
+            <summary>
+            Gets all documents for a student. (Lấy tất cả tài liệu cho sinh viên.)
+            Documents are now standalone resources.
+            </summary>
+            <param name="studentId">Student ID (ID sinh viên)</param>
+            <param name="search">Search term (Tìm kiếm)</param>
+            <param name="type">Document type (Loại tài liệu)</param>
+            <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
+            <param name="date">Upload date (Ngày tải lên)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Kích thước trang)</param>
+            <returns>Paged list of documents (Danh sách tài liệu phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.DocumentsController.GetTeacherDocuments(System.Int32,System.String,System.String,System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Int32,System.Int32)">
+            <summary>
+            Gets all documents for a teacher. (Lấy tất cả tài liệu cho giáo viên.)
+            Documents are now standalone resources.
+            </summary>
+            <param name="teacherId">Teacher ID (ID giáo viên)</param>
+            <param name="search">Search term (Tìm kiếm)</param>
+            <param name="type">Document type (Loại tài liệu)</param>
+            <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
+            <param name="date">Upload date (Ngày tải lên)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Kích thước trang)</param>
+            <returns>Paged list of documents (Danh sách tài liệu phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.DocumentsController.UploadDocument(Microsoft.AspNetCore.Http.IFormFile,System.String,System.Nullable{System.Int32})">
+            <summary>
+            Uploads a new document. (Tải lên tài liệu mới.)
+            </summary>
+            <param name="file">File to upload (File cần tải)</param>
+            <param name="type">Document type (Loại tài liệu)</param>
+            <param name="curriculumId">Curriculum ID (ID chương trình học - optional)</param>
+            <returns>Uploaded document info (Thông tin tài liệu đã tải)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.DocumentsController.DownloadDocument(System.Int32)">
+            <summary>
+            Downloads a document. (Tải xuống tài liệu.)
+            </summary>
+            <param name="id">Document ID (ID tài liệu)</param>
+            <returns>File content (Nội dung file)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.DocumentsController.UpdateDocument(System.Int32,EnglishCenter.API.DTOs.UpdateDocumentDto)">
+            <summary>
+            Updates a document. (Cập nhật tài liệu.)
+            </summary>
+            <param name="id">Document ID (ID tài liệu)</param>
+            <param name="request">Update request (Yêu cầu cập nhật)</param>
+            <returns>Updated document info (Thông tin tài liệu đã cập nhật)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.DocumentsController.DeleteDocument(System.Int32)">
+            <summary>
+            Deletes a document. (Xóa tài liệu.)
+            </summary>
+            <param name="id">Document ID (ID tài liệu)</param>
+            <returns>No Content</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.GradeController.GetGradesByAssignment(System.Int32)">
+            <summary>
+            Gets grades by assignment. (Lấy điểm theo bài tập)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.GradeController.GetGradesByStudent(System.Int32)">
+            <summary>
+            Gets grades by student. (Lấy điểm theo học viên)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.GradeController.GetGradesByCurriculum(System.Int32)">
+            <summary>
+            Gets grades by curriculum. (Lấy điểm theo chương trình học)
+            </summary>
+            <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
+            <returns>List of grades (Danh sách điểm số)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.GradeController.CreateGrade(EnglishCenter.API.DTOs.CreateGradeDto)">
+            <summary>
+            Creates a new grade. (Tạo điểm mới)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.GradeController.UpdateGrade(System.Int32,EnglishCenter.API.DTOs.UpdateGradeDto)">
+            <summary>
+            Updates a grade. (Cập nhật điểm)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.GradeController.DeleteGrade(System.Int32)">
+            <summary>
+            Deletes a grade. (Xóa điểm)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TeacherScheduleController.GetTeacherSchedule(System.Int32)">
+            <summary>
+            Gets schedule by teacher ID. (Lấy lịch dạy theo ID giáo viên.)
+            </summary>
+            <param name="teacherId">Teacher ID (ID giáo viên)</param>
+            <returns>Teacher's schedule (Lịch dạy của giáo viên)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.EnrollmentsController.GetEnrollments">
+            <summary>
+            Gets all enrollments. (Lấy danh sách các bản ghi đăng ký khóa học.)
+            </summary>
+            <returns>List of enrollments (Danh sách đăng ký)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.EnrollmentsController.CreateEnrollment(EnglishCenter.API.DTOs.CreateEnrollmentDto)">
+            <summary>
+            Creates a new enrollment. (Đăng ký học viên vào một lớp/khóa học.)
+            </summary>
+            <param name="dto">Enrollment creation data (Dữ liệu đăng ký)</param>
+            <returns>Created enrollment (Thông tin đăng ký vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.EnrollmentsController.DeleteEnrollment(System.Int32)">
+            <summary>
+            Deletes an enrollment record. (Hủy/Xóa bản ghi đăng ký.)
+            </summary>
+            <param name="id">Enrollment ID (ID bản ghi đăng ký)</param>
+            <returns>No Content</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentsController.GetPayments(System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Int32,System.Int32)">
+            <summary>
+            Gets all payments. (Lấy danh sách các giao dịch thanh toán.)
+            </summary>
+            <param name="startDate">Start date filter (Ngày bắt đầu)</param>
+            <param name="endDate">End date filter (Ngày kết thúc)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Kích thước trang)</param>
+            <returns>Paginated list of payments (Danh sách thanh toán phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentsController.CreatePayment(EnglishCenter.API.DTOs.CreatePaymentDto)">
+            <summary>
+            Creates a new payment. (Tạo một phiếu thu/giao dịch thanh toán mới.)
+            </summary>
+            <param name="dto">Payment creation data (Dữ liệu thanh toán)</param>
+            <returns>Created payment (Thông tin thanh toán vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.RoomsController.GetRooms">
+            <summary>
+            Gets all rooms. (Lấy danh sách phòng học.)
+            </summary>
+            <returns>List of rooms (Danh sách phòng học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.RoomsController.CreateRoom(EnglishCenter.API.DTOs.CreateRoomDto)">
+            <summary>
+            Creates a new room. (Tạo phòng học mới.)
+            </summary>
+            <param name="dto">Room creation data (Dữ liệu tạo phòng học)</param>
+            <returns>Created room (Thông tin phòng học vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.RoomsController.GetRoomAvailability(System.Int32,System.DateTime)">
+            <summary>
+            Gets room availability for a specific date. (Kiểm tra tình trạng phòng học theo ngày.)
+            </summary>
+            <param name="roomId">Room ID (ID phòng học)</param>
+            <param name="date">Date to check (Ngày cần kiểm tra)</param>
+            <returns>Room availability (Tình trạng phòng học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.DashboardController.GetDashboardStats">
+            <summary>
+            Gets dashboard statistic statistics. (Lấy các số liệu thống kê tổng quan cho hệ thống.)
+            </summary>
+            <returns>Dashboard stats (Số liệu thống kê)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.DashboardController.GetRevenueTrend">
+            <summary>
+            Gets revenue trend for the last 6 months. (Lấy xu hướng doanh thu 6 tháng gần nhất.)
+            </summary>
+            <returns>Revenue trend data (Dữ liệu xu hướng doanh thu)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.NotificationController.StreamNotifications(System.Threading.CancellationToken,System.String)">
+            <summary>
+            SSE stream for real-time notifications. (Luồng SSE cho thông báo thời gian thực)
+            </summary>
+            <param name="cancellationToken">Cancellation token (Token hủy)</param>
+            <param name="token">JWT token (Token JWT)</param>
+            <returns>SSE event stream (Luồng sự kiện SSE)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.NotificationController.GetMyNotifications(System.Boolean,System.Int32)">
+            <summary>
+            Gets notifications for current user. (Lấy thông báo cho người dùng hiện tại)
+            </summary>
+            <param name="unreadOnly">Only unread notifications (Chỉ thông báo chưa đọc)</param>
+            <param name="limit">Maximum number of notifications (Số lượng thông báo tối đa)</param>
+            <returns>List of notifications (Danh sách thông báo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.NotificationController.GetUnreadCount">
+            <summary>
+            Gets unread notification count. (Lấy số lượng thông báo chưa đọc)
+            </summary>
+            <returns>Unread count (Số lượng chưa đọc)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.NotificationController.CreateNotification(EnglishCenter.API.DTOs.CreateNotificationDto)">
+            <summary>
+            Creates a new notification. (Tạo thông báo mới)
+            </summary>
+            <param name="dto">Notification data (Dữ liệu thông báo)</param>
+            <returns>Created notification (Thông báo đã tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.NotificationController.MarkAsRead(System.Int32)">
+            <summary>
+            Marks a notification as read. (Đánh dấu thông báo là đã đọc)
+            </summary>
+            <param name="id">Notification ID (ID thông báo)</param>
+            <returns>No Content (Không có nội dung)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.NotificationController.MarkMultipleAsRead(EnglishCenter.API.DTOs.MarkAsReadDto)">
+            <summary>
+            Marks multiple notifications as read. (Đánh dấu nhiều thông báo là đã đọc)
+            </summary>
+            <param name="dto">Notification IDs (Các ID thông báo)</param>
+            <returns>No Content (Không có nội dung)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.NotificationController.MarkAllAsRead">
+            <summary>
+            Marks all notifications as read for current user. (Đánh dấu tất cả thông báo là đã đọc cho người dùng hiện tại)
+            </summary>
+            <returns>No Content (Không có nội dung)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.NotificationController.MarkAsUnread(System.Int32)">
+            <summary>
+            Marks a notification as unread. (Đánh dấu thông báo là chưa đọc)
+            </summary>
+            <param name="id">Notification ID (ID thông báo)</param>
+            <returns>No Content (Không có nội dung)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.NotificationController.DeleteNotification(System.Int32)">
+            <summary>
+            Deletes a notification. (Xóa thông báo)
+            </summary>
+            <param name="id">Notification ID (ID thông báo)</param>
+            <returns>No Content (Không có nội dung)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CoursesController.GetCourses(System.String,System.Nullable{System.Boolean},System.Int32,System.Int32)">
+            <summary>
+            Gets all courses with pagination. (Lấy danh sách khóa học có phân trang.)
+            </summary>
+            <param name="level">Course level filter (Lọc theo cấp độ)</param>
+            <param name="isActive">Status filter (Lọc theo trạng thái hoạt động)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Số lượng mỗi trang)</param>
+            <returns>Paged list of courses (Danh sách khóa học có phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CoursesController.GetCourse(System.Int32)">
+            <summary>
+            Gets a course by ID. (Lấy thông tin chi tiết của một khóa học theo ID.)
+            </summary>
+            <param name="id">Course ID (ID khóa học)</param>
+            <returns>Course details (Thông tin khóa học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CoursesController.CreateCourse(EnglishCenter.API.DTOs.CreateCourseDto)">
+            <summary>
+            Creates a new course. (Tạo một khóa học mới.)
+            </summary>
+            <param name="dto">Course creation data (Dữ liệu tạo khóa học)</param>
+            <returns>Created course (Thông tin khóa học vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CoursesController.UpdateCourse(System.Int32,EnglishCenter.API.DTOs.UpdateCourseDto)">
+            <summary>
+            Updates an existing course. (Cập nhật thông tin khóa học.)
+            </summary>
+            <param name="id">Course ID (ID khóa học)</param>
+            <param name="dto">Course update data (Dữ liệu cập nhật khóa học)</param>
+            <returns>Updated course (Thông tin khóa học đã cập nhật)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CoursesController.DeleteCourse(System.Int32)">
+            <summary>
+            Deletes a course. (Xóa một khóa học.)
+            </summary>
+            <param name="id">Course ID (ID khóa học)</param>
+            <returns>No Content</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CoursesController.GetCourseStudents(System.Int32)">
+            <summary>
+            Gets all students enrolled in a specific course. (Lấy danh sách học viên trong khóa học.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CoursesController.AddStudentToCourse(System.Int32,EnglishCenter.API.DTOs.AddStudentToCourseDto)">
+            <summary>
+            Adds a student to a course. (Thêm học viên vào khóa học.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.CoursesController.RemoveStudentFromCourse(System.Int32,System.Int32)">
+            <summary>
+            Removes a student from a course. (Xóa học viên khỏi khóa học.)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StatisticsController.GetTeacherDashboardStatistics(System.Int32)">
+            <summary>
+            Gets teacher dashboard statistics with week-over-week comparison. (Lấy thống kê dashboard giảng viên với so sánh tuần qua.)
+            </summary>
+            <param name="teacherId">Teacher ID (ID giảng viên)</param>
+            <returns>Teacher dashboard statistics (Thống kê dashboard giảng viên)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentController.GetStudentEnrolledCourses(System.Int32)">
+            <summary>
+            Gets enrolled courses for a student with payment status. (Lấy các khóa học đã đăng ký của học sinh với trạng thái thanh toán)
+            </summary>
+            <param name="studentId">Student ID (ID học sinh)</param>
+            <returns>Enrolled courses with payment status (Các khóa học đã đăng ký với trạng thái thanh toán)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentController.CreatePayment(EnglishCenter.API.DTOs.CreatePaymentDto)">
+            <summary>
+            Creates a new payment with QR code. (Tạo thanh toán mới với mã QR)
+            </summary>
+            <param name="createPaymentDto">Payment data (Dữ liệu thanh toán)</param>
+            <returns>Created payment with QR code (Thanh toán đã tạo với mã QR)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentController.GetPayment(System.Int32)">
+            <summary>
+            Gets payment by ID. (Lấy thanh toán theo ID)
+            </summary>
+            <param name="id">Payment ID (ID thanh toán)</param>
+            <returns>Payment details (Chi tiết thanh toán)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentController.GetPaymentStatus(System.Int32)">
+            <summary>
+            Poll payment status (fallback for when webhook doesn't work). (Kiểm tra trạng thái thanh toán - dự phòng khi webhook không hoạt động)
+            </summary>
+            <param name="id">Payment ID (ID thanh toán)</param>
+            <returns>Payment status (Trạng thái thanh toán)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentController.SePayWebhook(EnglishCenter.API.DTOs.SePayWebhookDto)">
+            <summary>
+            SePay webhook endpoint. (Endpoint webhook SePay)
+            </summary>
+            <param name="webhookData">Webhook data (Dữ liệu webhook)</param>
+            <returns>Webhook processing result (Kết quả xử lý webhook)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentController.SePayWebhookLegacy(EnglishCenter.API.DTOs.SePayWebhookDto)">
+            <summary>
+            SePay webhook endpoint (legacy route for compatibility). (Endpoint webhook SePay - route cũ để tương thích)
+            </summary>
+            <param name="webhookData">Webhook data (Dữ liệu webhook)</param>
+            <returns>Webhook processing result (Kết quả xử lý webhook)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentController.ProcessSePayWebhook(EnglishCenter.API.DTOs.SePayWebhookDto)">
+            <summary>
+            Common webhook processing logic
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentController.UpdatePayment(System.Int32,EnglishCenter.API.DTOs.UpdatePaymentDto)">
+            <summary>
+            Updates payment status. (Cập nhật trạng thái thanh toán)
+            </summary>
+            <param name="id">Payment ID (ID thanh toán)</param>
+            <param name="updatePaymentDto">Update data (Dữ liệu cập nhật)</param>
+            <returns>Updated payment (Thanh toán đã cập nhật)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.PaymentController.GetPaymentHistory(System.Int32)">
+            <summary>
+            Gets payment history for a student. (Lấy lịch sử thanh toán của học sinh)
+            </summary>
+            <param name="studentId">Student ID (ID học sinh)</param>
+            <returns>Payment history (Lịch sử thanh toán)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.RoomController.GetAllRooms(System.Int32,System.Int32)">
+            <summary>
+            Gets all rooms. (Lấy danh sách tất cả các phòng học.)
+            </summary>
+            <returns>List of rooms (Danh sách phòng học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.RoomController.GetRoomById(System.Int32)">
+            <summary>
+            Gets a room by ID. (Lấy thông tin phòng học theo ID.)
+            </summary>
+            <param name="id">Room ID (ID phòng học)</param>
+            <returns>Room details (Thông tin chi tiết phòng học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.RoomController.CreateRoom(EnglishCenter.API.DTOs.CreateRoomDto)">
+            <summary>
+            Creates a new room. (Thêm phòng học mới.)
+            </summary>
+            <param name="createRoomDto">Room creation data (Dữ liệu tạo phòng học)</param>
+            <returns>Created room (Phòng học vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.RoomController.UpdateRoom(System.Int32,EnglishCenter.API.DTOs.RoomDto)">
+            <summary>
+            Updates a room. (Cập nhật thông tin phòng học.)
+            </summary>
+            <param name="id">Room ID (ID phòng học)</param>
+            <param name="roomDto">Update data (Dữ liệu cập nhật)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.RoomController.DeleteRoom(System.Int32)">
+            <summary>
+            Deletes a room. (Xóa phòng học.)
+            </summary>
+            <param name="id">Room ID (ID phòng học)</param>
+            <returns>Success message (Thông báo thành công)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SessionAttendanceController.GetSessionAttendances(System.Nullable{System.Int32},System.Nullable{System.Int32},System.Nullable{System.DateTime})">
+            <summary>
+            Gets a list of session attendance records. Can be filtered by session, student, or date. (Lấy danh sách điểm danh buổi học. Có thể lọc theo buổi học, học sinh, hoặc ngày)
+            </summary>
+            <param name="sessionId">Session ID (ID buổi học)</param>
+            <param name="studentId">Student ID (ID học sinh)</param>
+            <param name="date">Attendance date (Ngày điểm danh)</param>
+            <returns>List of session attendances (Danh sách điểm danh buổi học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SessionAttendanceController.GetSessionAttendance(System.Int32)">
+            <summary>
+            Gets session attendance by ID. (Lấy điểm danh buổi học theo ID)
+            </summary>
+            <param name="id">Session Attendance ID (ID điểm danh buổi học)</param>
+            <returns>Session attendance details (Chi tiết điểm danh buổi học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SessionAttendanceController.CreateSessionAttendance(EnglishCenter.API.DTOs.CreateSessionAttendanceDto)">
+            <summary>
+            Creates a new session attendance record. (Tạo bản ghi điểm danh buổi học mới)
+            </summary>
+            <param name="dto">Session attendance data (Dữ liệu điểm danh buổi học)</param>
+            <returns>Created session attendance (Điểm danh buổi học đã tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SessionAttendanceController.UpdateSessionAttendance(System.Int32,EnglishCenter.API.DTOs.UpdateSessionAttendanceDto)">
+            <summary>
+            Updates a session attendance record. (Cập nhật bản ghi điểm danh buổi học)
+            </summary>
+            <param name="id">Session Attendance ID (ID điểm danh buổi học)</param>
+            <param name="dto">Update data (Dữ liệu cập nhật)</param>
+            <returns>No Content (Không có nội dung)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SessionAttendanceController.DeleteSessionAttendance(System.Int32)">
+            <summary>
+            Deletes a session attendance record. (Xóa bản ghi điểm danh buổi học)
+            </summary>
+            <param name="id">Session Attendance ID (ID điểm danh buổi học)</param>
+            <returns>No Content (Không có nội dung)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SessionAttendanceController.GetSessionAttendanceStats(System.Int32,System.DateTime)">
+            <summary>
+            Gets attendance statistics for a session on a specific date. (Lấy thống kê điểm danh cho một buổi học vào ngày cụ thể)
+            </summary>
+            <param name="sessionId">Session ID (ID buổi học)</param>
+            <param name="date">Date to check (Ngày cần kiểm tra)</param>
+            <returns>Attendance statistics (Thống kê điểm danh)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SkillController.GetSkills(System.Int32,System.Int32,System.Nullable{System.Boolean},System.Nullable{System.Boolean})">
+            <summary>
+            Gets all skills with pagination. (Lấy danh sách kỹ năng có phân trang)
+            </summary>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Số lượng mỗi trang)</param>
+            <param name="isActive">Filter by active status (Lọc theo trạng thái hoạt động)</param>
+            <param name="showAll">Show all skills including inactive (Hiển thị tất cả kỹ năng)</param>
+            <returns>Paged list of skills (Danh sách kỹ năng có phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SkillController.GetSkill(System.Int32)">
+            <summary>
+            Gets a skill by ID. (Lấy kỹ năng theo ID)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SkillController.CreateSkill(EnglishCenter.API.DTOs.CreateSkillDto)">
+            <summary>
+            Creates a new skill. (Tạo kỹ năng mới)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SkillController.UpdateSkill(System.Int32,EnglishCenter.API.DTOs.CreateSkillDto)">
+            <summary>
+            Updates a skill. (Cập nhật kỹ năng)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.SkillController.DeleteSkill(System.Int32)">
+            <summary>
+            Deletes a skill. (Xóa kỹ năng)
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.GetStudents(System.String,System.String,System.Nullable{System.Boolean},System.Int32,System.Int32)">
+            <summary>
+            Gets all students. (Lấy danh sách tất cả học viên.)
+            </summary>
+            <param name="search">Search term (Tìm kiếm theo tên, email, số điện thoại)</param>
+            <param name="level">Student level (Cấp độ học viên)</param>
+            <param name="isActive">Status (Trạng thái hoạt động)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Số lượng mỗi trang)</param>
+            <returns>List of students (Danh sách học viên)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.GetStudent(System.Int32)">
+            <summary>
+            Gets a student by ID. (Lấy thông tin cá nhân của học viên theo ID.)
+            </summary>
+            <param name="id">Student ID (ID học viên)</param>
+            <returns>Student details (Thông tin chi tiết học viên)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.CreateStudent(EnglishCenter.API.DTOs.CreateStudentDto)">
+            <summary>
+            Creates a new student. (Thêm học viên mới.)
+            </summary>
+            <param name="dto">Student creation data (Dữ liệu tạo học viên)</param>
+            <returns>Created student (Học viên vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.UpdateStudent(System.Int32,EnglishCenter.API.DTOs.UpdateStudentDto)">
+            <summary>
+            Updates student information. (Cập nhật thông tin học viên.)
+            </summary>
+            <param name="id">Student ID (ID học viên)</param>
+            <param name="dto">Update data (Dữ liệu cập nhật)</param>
+            <returns>No Content</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.DeleteStudent(System.Int32)">
+            <summary>
+            Deletes a student (soft delete). (Xóa hồ sơ học viên - xóa mềm.)
+            </summary>
+            <param name="id">Student ID (ID học viên)</param>
+            <returns>No Content</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.GetStudentEnrollments(System.Int32)">
+            <summary>
+            Gets student's enrollments. (Lấy danh sách các bản ghi đăng ký của học viên.)
+            </summary>
+            <param name="id">Student ID (ID học viên)</param>
+            <returns>List of enrollments (Danh sách đăng ký)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.GetStudentCurriculums(System.Int32)">
+            <summary>
+            Gets student's enrolled curriculums with full schedule details. (Lấy danh sách chương trình học của học viên từ khóa học đã đăng ký.)
+            </summary>
+            <param name="id">Student ID (ID học viên)</param>
+            <returns>List of curriculums with nested days and sessions (Danh sách chương trình học với chi tiết ngày và buổi học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.GetStudentPayments(System.Int32)">
+            <summary>
+            Gets student's payments. (Lấy lịch sử thanh toán của học viên.)
+            </summary>
+            <param name="id">Student ID (ID học viên)</param>
+            <returns>List of payments (Danh sách thanh toán)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.GetStudentTestScores(System.Int32)">
+            <summary>
+            Gets student's test scores. (Lấy bảng điểm của học viên.)
+            </summary>
+            <param name="id">Student ID (ID học viên)</param>
+            <returns>List of test scores (Danh sách điểm thi)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.StudentsController.GetStudentSchedule(System.Int32,System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Int32,System.Int32)">
+            <summary>
+            Gets student's schedule based on Curriculum. (Lấy thời khóa biểu cá nhân của học viên theo Curriculum.)
+            </summary>
+            <param name="id">Student ID (ID học viên)</param>
+            <param name="date">Filter by specific date (Lọc theo ngày cụ thể)</param>
+            <param name="startDate">Filter by start date (Lọc từ ngày)</param>
+            <param name="endDate">Filter by end date (Lọc đến ngày)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Kích thước trang)</param>
+            <returns>Paginated list of curriculum sessions (Danh sách buổi học phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TeacherController.GetTeachers(System.Nullable{System.Boolean},System.String,System.Int32,System.Int32)">
+            <summary>
+            Gets all teachers. (Lấy danh sách tất cả giảng viên.)
+            </summary>
+            <param name="isActive">Status (Trạng thái hoạt động)</param>
+            <param name="search">Search text (Tìm kiếm theo tên, email, SĐT,Chuyên môn, )</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Số lượng mỗi trang)</param>
+            <returns>Paged list of teachers (Danh sách giảng viên có phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TeacherController.GetTeacher(System.Int32)">
+            <summary>
+            Gets a teacher by ID. (Lấy thông tin chi tiết của giáo viên theo ID.)
+            </summary>
+            <param name="id">Teacher ID (ID giáo viên)</param>
+            <returns>Teacher details (Thông tin giáo viên)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TeacherController.CreateTeacher(EnglishCenter.API.DTOs.CreateTeacherDto)">
+            <summary>
+            Creates a new teacher. (Thêm giáo viên mới.)
+            </summary>
+            <param name="dto">Teacher creation data (Dữ liệu tạo giáo viên)</param>
+            <returns>Created teacher (Thông tin giáo viên vừa tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TeacherController.UpdateTeacher(System.Int32,EnglishCenter.API.DTOs.UpdateTeacherDto)">
+            <summary>
+            Updates a teacher. (Cập nhật thông tin giảng viên.)
+            </summary>
+            <param name="id">Teacher ID (ID giảng viên)</param>
+            <param name="dto">Teacher update data (Dữ liệu cập nhật)</param>
+            <returns>Updated teacher (Thông tin giảng viên đã cập nhật)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TeacherController.DeleteTeacher(System.Int32)">
+            <summary>
+            Deletes a teacher. (Xóa giảng viên.)
+            </summary>
+            <param name="id">Teacher ID (ID giảng viên)</param>
+            <returns>No content (Không có nội dung)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TeacherController.GetTeacherSchedule(System.Int32,System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Int32,System.Int32)">
+            <summary>
+            Gets teacher's schedule based on Curriculum. (Lấy lịch dạy của giáo viên theo Curriculum.)
+            </summary>
+            <param name="id">Teacher ID (ID giáo viên)</param>
+            <param name="date">Filter by specific date (Lọc theo ngày cụ thể)</param>
+            <param name="startDate">Filter by start date (Lọc từ ngày)</param>
+            <param name="endDate">Filter by end date (Lọc đến ngày)</param>
+            <param name="page">Page number (Số trang)</param>
+            <param name="pageSize">Page size (Kích thước trang)</param>
+            <returns>Paginated list of curriculum sessions (Danh sách buổi học phân trang)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TeacherController.GetTeachersWithAvailability(System.String,System.String,System.String,System.Nullable{System.Int32},System.Nullable{System.Int32})">
+            <summary>
+            Gets all teachers with availability status for a specific time slot.
+            (Lấy danh sách giảng viên kèm trạng thái rảnh/bận trong khung giờ cụ thể.)
+            </summary>
+            <param name="date">Date to check (yyyy-MM-dd)</param>
+            <param name="startTime">Start time (HH:mm)</param>
+            <param name="endTime">End time (HH:mm)</param>
+            <param name="excludeSessionId">Optional session ID to exclude (for editing)</param>
+            <param name="roomId">Optional room ID to check availability</param>
+            <returns>List of teachers with isBusy flag and room availability info</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TestDataController.CreateTestGrades">
+            <summary>
+            Create test grade data. (Tạo dữ liệu điểm số thử nghiệm)
+            </summary>
+            <returns>Created grade count (Số lượng điểm đã tạo)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TestDataController.GetDataStatus">
+            <summary>
+            Get current data status. (Lấy trạng thái dữ liệu hiện tại)
+            </summary>
+            <returns>Data statistics (Thống kê dữ liệu)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TestDataController.DebugGrades">
+            <summary>
+            Debug grades data. (Debug dữ liệu điểm số)
+            </summary>
+            <returns>Grades and enrollments debug info (Thông tin debug điểm số và đăng ký)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TestDataController.TestGradesByCurriculum(System.Int32)">
+            <summary>
+            Test GetGradesByCurriculum logic. (Kiểm tra logic lấy điểm theo chương trình học)
+            </summary>
+            <param name="curriculumId">Curriculum ID (ID chương trình học)</param>
+            <returns>Grades for curriculum (Điểm số theo chương trình học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TestDataController.DebugAssignments">
+            <summary>
+            Debug assignment and curriculum relationship. (Debug mối quan hệ giữa bài tập và chương trình học)
+            </summary>
+            <returns>Assignment and curriculum debug info (Thông tin debug bài tập và chương trình học)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TestDataController.DebugEnrollments">
+            <summary>
+            Debug enrollment for students with grades. (Debug đăng ký cho học sinh có điểm)
+            </summary>
+            <returns>Enrollment debug info (Thông tin debug đăng ký)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.TestDataController.DebugStudent(System.Int32)">
+            <summary>
+            Debug specific student enrollment. (Debug đăng ký của học sinh cụ thể)
+            </summary>
+            <param name="studentId">Student ID (ID học sinh)</param>
+            <returns>Student enrollment and grades debug info (Thông tin debug đăng ký và điểm số của học sinh)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.UploadController.UploadAvatar(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Uploads an avatar image file. (Tải lên file ảnh đại diện)
+            </summary>
+            <param name="file">Image file (File ảnh)</param>
+            <returns>File URL (Đường dẫn file)</returns>
+        </member>
+        <member name="M:EnglishCenter.API.Controllers.UploadController.UploadSubmission(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Uploads a submission file. (Tải lên file bài nộp)
+            </summary>
+            <param name="file">Submission file (File bài nộp)</param>
+            <returns>File URL and metadata (Đường dẫn file và thông tin)</returns>
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.AddCurriculumIdToDocumentsOnly">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddCurriculumIdToDocumentsOnly.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddCurriculumIdToDocumentsOnly.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddCurriculumIdToDocumentsOnly.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.AddCurriculumStudents">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddCurriculumStudents.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddCurriculumStudents.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddCurriculumStudents.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.AddSessionStudent">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddSessionStudent.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddSessionStudent.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddSessionStudent.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.AddSessionAttendance">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddSessionAttendance.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddSessionAttendance.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddSessionAttendance.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.AssignmentUseCurriculum">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AssignmentUseCurriculum.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AssignmentUseCurriculum.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AssignmentUseCurriculum.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.RemoveRoomTimeFields">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.RemoveRoomTimeFields.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.RemoveRoomTimeFields.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.RemoveRoomTimeFields.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.RemoveDocumentTitleDescription">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.RemoveDocumentTitleDescription.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.RemoveDocumentTitleDescription.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.RemoveDocumentTitleDescription.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.DropDocumentTeacherId">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.DropDocumentTeacherId.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.DropDocumentTeacherId.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.DropDocumentTeacherId.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.RemoveTeacherDocumentsNavigation">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.RemoveTeacherDocumentsNavigation.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.RemoveTeacherDocumentsNavigation.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.RemoveTeacherDocumentsNavigation.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.CurriculumCoursesManyToMany">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.CurriculumCoursesManyToMany.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.CurriculumCoursesManyToMany.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.CurriculumCoursesManyToMany.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.AddCourseEnrollment">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddCourseEnrollment.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddCourseEnrollment.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddCourseEnrollment.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.AddAllowLateSubmissionToAssignment">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddAllowLateSubmissionToAssignment.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddAllowLateSubmissionToAssignment.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddAllowLateSubmissionToAssignment.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Migrations.AddAddressToTeachers">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddAddressToTeachers.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddAddressToTeachers.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:EnglishCenter.API.Migrations.AddAddressToTeachers.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:EnglishCenter.API.Models.ActivityLog">
+            <summary>
+            Activity Log - Ghi lại mọi hành vi/hoạt động của người dùng
+            Khác với Notification: Activity là timeline học tập, Notification là thông báo quan trọng
+            </summary>
+        </member>
+        <member name="T:EnglishCenter.API.Models.TeacherAvailability">
+            <summary>
+            Teacher Availability - Lịch rảnh của giảng viên
+            </summary>
+        </member>
+        <member name="T:EnglishCenter.API.Services.ActivityLogService">
+            <summary>
+            Service for managing activity logs - Centralized activity tracking implementation
+            </summary>
+        </member>
+        <member name="T:EnglishCenter.API.Services.IActivityLogService">
+            <summary>
+            Service for managing activity logs - Centralized activity tracking
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogActivityAsync(System.Nullable{System.Int32},System.Nullable{System.Int32},System.Nullable{System.Int32},System.String,System.String,System.String,System.Nullable{System.Int32},System.String,System.String)">
+            <summary>
+            Log an activity for a user
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogAssignmentCreatedAsync(System.Int32,System.Int32,System.String)">
+            <summary>
+            Log assignment creation
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogAssignmentSubmittedAsync(System.Int32,System.Int32,System.String)">
+            <summary>
+            Log assignment submission
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogAssignmentGradedAsync(System.Int32,System.Int32,System.Int32,System.String,System.Decimal)">
+            <summary>
+            Log assignment grading
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogQuizSubmittedAsync(System.Int32,System.Int32,System.String)">
+            <summary>
+            Log quiz submission
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogStudentEnrolledAsync(System.Int32,System.Int32,System.String)">
+            <summary>
+            Log student enrollment
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogPaymentCompletedAsync(System.Int32,System.Int32,System.Decimal)">
+            <summary>
+            Log payment completion
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogDocumentUploadedAsync(System.Int32,System.Int32,System.String)">
+            <summary>
+            Log document upload
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogDocumentDownloadedAsync(System.Int32,System.Int32,System.String)">
+            <summary>
+            Log document download
+            </summary>
+        </member>
+        <member name="M:EnglishCenter.API.Services.IActivityLogService.LogAttendanceRecordedAsync(System.Int32,System.Int32,System.Int32,System.String)">
+            <summary>
+            Log attendance
+            </summary>
+        </member>
+    </members>
+</doc>
