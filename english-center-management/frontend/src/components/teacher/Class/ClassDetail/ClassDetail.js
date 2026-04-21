@@ -1,6 +1,5 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -14,9 +13,12 @@ import {
   People,
   Assessment,
   Assignment,
-  Grading
+  Grading,
+  ArrowBack
 } from '@mui/icons-material';
+import { Button, Skeleton } from '@mui/material';
 import { curriculumAPI } from '../../../../services/api';
+import { useAsyncLoading } from '../../../../hooks/useDocuments';
 
 // Import tabs
 import StudentsTab from './StudentsTab';
@@ -40,9 +42,12 @@ function TabPanel({ children, value, index, ...other }) {
 
 export default function ClassDetail() {
   const { curriculumId } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [curriculumInfo, setCurriculumInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
+  
+  // Sử dụng custom hook cho loading
+  const { initialLoading, stopLoading } = useAsyncLoading();
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -62,11 +67,7 @@ export default function ClassDetail() {
     }
   };
 
-  useEffect(() => {
-    loadCurriculumInfo();
-  }, [curriculumId]);
-
-  const loadCurriculumInfo = async () => {
+  const loadCurriculumInfo = useCallback(async () => {
     try {
       // Load curriculum info from API
       const response = await curriculumAPI.getById(curriculumId);
@@ -75,19 +76,27 @@ export default function ClassDetail() {
       console.error('Error loading curriculum info:', error);
       setCurriculumInfo(null);
     } finally {
-      setLoading(false);
+      stopLoading(true);
     }
-  };
+  }, [curriculumId, stopLoading]);
+
+  useEffect(() => {
+    loadCurriculumInfo();
+  }, [loadCurriculumInfo]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
 
-  if (loading) {
+  // Loading skeleton - chỉ hiện lần đầu
+  if (initialLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography>Đang tải thông tin lớp học...</Typography>
+        {/* ClassDetail Skeleton */}
+        <Skeleton variant="text" width={100} height={36} sx={{ mb: 2 }} />
+        <Skeleton variant="rounded" height={140} sx={{ mb: 3, borderRadius: 2 }} />
+        <Skeleton variant="rounded" height={400} sx={{ borderRadius: 2 }} />
       </Container>
     );
   }
@@ -104,6 +113,17 @@ export default function ClassDetail() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Back Button */}
+      <Box mb={2}>
+        <Button
+          startIcon={<ArrowBack />}
+          onClick={() => navigate('/teacher/curriculums')}
+          sx={{ textTransform: 'none' }}
+        >
+          Quay lại
+        </Button>
+      </Box>
+
       {/* Header */}
       <Box mb={4}>
         <Paper sx={{ p: 3, borderRadius: 2 }}>

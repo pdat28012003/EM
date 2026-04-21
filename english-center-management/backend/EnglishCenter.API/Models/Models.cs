@@ -333,7 +333,7 @@ namespace EnglishCenter.API.Models
         public DateTime? ModifiedDate { get; set; }
 
         [MaxLength(50)]
-        public string Status { get; set; } = "Active"; // Active, Completed, Draft
+        public string Status { get; set; } = "Active"; // Active, Completed, Draft, Ended
 
         // Navigation properties - Many-to-many with Courses
         public ICollection<CurriculumCourse> CurriculumCourses { get; set; } = new List<CurriculumCourse>();

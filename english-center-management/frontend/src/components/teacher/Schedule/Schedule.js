@@ -1,5 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Typography,
@@ -21,11 +20,13 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Divider
+  Divider,
+  Skeleton
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import {
   Schedule as ScheduleIcon,
   LocationOn,
@@ -40,36 +41,35 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { teachersAPI, curriculumAPI } from '../../../services/api';
+import { useAsyncLoading } from '../../../hooks/useDocuments';
+
+// Get current week range (Monday to Sunday)
+const getCurrentWeekRange = () => {
+  const today = dayjs();
+  const dayOfWeek = today.day(); // 0 = Sunday, 1 = Monday, ...
+  const startOfWeek = today.add(dayOfWeek === 0 ? -6 : -(dayOfWeek - 1), 'day');
+  const endOfWeek = startOfWeek.add(6, 'day');
+  return { start: startOfWeek, end: endOfWeek };
+};
 
 const TeacherSchedule = () => {
   const [teacher, setTeacher] = useState(null);
   const [schedules, setSchedules] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('week'); // 'day', 'week', 'month'
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  
+  // Sử dụng custom hook cho loading
+  const { initialLoading, stopLoading } = useAsyncLoading();
+  
+  // Default to current week
+  const currentWeek = getCurrentWeekRange();
+  const [startDate, setStartDate] = useState(currentWeek.start);
+  const [endDate, setEndDate] = useState(currentWeek.end);
+  
   const [selectedEvent, setSelectedEvent] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setTeacher(parsedUser);
-      if (parsedUser.teacherId || parsedUser.userId) {
-        loadScheduleData(parsedUser.teacherId || parsedUser.userId);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (teacher) {
-      loadScheduleData(teacher.teacherId || teacher.userId);
-    }
-  }, [startDate, endDate]); // Reload when date range changes
-
-  const loadScheduleData = async (teacherId) => {
+  const loadScheduleData = useCallback(async (teacherId) => {
     try {
       // Load curriculum sessions by teacher ID with date range filter
       const params = {
@@ -83,12 +83,15 @@ const TeacherSchedule = () => {
       }
       
       const schedulesResponse = await teachersAPI.getSchedule(teacherId, params);
-      console.log('Teacher schedule API response:', schedulesResponse.data);
-      const schedulesData = schedulesResponse.data?.Data || schedulesResponse.data?.data || [];
-      console.log('Schedule data:', schedulesData);
-      if (schedulesData.length > 0) {
-        console.log('First schedule item keys:', Object.keys(schedulesData[0]));
-        console.log('First schedule item:', schedulesData[0]);
+      
+      // Handle different response structures
+      let schedulesData = [];
+      if (schedulesResponse.data?.Data) {
+        schedulesData = schedulesResponse.data.Data;
+      } else if (schedulesResponse.data?.data) {
+        schedulesData = schedulesResponse.data.data;
+      } else if (Array.isArray(schedulesResponse.data)) {
+        schedulesData = schedulesResponse.data;
       }
       
       // Load classes for additional info
@@ -97,14 +100,14 @@ const TeacherSchedule = () => {
       
       // Map curriculum session data to match UI structure
       const mappedSchedules = Array.isArray(schedulesData) ? schedulesData.map(session => ({
-        id: session.ScheduleId || session.scheduleId,
+        id: session.SessionId || session.sessionId,
         curriculumId: session.CurriculumId || session.curriculumId,
         classId: session.ClassId || session.classId,
-        className: session.ClassName || session.className || session.courseName,
+        className: session.ClassName || session.className || session.CourseName || session.courseName,
         date: session.Date || session.date,
         startTime: session.StartTime || session.startTime,
         endTime: session.EndTime || session.endTime,
-        room: session.Room || session.room || session.roomName || 'Not assigned',
+        room: session.RoomName || session.roomName || session.Room || session.room || 'Not assigned',
         status: (session.Status || session.status)?.toLowerCase() || 'scheduled',
         dayOfWeek: session.DayOfWeek || session.dayOfWeek,
         teacherId: session.TeacherId || session.teacherId,
@@ -122,10 +125,26 @@ const TeacherSchedule = () => {
       setSchedules([]);
       setClasses([]);
     } finally {
-      setLoading(false);
+      stopLoading(true);
     }
-  };
+  }, [startDate, endDate, stopLoading]);
 
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setTeacher(parsedUser);
+      if (parsedUser.teacherId || parsedUser.userId) {
+        loadScheduleData(parsedUser.teacherId || parsedUser.userId);
+      }
+    }
+  }, [loadScheduleData]);
+
+  useEffect(() => {
+    if (teacher) {
+      loadScheduleData(teacher.teacherId || teacher.userId);
+    }
+  }, [startDate, endDate, teacher, loadScheduleData]); // Reload when date range changes
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -198,10 +217,8 @@ const TeacherSchedule = () => {
     
     if (startDate && endDate) {
       filteredSchedules = scheduleList.filter(schedule => {
-        const scheduleDate = new Date(schedule.date);
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        return scheduleDate >= start && scheduleDate <= end;
+        const scheduleDate = dayjs(schedule.date);
+        return scheduleDate.isAfter(startDate.subtract(1, 'day')) && scheduleDate.isBefore(endDate.add(1, 'day'));
       });
     }
     
@@ -236,18 +253,18 @@ const TeacherSchedule = () => {
     }
   };
 
-  const handleClearFilter = () => {
-    setStartDate(null);
-    setEndDate(null);
-    if (teacher) {
-      loadScheduleData(teacher.teacherId || teacher.userId);
-    }
-  };
-
-  if (loading) {
+  if (initialLoading) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
-        <Typography>Đang tải lịch dạy...</Typography>
+        {/* Schedule Skeleton */}
+        <Skeleton variant="rounded" height={80} sx={{ mb: 3, borderRadius: 3 }} />
+        <Grid container spacing={2}>
+          {[1, 2, 3, 4, 5, 6, 7].map(i => (
+            <Grid item xs={12} md key={i}>
+              <Skeleton variant="rounded" height={200} sx={{ borderRadius: 2 }} />
+            </Grid>
+          ))}
+        </Grid>
       </Container>
     );
   }
@@ -308,7 +325,7 @@ const TeacherSchedule = () => {
             
             <Box display="flex" justifyContent="space-between" alignItems="flex-start">
               <Typography variant="caption" sx={{ fontWeight: 800, display: 'block', color: '#1e293b' }}>
-                {schedule.className || `Lớp ${schedule.classId}`}
+                {schedule.curriculumName || schedule.className || `Lớp ${schedule.classId}`}
               </Typography>
               {schedule.status === 'completed' && <CheckCircle sx={{ fontSize: 14, color: '#22c55e' }} />}
             </Box>
@@ -515,13 +532,6 @@ const TeacherSchedule = () => {
                 >
                   Lọc
                 </Button>
-                <Button 
-                  variant="outlined" 
-                  onClick={handleClearFilter}
-                  size="small"
-                >
-                  Xóa bộ lọc
-                </Button>
               </Box>
             </Box>
             
@@ -641,7 +651,7 @@ const TeacherSchedule = () => {
                 </Typography>
               </Box>
               <Typography variant="h5" fontWeight="bold" sx={{ color: '#1e293b' }}>
-                {selectedEvent.className}
+                {selectedEvent.curriculumName}
               </Typography>
               <Typography variant="body2" sx={{ color: '#475569', mt: 0.5 }}>
                 {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}

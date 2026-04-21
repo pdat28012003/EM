@@ -1,5 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -10,18 +9,24 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Alert,
-  Chip,
   Pagination,
   TextField,
-  Skeleton
+  Skeleton,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
+import { Search, Clear, PeopleOutline } from '@mui/icons-material';
 import { curriculumAPI } from '../../../../services/api';
+import { useAsyncLoading } from '../../../../hooks/useDocuments';
 
 export default function StudentsTab({ curriculumId, curriculumInfo }) {
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line no-unused-vars
   const [totalCount, setTotalCount] = useState(0);
+  
+  // Sử dụng custom hook cho loading
+  const { initialLoading, stopLoading } = useAsyncLoading();
+  
   // eslint-disable-next-line no-unused-vars
   const [maxCapacity] = useState(null);
   // eslint-disable-next-line no-unused-vars
@@ -33,15 +38,9 @@ export default function StudentsTab({ curriculumId, curriculumInfo }) {
   const [searchKeyword, setSearchKeyword] = useState('');
   const hasLoaded = React.useRef(false);
 
-  useEffect(() => {
-    if (hasLoaded.current && page === 1) return;
-    hasLoaded.current = true;
-    loadStudents();
-  }, [curriculumId, page, rowsPerPage]);
-
-  const loadStudents = async () => {
+  const loadStudents = useCallback(async () => {
     try {
-      setLoading(true);
+      // initialLoading được quản lý bởi hook ở lần đầu
       // Get teacherId from localStorage or props
       const userData = localStorage.getItem('user');
       let teacherId = null;
@@ -79,9 +78,15 @@ export default function StudentsTab({ curriculumId, curriculumInfo }) {
       setStudents([]);
       setTotalCount(0);
     } finally {
-      setLoading(false);
+      stopLoading(true);
     }
-  };
+  }, [curriculumId, stopLoading]);
+
+  useEffect(() => {
+    if (hasLoaded.current && page === 1) return;
+    hasLoaded.current = true;
+    loadStudents();
+  }, [curriculumId, page, rowsPerPage, loadStudents]);
 
 
   const formatDate = (dateString) => {
@@ -98,19 +103,28 @@ export default function StudentsTab({ curriculumId, curriculumInfo }) {
     }
   };
 
+  // Highlight search keyword in text
+  const highlightText = (text, keyword) => {
+    if (!keyword || !text) return text;
+    const lowerKeyword = keyword.toLowerCase();
+    const parts = text.split(new RegExp(`(${keyword})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === lowerKeyword ? <mark key={i} style={{ backgroundColor: '#fef3c7', fontWeight: 600, padding: '0 2px', borderRadius: 2 }}>{part}</mark> : part
+    );
+  };
+
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 
-
-
-  if (loading) {
+  // Loading skeleton - chỉ hiện lần đầu
+  if (initialLoading) {
     return (
       <Box sx={{ py: 4 }}>
-        <Skeleton variant="text" width={300} height={40} sx={{ mb: 2 }} />
-        <Skeleton variant="text" width={200} height={24} sx={{ mb: 3 }} />
+        <Skeleton variant="text" width={250} height={36} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width={180} height={20} sx={{ mb: 2 }} />
         {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} height={50} sx={{ mb: 1 }} />
+          <Skeleton key={i} variant="rectangular" height={48} sx={{ mb: 1, borderRadius: 2 }} />
         ))}
       </Box>
     );
@@ -123,86 +137,135 @@ export default function StudentsTab({ curriculumId, curriculumInfo }) {
     s.phoneNumber?.includes(searchKeyword)
   );
 
+  // Paginate filtered results
+  const paginatedStudents = filteredStudents.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
   return (
     <Box>
-      {/* IMPROVED HEADER */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h5" fontWeight="bold">
-            Học viên
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {curriculumInfo?.curriculumName}
-          </Typography>
-        </Box>
-        <Chip 
-          label={`${totalCount} học viên`} 
-          size="small"
-          sx={{ fontWeight: 600, bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}
-        />
+      {/* Header */}
+      <Box mb={3}>
+        <Typography variant="h6" fontWeight="bold">
+          Học viên
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {curriculumInfo?.curriculumName}
+        </Typography>
       </Box>
 
-      {/* SEARCH */}
+      {/* Search */}
       <TextField
         fullWidth
         size="small"
         placeholder="Tìm học viên..."
         value={searchKeyword}
         onChange={(e) => setSearchKeyword(e.target.value)}
-        sx={{ 
-          mb: 2, 
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search fontSize="small" />
+            </InputAdornment>
+          ),
+          endAdornment: searchKeyword && (
+            <InputAdornment position="end">
+              <IconButton size="small" onClick={() => setSearchKeyword('')}>
+                <Clear fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          )
+        }}
+        sx={{
+          mb: 2,
           '& .MuiOutlinedInput-root': {
-            '&.Mui-focused fieldset': {
-              borderColor: '#10b981',
+            borderRadius: 2,
+            backgroundColor: '#fafafa',
+            '&:hover': {
+              backgroundColor: '#f5f5f5'
+            },
+            '&.Mui-focused': {
+              backgroundColor: '#fff'
             }
           }
         }}
       />
 
       {filteredStudents.length === 0 ? (
-        <Alert severity="info">
-          {searchKeyword ? 'Không tìm thấy học viên' : 'Không có học viên trong khóa học'}
-        </Alert>
+        <Box textAlign="center" py={6}>
+          <PeopleOutline sx={{ fontSize: 64, color: '#e5e7eb', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Chưa có học viên nào
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {searchKeyword ? 'Thử tìm kiếm với từ khóa khác' : 'Chưa có học viên đăng ký khóa học này'}
+          </Typography>
+        </Box>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+        <TableContainer 
+          component={Paper} 
+          sx={{ 
+            borderRadius: 3,
+            overflow: 'hidden',
+            border: '1px solid #e5e7eb'
+          }}
+        >
           <Table stickyHeader>
             <TableHead>
-              <TableRow>
-                <TableCell width={60}><strong>STT</strong></TableCell>
-                <TableCell><strong>Họ tên</strong></TableCell>
-                <TableCell><strong>Liên hệ</strong></TableCell>
-                <TableCell align="center"><strong>Ngày sinh</strong></TableCell>
-                <TableCell><strong>Địa chỉ</strong></TableCell>
-                <TableCell align="center"><strong>Nhập học</strong></TableCell>
+              <TableRow sx={{ 
+                backgroundColor: '#fafafa',
+                '& th': {
+                  borderBottom: '2px solid #e5e7eb'
+                }
+              }}>
+                <TableCell sx={{ fontWeight: 600, color: '#666', fontSize: 12, width: 60, borderBottom: '2px solid #e5e7eb' }}>STT</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#666', fontSize: 12, borderBottom: '2px solid #e5e7eb' }}>HỌ TÊN</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#666', fontSize: 12, borderBottom: '2px solid #e5e7eb' }}>LIÊN HỆ</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#666', fontSize: 12, borderBottom: '2px solid #e5e7eb' }} align="center">NGÀY SINH</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#666', fontSize: 12, borderBottom: '2px solid #e5e7eb' }}>ĐỊA CHỈ</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#666', fontSize: 12, borderBottom: '2px solid #e5e7eb' }} align="center">NHẬP HỌC</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {filteredStudents.map((student, index) => (
+            <TableBody
+              sx={{
+                '& tr:nth-of-type(odd)': {
+                  backgroundColor: '#fcfcfc'
+                },
+                '& td': {
+                  borderBottom: '1px solid #e5e7eb'
+                }
+              }}
+            >
+              {paginatedStudents.map((student, index) => (
                 <TableRow 
                   key={student.StudentId || student.studentId} 
                   hover
+                  onClick={() => console.log('View student:', student.studentId)}
                   sx={{
-                    transition: 'all 0.2s',
-                    '& td': { py: 1.75 },
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
+                    '& td': { py: 2 },
                     '&:hover': {
-                      backgroundColor: 'rgba(16, 185, 129, 0.04) !important'
+                      backgroundColor: 'rgba(16, 185, 129, 0.08) !important'
                     }
                   }}
                 >
                   <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
+                    <Typography variant="body2" fontWeight="500">
                       {(page - 1) * rowsPerPage + index + 1}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography fontWeight="medium">
-                      {student.fullName}
+                    <Typography fontWeight="600" fontSize={14} title={student.fullName}>
+                      {highlightText(student.fullName, searchKeyword)}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Box>
-                      <Typography variant="body2">{student.email}</Typography>
-                      <Typography variant="body2" color="text.secondary">{student.phoneNumber}</Typography>
+                      <Typography variant="body2" noWrap title={student.email}>{highlightText(student.email, searchKeyword)}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {highlightText(student.phoneNumber, searchKeyword)}
+                      </Typography>
                     </Box>
                   </TableCell>
                   <TableCell align="center">
@@ -211,7 +274,11 @@ export default function StudentsTab({ curriculumId, curriculumInfo }) {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" noWrap maxWidth={120} title={student.address}>
+                    <Typography 
+                      variant="body2" 
+                      noWrap 
+                      title={student.address}
+                    >
                       {student.address}
                     </Typography>
                   </TableCell>
@@ -228,22 +295,20 @@ export default function StudentsTab({ curriculumId, curriculumInfo }) {
       )}
 
       {/* PAGINATION */}
-      {totalCount > 0 && (
-        <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+      {filteredStudents.length > 0 && (
+        <Box display="flex" justifyContent="space-between" alignItems="center" mt={4}>
           <Typography variant="body2" color="text.secondary">
-            Hiển thị {(page - 1) * rowsPerPage + 1} - {Math.min(page * rowsPerPage, totalCount)} của {totalCount} học viên
+            Hiển thị {(page - 1) * rowsPerPage + 1} - {Math.min(page * rowsPerPage, filteredStudents.length)} của {filteredStudents.length} học viên
           </Typography>
           <Pagination
-            count={Math.ceil(totalCount / rowsPerPage)}
+            count={Math.ceil(filteredStudents.length / rowsPerPage)}
             page={page}
             onChange={handleChangePage}
             showFirstButton
             showLastButton
             sx={{
-              '& .MuiPaginationItem-root.Mui-selected': {
-                bgcolor: '#10b981',
-                color: 'white',
-                '&:hover': { bgcolor: '#059669' }
+              '& .MuiPaginationItem-root': {
+                borderRadius: 2
               }
             }}
           />

@@ -10,6 +10,11 @@ export const useTeacherGrading = () => {
   const [assignments, setAssignments] = useState([]);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [submissions, setSubmissions] = useState([]);
+  const [submissionStats, setSubmissionStats] = useState({
+    gradedCount: 0,
+    pendingCount: 0,
+    lateCount: 0
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [teacher, setTeacher] = useState(null);
@@ -57,12 +62,35 @@ export const useTeacherGrading = () => {
   const loadAssignments = useCallback(async (classId, options = {}) => {
     if (!classId) return;
 
-    const { onSuccess, onError } = options;
+    const { 
+      onSuccess, 
+      onError,
+      search = null,
+      status = null,
+      skillId = null,
+      sortBy = null,
+      sortOrder = null,
+      page = 1,
+      pageSize = 100
+    } = options;
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await assignmentsAPI.getAll({ classId });
+      const params = {
+        curriculumId: classId,
+        page,
+        pageSize
+      };
+      
+      if (search) params.search = search;
+      if (status) params.status = status;
+      if (skillId !== null && skillId !== undefined) params.skillId = skillId;
+      if (sortBy) params.sortBy = sortBy;
+      if (sortOrder) params.sortOrder = sortOrder;
+      
+      const response = await assignmentsAPI.getAll(params);
       const data = Array.isArray(response.data?.data) ? response.data.data : [];
       setAssignments(data);
       onSuccess?.(data);
@@ -78,14 +106,42 @@ export const useTeacherGrading = () => {
   const loadSubmissions = useCallback(async (assignmentId, options = {}) => {
     if (!assignmentId) return;
 
-    const { onSuccess, onError } = options;
+    const { 
+      onSuccess, 
+      onError, 
+      status = null,
+      search = null,
+      sortBy = null,
+      sortOrder = null,
+      page = 1,
+      pageSize = 100
+    } = options;
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await assignmentsAPI.getSubmissions(assignmentId);
+      const params = {
+        page,
+        pageSize
+      };
+      
+      if (status) params.status = status;
+      if (search) params.search = search;
+      if (sortBy) params.sortBy = sortBy;
+      if (sortOrder) params.sortOrder = sortOrder;
+      
+      const response = await assignmentsAPI.getSubmissions(assignmentId, params);
       const data = Array.isArray(response.data?.data) ? response.data.data : [];
+      const metadata = response.data?.metadata || {};
       setSubmissions(data);
+      setSubmissionStats({
+          gradedCount: metadata.gradedCount || 0,
+          pendingCount: metadata.pendingCount || 0,
+          lateCount: metadata.lateCount || 0,
+          total: metadata.total || 0,
+          averageScore: metadata.averageScore || "0"
+      });
       onSuccess?.(data);
     } catch (err) {
       const errorMsg = 'Lỗi khi tải danh sách bài nộp';
@@ -110,6 +166,7 @@ export const useTeacherGrading = () => {
     if (activeStep === 2) {
       setSelectedAssignment(null);
       setSubmissions([]);
+      setSubmissionStats({ gradedCount: 0, pendingCount: 0, lateCount: 0 });
       setActiveStep(1);
     } else if (activeStep === 1) {
       setSelectedClass(null);
@@ -118,9 +175,9 @@ export const useTeacherGrading = () => {
     }
   }, [activeStep]);
 
-  const refreshSubmissions = useCallback(() => {
+  const refreshSubmissions = useCallback((filters = {}) => {
     if (selectedAssignment?.assignmentId) {
-      loadSubmissions(selectedAssignment.assignmentId);
+      loadSubmissions(selectedAssignment.assignmentId, filters);
     }
   }, [selectedAssignment, loadSubmissions]);
 
@@ -130,6 +187,7 @@ export const useTeacherGrading = () => {
     setSelectedAssignment(null);
     setAssignments([]);
     setSubmissions([]);
+    setSubmissionStats({ gradedCount: 0, pendingCount: 0, lateCount: 0 });
     setError(null);
   }, []);
 
@@ -141,6 +199,7 @@ export const useTeacherGrading = () => {
     assignments,
     selectedAssignment,
     submissions,
+    submissionStats,
     loading,
     error,
     teacher,

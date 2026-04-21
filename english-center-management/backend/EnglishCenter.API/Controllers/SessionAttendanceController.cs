@@ -175,6 +175,84 @@ namespace EnglishCenter.API.Controllers
         }
 
         /// <summary>
+        /// Creates or updates multiple session attendance records in bulk. 
+        /// (Tạo hoặc cập nhật nhiều bản ghi điểm danh cùng lúc)
+        /// </summary>
+        /// <param name="dtos">List of session attendance data (Danh sách dữ liệu điểm danh)</param>
+        /// <returns>Result of bulk operation (Kết quả thao tác hàng loạt)</returns>
+        [HttpPost("bulk")]
+        public async Task<ActionResult<BulkAttendanceResult>> CreateBulkSessionAttendances(List<CreateSessionAttendanceDto> dtos)
+        {
+            try
+            {
+                if (dtos == null || dtos.Count == 0)
+                {
+                    return BadRequest(new { message = "No attendance data provided" });
+                }
+
+                var result = new BulkAttendanceResult
+                {
+                    Total = dtos.Count,
+                    Created = 0,
+                    Updated = 0,
+                    Failed = 0
+                };
+
+                // Process each attendance record
+                foreach (var dto in dtos)
+                {
+                    try
+                    {
+                        // Check if attendance already exists
+                        var existingAttendance = await _context.SessionAttendances
+                            .FirstOrDefaultAsync(sa => sa.StudentId == dto.StudentId &&
+                                                       sa.CurriculumSessionId == dto.SessionId &&
+                                                       sa.AttendanceDate.Date == dto.Date.Date);
+
+                        if (existingAttendance != null)
+                        {
+                            // Update existing
+                            existingAttendance.Status = dto.Status;
+                            existingAttendance.Notes = dto.Notes ?? existingAttendance.Notes;
+                            result.Updated++;
+                        }
+                        else
+                        {
+                            // Create new
+                            var attendance = new SessionAttendance
+                            {
+                                CurriculumSessionId = dto.SessionId,
+                                StudentId = dto.StudentId,
+                                AttendanceDate = dto.Date,
+                                Status = dto.Status,
+                                Notes = dto.Notes ?? string.Empty
+                            };
+                            _context.SessionAttendances.Add(attendance);
+                            result.Created++;
+                        }
+                    }
+                    catch (Exception itemEx)
+                    {
+                        _logger.LogWarning(itemEx, "Failed to process attendance for student {StudentId}", dto.StudentId);
+                        result.Failed++;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Bulk attendance completed: {Created} created, {Updated} updated, {Failed} failed", 
+                    result.Created, result.Updated, result.Failed);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating bulk session attendances");
+                return StatusCode(500, new { message = "Error creating bulk attendances", error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Updates a session attendance record. (Cập nhật bản ghi điểm danh buổi học)
         /// </summary>
         /// <param name="id">Session Attendance ID (ID điểm danh buổi học)</param>

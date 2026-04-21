@@ -319,7 +319,10 @@ namespace EnglishCenter.API.Controllers
                     return NotFound(new { message = "Teacher not found or inactive" });
                 }
 
-                // Query curriculum sessions assigned to this teacher
+                var today = DateTime.Now.Date;
+
+                // Query curriculum sessions for this teacher
+                // Only show sessions from curriculums that haven't ended yet
                 var query = _context.CurriculumSessions
                     .Include(cs => cs.CurriculumDay)
                     .ThenInclude(cd => cd.Curriculum)
@@ -327,7 +330,8 @@ namespace EnglishCenter.API.Controllers
                     .ThenInclude(cc => cc.Course)
                     .Include(cs => cs.AssignedRoom)
                     .Include(cs => cs.Teacher)
-                    .Where(cs => cs.TeacherId == id);
+                    .Where(cs => cs.TeacherId == id && 
+                                 cs.CurriculumDay.Curriculum.EndDate >= today);
 
                 // Filter by specific date if provided
                 if (date.HasValue)

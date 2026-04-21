@@ -128,16 +128,26 @@ namespace EnglishCenter.API.Controllers
                 .Select(s => s.StudentId)
                 .FirstOrDefaultAsync();
             
-            // Convert 0 to null for consistent query behavior
-            var teacherIdNull = teacherId == 0 ? (int?)null : teacherId;
-            var studentIdNull = studentId == 0 ? (int?)null : studentId;
+            // Build query to get only user's notifications
+            IQueryable<Notification> query = _context.Notifications.Where(n => n.UserId == userId);
 
-            var query = _context.Notifications
-                .Where(n => n.UserId == userId || n.TeacherId == teacherIdNull || n.StudentId == studentIdNull)
-                .OrderByDescending(n => n.CreatedAt);
+            // If user is a teacher, also get notifications for that teacher
+            if (teacherId != 0)
+            {
+                query = query.Union(_context.Notifications.Where(n => n.TeacherId == teacherId));
+            }
 
+            // If user is a student, also get notifications for that student
+            if (studentId != 0)
+            {
+                query = query.Union(_context.Notifications.Where(n => n.StudentId == studentId));
+            }
+
+            // Apply filters and ordering
             if (unreadOnly)
-                query = (IOrderedQueryable<Notification>)query.Where(n => !n.IsRead);
+                query = query.Where(n => !n.IsRead);
+
+            query = query.OrderByDescending(n => n.CreatedAt);
 
             var notifications = await query
                 .Take(limit)
@@ -181,12 +191,22 @@ namespace EnglishCenter.API.Controllers
                 .Select(s => s.StudentId)
                 .FirstOrDefaultAsync();
             
-            // Convert 0 to null for consistent query behavior
-            var teacherIdNull = teacherId == 0 ? (int?)null : teacherId;
-            var studentIdNull = studentId == 0 ? (int?)null : studentId;
+            // Build query to count only user's unread notifications
+            IQueryable<Notification> countQuery = _context.Notifications.Where(n => n.UserId == userId && !n.IsRead);
 
-            var count = await _context.Notifications
-                .CountAsync(n => (n.UserId == userId || n.TeacherId == teacherIdNull || n.StudentId == studentIdNull) && !n.IsRead);
+            // If user is a teacher, also count notifications for that teacher
+            if (teacherId != 0)
+            {
+                countQuery = countQuery.Union(_context.Notifications.Where(n => n.TeacherId == teacherId && !n.IsRead));
+            }
+
+            // If user is a student, also count notifications for that student
+            if (studentId != 0)
+            {
+                countQuery = countQuery.Union(_context.Notifications.Where(n => n.StudentId == studentId && !n.IsRead));
+            }
+
+            var count = await countQuery.CountAsync();
             
             Console.WriteLine($"[API] UserId: {userId}, TeacherId: {teacherId}, StudentId: {studentId}");
             Console.WriteLine($"[API] Unread count: {count}");

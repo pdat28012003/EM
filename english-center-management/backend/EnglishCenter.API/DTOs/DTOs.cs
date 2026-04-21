@@ -30,6 +30,7 @@ namespace EnglishCenter.API.DTOs
         public int TotalPages { get; set; }
         public bool HasPreviousPage => Page > 1;
         public bool HasNextPage => Page < TotalPages;
+        public Dictionary<string, object>? Metadata { get; set; }
     }
 
     // Student DTOs
@@ -1092,5 +1093,13 @@ namespace EnglishCenter.API.DTOs
 
         [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
         public string? Notes { get; set; }
+    }
+
+    public class BulkAttendanceResult
+    {
+        public int Total { get; set; }
+        public int Created { get; set; }
+        public int Updated { get; set; }
+        public int Failed { get; set; }
     }
 }
