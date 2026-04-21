@@ -18,6 +18,15 @@ namespace EnglishCenter.API.Services
 
         public async Task<bool> VerifyAsync(string? captchaToken)
         {
+
+            // Allow disabling captcha via configuration (useful for dev/test)
+            var enabledVal = _configuration["ReCaptcha:Enabled"];
+            if (!string.IsNullOrEmpty(enabledVal) && enabledVal.Equals("false", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("ReCaptcha verification is disabled via configuration.");
+                return true;
+            }
+
             // Skip verification if no token provided and not required
             if (string.IsNullOrEmpty(captchaToken))
             {

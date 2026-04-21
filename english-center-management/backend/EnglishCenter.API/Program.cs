@@ -313,28 +313,27 @@ builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer
 
 
 // Configure CORS
-
 builder.Services.AddCors(options =>
 
 {
 
     options.AddPolicy("AllowAll",
 
-        builder =>
+        policy =>
 
         {
 
-            builder.AllowAnyOrigin()
+            policy.SetIsOriginAllowed(_ => true)
 
-                   .AllowAnyMethod()
+                  .AllowAnyMethod()
 
-                   .AllowAnyHeader();
+                  .AllowAnyHeader()
+
+                  .AllowCredentials();
 
         });
 
 });
-
-
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
