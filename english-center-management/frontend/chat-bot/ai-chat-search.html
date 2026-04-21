@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat với Tìm Kiếm Dữ Liệu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f7f9fc;
+            border-right: 1px solid #e1e8ed;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #667eea;
+            color: white;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .add-data-btn {
+            width: 100%;
+            padding: 10px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .add-data-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+        }
+
+        .data-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .data-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .data-item:hover {
+            background: #e8f0fe;
+            border-left-color: #667eea;
+        }
+
+        .data-item-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .data-item-preview {
+            font-size: 12px;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .data-item-date {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: #667eea;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+        }
+
+        .stats {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f7f9fc;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message-ai {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+        }
+
+        .message-user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-ai .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-results {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-top: 8px;
+            border-radius: 8px;
+        }
+
+        .search-results-title {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .search-result-item {
+            background: white;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #333;
+            border-left: 3px solid #667eea;
+            max-height: none;
+            overflow: visible;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e1e8ed;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .save-btn:hover {
+            background: #5568d3;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            float: right;
+            margin-top: 4px;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 200px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>📚 Dữ Liệu Đã Lưu</h2>
+                <button class="add-data-btn" onclick="openModal()">+ Thêm Dữ Liệu Mới</button>
+            </div>
+            <div class="data-list" id="dataList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <p>Chưa có dữ liệu nào</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <h1>💬 AI Chat Assistant</h1>
+                <div class="stats">
+                    <span id="dataCount">0 dữ liệu</span>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message message-ai">
+                    <div class="message-content">
+                        Xin chào! 👋 Tôi là trợ lý AI của bạn. Hãy nhập câu hỏi hoặc từ khóa để tìm kiếm trong dữ liệu đã lưu. Bạn cũng có thể thêm dữ liệu mới bằng cách nhấn nút "Thêm Dữ Liệu Mới" bên trái.
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <div class="input-container">
+                    <input 
+                        type="text" 
+                        class="chat-input" 
+                        id="chatInput" 
+                        placeholder="Nhập câu hỏi hoặc từ khóa để tìm kiếm..."
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <button class="send-btn" onclick="sendMessage()">Gửi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal thêm dữ liệu -->
+    <div class="modal" id="dataModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Thêm Dữ Liệu Mới</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form onsubmit="saveData(event)">
+                <div class="form-group">
+                    <label for="dataTitle">Tiêu đề:</label>
+                    <input type="text" id="dataTitle" required placeholder="Nhập tiêu đề cho dữ liệu">
+                </div>
+                <div class="form-group">
+                    <label for="dataContent">Nội dung:</label>
+                    <textarea id="dataContent" required placeholder="Nhập nội dung văn bản..."></textarea>
+                </div>
+                <button type="submit" class="save-btn">Lưu Dữ Liệu</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Lưu trữ dữ liệu
+        let dataStore = [];
+
+        // Load dữ liệu từ localStorage khi trang load
+        window.onload = function() {
+            loadDataFromStorage();
+            renderDataList();
+            updateStats();
+        };
+
+        // Lưu dữ liệu vào localStorage
+        function saveToStorage() {
+            localStorage.setItem('chatDataStore', JSON.stringify(dataStore));
+        }
+
+        // Load dữ liệu từ localStorage
+        function loadDataFromStorage() {
+            const stored = localStorage.getItem('chatDataStore');
+            if (stored) {
+                dataStore = JSON.parse(stored);
+            }
+        }
+
+        // Mở modal
+        function openModal() {
+            document.getElementById('dataModal').classList.add('active');
+            document.getElementById('dataTitle').value = '';
+            document.getElementById('dataContent').value = '';
+        }
+
+        // Đóng modal
+        function closeModal() {
+            document.getElementById('dataModal').classList.remove('active');
+        }
+
+        // Lưu dữ liệu
+        function saveData(event) {
+            event.preventDefault();
+            
+            const title = document.getElementById('dataTitle').value;
+            const content = document.getElementById('dataContent').value;
+            
+            const newData = {
+                id: Date.now(),
+                title: title,
+                content: content,
+                date: new Date().toLocaleString('vi-VN')
+            };
+            
+            dataStore.push(newData);
+            saveToStorage();
+            renderDataList();
+            updateStats();
+            closeModal();
+            
+            // Thông báo thành công
+            addMessage('ai', `✅ Đã lưu dữ liệu mới: "${title}"`);
+        }
+
+        // Render danh sách dữ liệu
+        function renderDataList() {
+            const dataList = document.getElementById('dataList');
+            
+            if (dataStore.length === 0) {
+                dataList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>Chưa có dữ liệu nào</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            dataList.innerHTML = dataStore.map(data => `
+                <div class="data-item" onclick="viewData(${data.id})">
+                    <div class="data-item-title">${data.title}</div>
+                    <div class="data-item-preview">${data.content.substring(0, 60)}...</div>
+                    <div class="data-item-date">${data.date}</div>
+                    <button class="delete-btn" onclick="deleteData(event, ${data.id})">Xóa</button>
+                </div>
+            `).join('');
+        }
+
+        // Xem chi tiết dữ liệu
+        function viewData(id) {
+            const data = dataStore.find(d => d.id === id);
+            if (data) {
+                addMessage('user', `Xem dữ liệu: ${data.title}`);
+                addMessage('ai', `
+                    <strong>📄 ${data.title}</strong><br><br>
+                    ${data.content}<br><br>
+                    <em>Lưu lúc: ${data.date}</em>
+                `);
+            }
+        }
+
+        // Xóa dữ liệu
+        function deleteData(event, id) {
+            event.stopPropagation();
+            if (confirm('Bạn có chắc muốn xóa dữ liệu này?')) {
+                dataStore = dataStore.filter(d => d.id !== id);
+                saveToStorage();
+                renderDataList();
+                updateStats();
+                addMessage('ai', '🗑️ Đã xóa dữ liệu');
+            }
+        }
+
+        // Cập nhật thống kê
+        function updateStats() {
+            document.getElementById('dataCount').textContent = 
+                `${dataStore.length} dữ liệu`;
+        }
+
+        // Tìm kiếm dữ liệu
+        function searchData(query) {
+            const queryLower = query.toLowerCase();
+            const results = [];
+            
+            dataStore.forEach(data => {
+                const titleMatch = data.title.toLowerCase().includes(queryLower);
+                const contentMatch = data.content.toLowerCase().includes(queryLower);
+                
+                if (titleMatch || contentMatch) {
+                    results.push({
+                        title: data.title,
+                        content: data.content,
+                        date: data.date
+                    });
+                }
+            });
+            
+            return results;
+        }
+
+        // Gửi tin nhắn
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessage('user', message);
+            input.value = '';
+            
+            // Tìm kiếm
+            setTimeout(() => {
+                const results = searchData(message);
+                
+                if (results.length > 0) {
+                    let response = `Tôi đã tìm thấy <strong>${results.length}</strong> kết quả phù hợp với "<em>${message}</em>":`;
+                    
+                    response += '<div class="search-results">';
+                    response += '<div class="search-results-title">📋 Kết quả tìm kiếm:</div>';
+                    
+                    results.forEach((result, index) => {
+                        response += `
+                            <div class="search-result-item">
+                                <strong>${index + 1}. ${result.title}</strong><br>
+                                <div style="margin-top: 8px; line-height: 1.6; white-space: pre-wrap;">${result.content}</div><br>
+                                <small style="color: #999;">Lưu lúc: ${result.date}</small>
+                            </div>
+                        `;
+                    });
+                    
+                    response += '</div>';
+                    
+                    addMessage('ai', response);
+                } else {
+                    addMessage('ai', `Không tìm thấy kết quả nào cho "<em>${message}</em>". Bạn có thể thử từ khóa khác hoặc thêm dữ liệu mới bằng nút "Thêm Dữ Liệu Mới".`);
+                }
+            }, 500);
+        }
+
+        // Thêm tin nhắn vào chat
+        function addMessage(type, content) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Xử lý phím Enter
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Đóng modal khi click bên ngoài
+        document.getElementById('dataModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

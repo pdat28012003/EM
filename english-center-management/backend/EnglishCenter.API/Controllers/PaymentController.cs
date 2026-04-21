@@ -54,14 +54,11 @@ namespace EnglishCenter.API.Controllers
                     return NotFound("Student not found");
                 }
 
-                // Get courses from sessions where student is registered
-                var courses = await _context.SessionStudents
-                    .Where(ss => ss.StudentId == studentId)
-                    .Select(ss => ss.CurriculumSession)
-                        .Select(cs => cs.CurriculumDay)
-                            .Select(cd => cd.Curriculum)
-                                .SelectMany(c => c.CurriculumCourses)
-                                    .Select(cc => cc.Course)
+                // Get courses from CourseEnrollments where student is enrolled
+                var courses = await _context.CourseEnrollments
+                    .Where(ce => ce.StudentId == studentId && ce.Status == "Active")
+                    .Include(ce => ce.Course)
+                    .Select(ce => ce.Course)
                     .Distinct()
                     .Select(course => new CourseForPaymentDto
                     {
@@ -472,6 +469,59 @@ namespace EnglishCenter.API.Controllers
             {
                 _logger.LogError(ex, "Error processing SePay webhook");
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Test endpoint to manually complete payment (for testing when webhook is not accessible)
+        /// </summary>
+        /// <param name="id">Payment ID</param>
+        /// <returns>Updated payment</returns>
+        [HttpPost("{id}/complete")]
+        public async Task<ActionResult<PaymentDto>> CompletePayment(int id)
+        {
+            try
+            {
+                var payment = await _context.Payments.FindAsync(id);
+                if (payment == null)
+                {
+                    return NotFound("Payment not found");
+                }
+
+                if (payment.Status == "Completed")
+                {
+                    return Ok(new { message = "Payment already completed", paymentId = payment.PaymentId, status = payment.Status });
+                }
+
+                // Update payment status to Completed
+                payment.Status = "Completed";
+                payment.PaymentCompletedDate = DateTime.Now;
+                payment.Gateway = "Manual/Test";
+
+                await _context.SaveChangesAsync();
+
+                // Send SignalR notification
+                try
+                {
+                    await _hubContext.Clients.Group($"payment_{id}")
+                        .SendAsync("PaymentStatusChanged", new
+                        {
+                            paymentId = payment.PaymentId,
+                            status = payment.Status,
+                            completedDate = payment.PaymentCompletedDate
+                        });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send SignalR notification for payment {PaymentId}", id);
+                }
+
+                return Ok(new { message = "Payment marked as completed", paymentId = payment.PaymentId, status = payment.Status });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error completing payment {PaymentId}", id);
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 

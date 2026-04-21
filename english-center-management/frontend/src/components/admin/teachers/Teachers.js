@@ -397,17 +397,17 @@ const Teachers = () => {
         );
       }
     },
-    {
-      field: 'hourlyRate',
-      headerName: 'Lương/Giờ',
-      width: 140,
-      headerAlign: 'right',
-      align: 'right',
+    { 
+      field: 'hourlyRate', 
+      headerName: 'Lương/Giờ', 
+      width: 130,
+      headerAlign: 'center',
+      align: 'center',
       renderCell: (params) => (
-        <Typography variant="body2" fontWeight={700} color="primary.main">
+        <Typography variant="body2" fontWeight={700} sx={{ color: 'primary.main' }}>
           {formatCurrency(params.value)}
         </Typography>
-      ),
+      )
     },
     {
       field: 'isActive',
@@ -706,22 +706,7 @@ const Teachers = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="hourlyRate"
-                label="Lương Theo Giờ (VND) *"
-                value={formatInputCurrency(formData.hourlyRate)}
-                onChange={handleInputChange}
-                error={!!errors.hourlyRate}
-                helperText={errors.hourlyRate}
-                placeholder="0"
-                fullWidth
-                InputProps={{ 
-                  sx: { borderRadius: 2.5 },
-                  endAdornment: <InputAdornment position="end">đ/giờ</InputAdornment>
-                }}
-              />
-            </Grid>
+          
             <Grid item xs={12}>
               <TextField
                 name="qualifications"
