@@ -264,18 +264,27 @@ const StudentPayment = () => {
   const loadEnrolledCourses = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      console.log('Loading enrolled courses for studentId:', studentId, 'forceRefresh:', forceRefresh);
+      console.log('Loading pending payments for studentId:', studentId, 'forceRefresh:', forceRefresh);
 
       // Add cache busting parameter if force refresh is requested
       const url = forceRefresh
-        ? `/payments/student/${studentId}/enrolled-courses?t=${Date.now()}`
-        : `/payments/student/${studentId}/enrolled-courses`;
+        ? `/payments/student/${studentId}/pending-payments?t=${Date.now()}`
+        : `/payments/student/${studentId}/pending-payments`;
 
       const response = await axiosInstance.get(url);
-      console.log('Enrolled courses response:', response.data);
-      setEnrolledCourses(response.data);
+      console.log('Pending payments response:', response.data);
+
+      // Transform response to match expected format
+      const transformedData = {
+        studentId: response.data.studentId,
+        studentName: response.data.studentName,
+        courses: response.data.courses,
+        totalSelectedAmount: response.data.totalPendingAmount
+      };
+
+      setEnrolledCourses(transformedData);
     } catch (error) {
-      console.error('Error loading enrolled courses:', error);
+      console.error('Error loading pending payments:', error);
       console.error('Error details:', error.response?.data);
     } finally {
       setLoading(false);
@@ -459,12 +468,12 @@ const StudentPayment = () => {
 
       <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Các Khóa Học Đã Đăng Ký
+          Các Khóa Học Cần Thanh Toán
         </Typography>
 
         {!enrolledCourses || enrolledCourses.courses?.length === 0 ? (
           <Alert severity="info">
-            Bạn chưa đăng ký khóa học nào.
+            Bạn không có khóa học nào cần thanh toán.
           </Alert>
         ) : (
           <>
@@ -537,16 +546,16 @@ const StudentPayment = () => {
                 <Checkbox
                   indeterminate={
                     selectedCourses.length > 0 &&
-                    selectedCourses.length < enrolledCourses?.courses.filter(c => !c.isPaid).length
+                    selectedCourses.length < enrolledCourses?.courses?.length
                   }
                   checked={
-                    selectedCourses.length === enrolledCourses?.courses?.filter(c => !c.isPaid).length &&
+                    selectedCourses.length === enrolledCourses?.courses?.length &&
                     selectedCourses.length > 0
                   }
                   onChange={(e) => {
                     if (e.target.checked) {
                       setSelectedCourses(
-                        enrolledCourses?.courses?.filter(c => !c.isPaid).map(c => c.courseId) || []
+                        enrolledCourses?.courses?.map(c => c.courseId) || []
                       );
                     } else {
                       setSelectedCourses([]);
@@ -555,7 +564,7 @@ const StudentPayment = () => {
                   sx={{ mr: 1 }}
                 />
                 <Typography variant="body2" component="span">
-                  Chọn tất cả ({enrolledCourses?.courses?.filter(c => !c.isPaid).length} khóa chưa thanh toán)
+                  Chọn tất cả ({enrolledCourses?.courses?.length} khóa học)
                 </Typography>
               </Box>
             </Box>
@@ -570,16 +579,16 @@ const StudentPayment = () => {
                         <Checkbox
                           indeterminate={
                             selectedCourses.length > 0 &&
-                            selectedCourses.length < enrolledCourses?.courses.filter(c => !c.isPaid).length
+                            selectedCourses.length < enrolledCourses?.courses?.length
                           }
                           checked={
-                            selectedCourses.length === enrolledCourses?.courses?.filter(c => !c.isPaid).length &&
+                            selectedCourses.length === enrolledCourses?.courses?.length &&
                             selectedCourses.length > 0
                           }
                           onChange={(e) => {
                             if (e.target.checked) {
                               setSelectedCourses(
-                                enrolledCourses?.courses?.filter(c => !c.isPaid).map(c => c.courseId) || []
+                                enrolledCourses?.courses?.map(c => c.courseId) || []
                               );
                             } else {
                               setSelectedCourses([]);
