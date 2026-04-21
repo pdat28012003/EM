@@ -171,15 +171,29 @@ const StudentPayment = () => {
           await connectionRef.current.start();
           console.log('Connected to payment hub');
 
-          // Try to join group immediately after connection if we have current payment
+          // Always join student-specific group to receive payment updates
+          if (studentId) {
+            console.log('Joining student payment group:', studentId);
+            await connectionRef.current.invoke('JoinStudentPaymentGroup', studentId.toString());
+          }
+
+          // Try to join payment group immediately after connection if we have current payment
           if (currentPayment) {
             console.log('Joining payment group after connection:', currentPayment.paymentId);
             await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
           }
-        } else if (connectionRef.current.state === 'Connected' && currentPayment) {
-          // Join group if connection is already established and we have payment
-          console.log('Joining payment group (already connected):', currentPayment.paymentId);
-          await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
+        } else if (connectionRef.current.state === 'Connected') {
+          // Join student group if connection is already established
+          if (studentId) {
+            console.log('Joining student payment group (already connected):', studentId);
+            await connectionRef.current.invoke('JoinStudentPaymentGroup', studentId.toString());
+          }
+
+          // Join payment group if we have payment
+          if (currentPayment) {
+            console.log('Joining payment group (already connected):', currentPayment.paymentId);
+            await connectionRef.current.invoke('JoinPaymentGroup', currentPayment.paymentId.toString());
+          }
         }
       } catch (err) {
         if (err.name !== 'AbortError') {
@@ -197,11 +211,29 @@ const StudentPayment = () => {
       const pId = data.paymentId || data.PaymentId;
       const status = data.status || data.Status;
 
-      if (currentPayment && pId === currentPayment.paymentId) {
-        setPaymentStatus(status);
-        if (status === 'Completed' || status === 'Complete') {
+      // Always refresh data when payment is completed, regardless of currentPayment
+      if (status === 'Completed' || status === 'Complete') {
+        console.log('Payment completed detected, refreshing data...');
+
+        // Force refresh enrolled courses to remove paid courses
+        loadEnrolledCourses(true);
+
+        // Also refresh payment history
+        loadPaymentHistory(true);
+
+        // Clear selected courses
+        setSelectedCourses([]);
+
+        // If this is the current payment, handle success
+        if (currentPayment && pId === currentPayment.paymentId) {
+          setPaymentStatus(status);
           handlePaymentSuccess();
         }
+      }
+
+      // Handle current payment status updates
+      if (currentPayment && pId === currentPayment.paymentId) {
+        setPaymentStatus(status);
       }
     };
 
@@ -215,7 +247,7 @@ const StudentPayment = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPayment]);
+  }, [currentPayment, studentId]);
 
   // Auto-join SignalR group when currentPayment changes
   useEffect(() => {

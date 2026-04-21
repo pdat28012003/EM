@@ -13,5 +13,15 @@ namespace EnglishCenter.API.Hubs
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"payment_{paymentId}");
         }
+
+        public async Task JoinStudentPaymentGroup(string studentId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"student_{studentId}");
+        }
+
+        public async Task LeaveStudentPaymentGroup(string studentId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"student_{studentId}");
+        }
     }
 }

@@ -458,6 +458,17 @@ namespace EnglishCenter.API.Controllers
                                         completedDate = payment.PaymentCompletedDate
                                     });
 
+                                // Also send to student group for real-time UI updates
+                                _logger.LogInformation("Sending SignalR PaymentStatusChanged for Payment {PaymentId} to group student_{StudentId}", paymentId, payment.StudentId);
+                                await _hubContext.Clients.Group($"student_{payment.StudentId}")
+                                    .SendAsync("PaymentStatusChanged", new
+                                    {
+                                        paymentId = payment.PaymentId,
+                                        studentId = payment.StudentId,
+                                        status = payment.Status,
+                                        completedDate = payment.PaymentCompletedDate
+                                    });
+
                                 _logger.LogInformation("Payment {PaymentId} marked as Completed and SignalR sent", paymentId);
                             }
                             else
