@@ -28,16 +28,24 @@ namespace EnglishCenter.API.Services
             var keys = GetKeys(userId, teacherId, studentId);
             var json = JsonSerializer.Serialize(notification);
             var message = $"event: notification\ndata: {json}\n\n";
-            
+
+            // Track channels that already received this message to avoid duplicates
+            var notifiedChannels = new HashSet<Channel<string>>();
+
             foreach (var key in keys)
             {
                 if (_subscriptions.TryGetValue(key, out var channels))
                 {
                     foreach (var channel in channels.ToList())
                     {
+                        // Skip if this channel already received the message
+                        if (notifiedChannels.Contains(channel))
+                            continue;
+
                         try
                         {
                             await channel.Writer.WriteAsync(message);
+                            notifiedChannels.Add(channel);
                         }
                         catch
                         {

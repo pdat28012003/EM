@@ -62,13 +62,13 @@ const SecurityForm = ({ loading, onChangePassword }) => {
     <Paper
       elevation={0}
       sx={{
-        p: 4,
+        p: { xs: 2, md: 3 },
         borderRadius: 3,
         border: '1px solid rgba(226, 232, 240, 0.8)',
         boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <Box
           sx={{
             width: 48,
@@ -95,7 +95,7 @@ const SecurityForm = ({ loading, onChangePassword }) => {
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       <Box component="form">
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -206,7 +206,7 @@ const SecurityForm = ({ loading, onChangePassword }) => {
           </Grid>
         </Grid>
 
-        <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="contained"
             onClick={handleSubmit}

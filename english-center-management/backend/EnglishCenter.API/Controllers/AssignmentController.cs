@@ -8,6 +8,7 @@ using EnglishCenter.API.Services;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Hosting;
 using System.Text.Json;
+using System.Collections.Generic;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -19,12 +20,14 @@ namespace EnglishCenter.API.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
         private readonly IActivityLogService _activityLogService;
+        private readonly INotificationService _notificationService;
 
-        public AssignmentController(ApplicationDbContext context, IWebHostEnvironment environment, IActivityLogService activityLogService)
+        public AssignmentController(ApplicationDbContext context, IWebHostEnvironment environment, IActivityLogService activityLogService, INotificationService notificationService)
         {
             _context = context;
             _environment = environment;
             _activityLogService = activityLogService;
+            _notificationService = notificationService;
         }
 
         /// <summary>
@@ -35,6 +38,14 @@ namespace EnglishCenter.API.Controllers
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
         /// <param name="status">Assignment status (Trạng thái bài tập)</param>
+        /// <param name="type">Assignment type (Loại bài tập)</param>
+        /// <param name="skillId">Skill ID (ID kỹ năng)</param>
+        /// <param name="sortBy">Sort by field: dueDate|newest|name (Sắp xếp theo)</param>
+        /// <param name="sortOrder">Sort order: asc|desc (Thứ tự sắp xếp)</param>
+        /// <param name="search">Search query (Từ khóa tìm kiếm)</param>
+        /// <param name="hasSubmissions">Filter by has submissions (Có bài nộp)</param>
+        /// <param name="fullyGraded">Filter by fully graded (Chấm xong)</param>
+        /// <param name="hasPending">Filter by has pending (Chờ chấm)</param>
         /// <returns>Paginated list of assignments (Danh sách bài tập phân trang)</returns>
         [HttpGet]
         public async Task<ActionResult<PagedResult<AssignmentDto>>> GetAssignments(
@@ -42,7 +53,15 @@ namespace EnglishCenter.API.Controllers
             [FromQuery] int? studentId = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
-            [FromQuery] string? status = null)
+            [FromQuery] string? status = null,
+            [FromQuery] string? type = null,
+            [FromQuery] int? skillId = null,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortOrder = null,
+            [FromQuery] string? search = null,
+            [FromQuery] bool? hasSubmissions = null,
+            [FromQuery] bool? fullyGraded = null,
+            [FromQuery] bool? hasPending = null)
         {
             try
             {
@@ -65,9 +84,82 @@ namespace EnglishCenter.API.Controllers
                     query = query.Where(a => a.Status == status);
                 }
 
+                if (!string.IsNullOrEmpty(type))
+                {
+                    query = query.Where(a => a.Type == type);
+                }
+
+                if (skillId.HasValue)
+                {
+                    if (skillId.Value == 0)
+                    {
+                        // skillId = 0 means no skill assigned
+                        query = query.Where(a => a.SkillId == null);
+                    }
+                    else
+                    {
+                        query = query.Where(a => a.SkillId == skillId.Value);
+                    }
+                }
+
+                // Include submissions for filtering
+                query = query.Include(a => a.Submissions);
+
+                // Filter by has submissions
+                if (hasSubmissions.HasValue)
+                {
+                    if (hasSubmissions.Value)
+                    {
+                        query = query.Where(a => a.Submissions.Any());
+                    }
+                    else
+                    {
+                        query = query.Where(a => !a.Submissions.Any());
+                    }
+                }
+
+                // Filter by fully graded (has submissions and all graded)
+                if (fullyGraded.HasValue && fullyGraded.Value)
+                {
+                    query = query.Where(a => a.Submissions.Any() && 
+                        a.Submissions.All(s => s.Status == "Graded"));
+                }
+
+                // Filter by has pending (has submissions and some not graded)
+                if (hasPending.HasValue && hasPending.Value)
+                {
+                    query = query.Where(a => a.Submissions.Any(s => s.Status != "Graded"));
+                }
+
+                // Search by title or description
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var searchLower = search.ToLower();
+                    query = query.Where(a => 
+                        a.Title.ToLower().Contains(searchLower) || 
+                        a.Description.ToLower().Contains(searchLower));
+                }
+
+                // Dynamic sorting
+                var isDescending = sortOrder?.ToLower() == "desc";
+                
+                if (sortBy == "dueDate")
+                {
+                    query = query.OrderBy(a => a.DueDate);
+                }
+                else if (sortBy == "name")
+                {
+                    query = isDescending 
+                        ? query.OrderByDescending(a => a.Title) 
+                        : query.OrderBy(a => a.Title);
+                }
+                else if (sortBy == "newest" || string.IsNullOrEmpty(sortBy))
+                {
+                    query = query.OrderByDescending(a => a.CreatedAt);
+                }
+
                 var totalCount = await query.CountAsync();
                 var assignments = await query
-                    .OrderByDescending(a => a.CreatedAt)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .Select(a => new AssignmentDto
@@ -249,9 +341,15 @@ namespace EnglishCenter.API.Controllers
                     .SelectMany(c => c.ParticipantStudents)
                     .ToListAsync();
 
+                // Get teacher's UserId to exclude from student notifications
+                var teacher = await _context.Teachers.FindAsync(assignment.TeacherId);
+                var teacherUserId = teacher?.UserId;
+
+                var studentNotifications = new List<Notification>();
                 foreach (var student in studentsInCurriculum)
                 {
-                    if (student.UserId.HasValue)
+                    // Skip if student is the teacher who created this assignment
+                    if (student.UserId.HasValue && student.UserId != teacherUserId)
                     {
                         var notification = new Notification
                         {
@@ -265,14 +363,15 @@ namespace EnglishCenter.API.Controllers
                             CreatedAt = DateTime.UtcNow
                         };
                         _context.Notifications.Add(notification);
+                        studentNotifications.Add(notification);
                     }
                 }
 
                 // Create notification for teacher (their own activity)
-                var teacher = await _context.Teachers.FindAsync(assignment.TeacherId);
+                Notification? teacherNotification = null;
                 if (teacher?.UserId != null)
                 {
-                    var teacherNotification = new Notification
+                    teacherNotification = new Notification
                     {
                         UserId = teacher.UserId.Value,
                         Title = "Đã tạo bài tập mới",
@@ -280,7 +379,7 @@ namespace EnglishCenter.API.Controllers
                         Type = "TeacherCreatedAssignment",
                         RelatedId = assignment.AssignmentId,
                         RelatedType = "Assignment",
-                        IsRead = true,
+                        IsRead = false,
                         CreatedAt = DateTime.UtcNow
                     };
                     _context.Notifications.Add(teacherNotification);
@@ -297,6 +396,38 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Send SSE notifications to students
+                foreach (var notification in studentNotifications)
+                {
+                    await _notificationService.NotifyAsync(notification.UserId!.Value, null, null, new
+                    {
+                        notification.NotificationId,
+                        notification.Title,
+                        notification.Message,
+                        notification.Type,
+                        notification.RelatedId,
+                        notification.RelatedType,
+                        notification.IsRead,
+                        notification.CreatedAt
+                    });
+                }
+
+                // Send SSE notification to teacher
+                if (teacherNotification != null && teacher?.UserId != null)
+                {
+                    await _notificationService.NotifyAsync(teacher.UserId.Value, teacher.TeacherId, null, new
+                    {
+                        teacherNotification.NotificationId,
+                        teacherNotification.Title,
+                        teacherNotification.Message,
+                        teacherNotification.Type,
+                        teacherNotification.RelatedId,
+                        teacherNotification.RelatedType,
+                        teacherNotification.IsRead,
+                        teacherNotification.CreatedAt
+                    });
+                }
 
                 var assignmentDto = new AssignmentDto
                 {
@@ -700,14 +831,20 @@ namespace EnglishCenter.API.Controllers
         /// <param name="assignmentId">Assignment ID (ID bài tập)</param>
         /// <param name="page">Page number (Số trang)</param>
         /// <param name="pageSize">Page size (Kích thước trang)</param>
-        /// <param name="status">Submission status (Trạng thái bài nộp)</param>
+        /// <param name="status">Submission status: Submitted|Graded|Late (Trạng thái bài nộp)</param>
+        /// <param name="search">Search by student name (Tìm kiếm theo tên học viên)</param>
+        /// <param name="sortBy">Sort by: submittedAt|score|studentName (Sắp xếp theo)</param>
+        /// <param name="sortOrder">Sort order: asc|desc (Thứ tự sắp xếp)</param>
         /// <returns>Paginated list of submissions (Danh sách bài nộp phân trang)</returns>
         [HttpGet("{assignmentId}/submissions")]
         public async Task<ActionResult<PagedResult<AssignmentSubmissionDto>>> GetSubmissions(
             int assignmentId,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
-            [FromQuery] string? status = null)
+            [FromQuery] string? status = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortOrder = null)
         {
             try
             {
@@ -721,14 +858,41 @@ namespace EnglishCenter.API.Controllers
                     .Where(s => s.AssignmentId == assignmentId)
                     .AsQueryable();
 
+                // Filter by status
                 if (!string.IsNullOrEmpty(status))
                 {
                     query = query.Where(s => s.Status == status);
                 }
 
+                // Search by student name
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var searchLower = search.ToLower();
+                    query = query.Where(s => s.Student != null && 
+                        s.Student.FullName.ToLower().Contains(searchLower));
+                }
+
+                // Get total count before sorting and paging
                 var totalCount = await query.CountAsync();
+
+                // Dynamic sorting
+                var isDescending = sortOrder?.ToLower() == "desc";
+                
+                query = sortBy?.ToLower() switch
+                {
+                    "score" => isDescending 
+                        ? query.OrderByDescending(s => s.Score ?? 0) 
+                        : query.OrderBy(s => s.Score ?? 0),
+                    "studentname" => isDescending 
+                        ? query.OrderByDescending(s => s.Student != null ? s.Student.FullName : "") 
+                        : query.OrderBy(s => s.Student != null ? s.Student.FullName : ""),
+                    "submittedat" => isDescending 
+                        ? query.OrderByDescending(s => s.SubmittedAt) 
+                        : query.OrderBy(s => s.SubmittedAt),
+                    _ => query.OrderByDescending(s => s.SubmittedAt) // Default: newest first
+                };
+
                 var submissions = await query
-                    .OrderByDescending(s => s.SubmittedAt)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .Select(s => new AssignmentSubmissionDto
@@ -751,13 +915,38 @@ namespace EnglishCenter.API.Controllers
                     })
                     .ToListAsync();
 
+                // Calculate stats from all submissions
+                var allSubmissions = await _context.AssignmentSubmissions
+                    .Where(s => s.AssignmentId == assignmentId)
+                    .ToListAsync();
+                var gradedCount = allSubmissions.Count(s => s.Status == "Graded");
+                var pendingCount = allSubmissions.Count(s => s.Status != "Graded");
+                var lateCount = allSubmissions.Count(s => s.Status == "Late");
+                var totalSubmissions = allSubmissions.Count;
+                
+                var scores = allSubmissions
+                    .Where(s => s.Score.HasValue)
+                    .Select(s => (decimal)s.Score!)
+                    .ToList();
+                var averageScore = scores.Any() 
+                    ? scores.Average().ToString("F1") 
+                    : "0";
+
                 var pagedResult = new PagedResult<AssignmentSubmissionDto>
                 {
                     Data = submissions,
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
-                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                    Metadata = new Dictionary<string, object>
+                    {
+                        ["gradedCount"] = gradedCount,
+                        ["pendingCount"] = pendingCount,
+                        ["lateCount"] = lateCount,
+                        ["total"] = totalSubmissions,
+                        ["averageScore"] = averageScore
+                    }
                 };
 
                 return Ok(pagedResult);

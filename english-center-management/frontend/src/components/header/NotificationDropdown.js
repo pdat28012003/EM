@@ -38,8 +38,19 @@ const NotificationDropdown = () => {
     loadUnreadCount();
     connectSSE();
 
+    // Listen for refresh-notifications event from other components
+    const handleRefreshNotifications = () => {
+      console.log('[Notifications] Refresh requested');
+      loadUnreadCount();
+      if (hasLoaded.current) {
+        loadNotifications();
+      }
+    };
+    window.addEventListener('refresh-notifications', handleRefreshNotifications);
+
     return () => {
       disconnectSSE();
+      window.removeEventListener('refresh-notifications', handleRefreshNotifications);
     };
   }, []);
 
@@ -59,7 +70,18 @@ const NotificationDropdown = () => {
         try {
           const newNotification = JSON.parse(event.data);
           console.log('[Notifications] SSE new notification:', newNotification);
-          setNotifications((prev) => [newNotification, ...prev]);
+
+          // Avoid duplicates: check if notification already exists
+          setNotifications((prev) => {
+            const exists = prev.some(n =>
+              n.notificationId === newNotification.notificationId ||
+              (n.title === newNotification.title &&
+               n.message === newNotification.message &&
+               Math.abs(new Date(n.createdAt) - new Date(newNotification.createdAt)) < 1000)
+            );
+            if (exists) return prev;
+            return [newNotification, ...prev];
+          });
           setUnreadCount((prev) => prev + 1);
         } catch (err) {
           console.error('Error parsing SSE data:', err);
@@ -218,7 +240,10 @@ const NotificationDropdown = () => {
   };
 
   const formatTime = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+
     const now = new Date();
     const diff = Math.floor((now - date) / 1000 / 60);
 
@@ -274,9 +299,9 @@ const NotificationDropdown = () => {
         <Divider />
 
         {/* List */}
-        {notifications.map((n) => (
+        {notifications.map((n, index) => (
           <Box
-            key={n.notificationId}
+            key={n.notificationId || `notification-${index}`}
             onClick={() => handleItemClick(n)}
             sx={{
               display: 'flex',

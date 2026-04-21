@@ -95,9 +95,18 @@ const ProfileForm = ({
   onEditToggle
 }) => {
   return (
-    <Box component="form">
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2, md: 3 },
+        borderRadius: 3,
+        border: '1px solid rgba(226, 232, 240, 0.8)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+      }}
+    >
+      <Box component="form">
       {!editMode && (
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="contained"
             startIcon={<Edit />}
@@ -110,12 +119,12 @@ const ProfileForm = ({
               boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
             }}
           >
-            Chỉnh sửa thông tin
+            Chỉnh sửa
           </Button>
         </Box>
       )}
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         <Grid item xs={12}>
           <ProfileField
             label="Họ và tên"
@@ -161,7 +170,7 @@ const ProfileForm = ({
       </Grid>
 
       {editMode && (
-        <Box sx={{ mt: 4, display: 'flex', gap: 2, pt: 2, borderTop: '1px solid #eee', justifyContent: 'flex-end' }}>
+        <Box sx={{ mt: 3, display: 'flex', gap: 2, pt: 2, borderTop: '1px solid rgba(0,0,0,0.08)', justifyContent: 'flex-end' }}>
           <Button
             variant="outlined"
             color="inherit"
@@ -191,7 +200,8 @@ const ProfileForm = ({
           </Button>
         </Box>
       )}
-    </Box>
+      </Box>
+    </Paper>
   );
 };
 

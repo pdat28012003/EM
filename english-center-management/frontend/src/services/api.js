@@ -322,6 +322,9 @@ export const gradesAPI = {
 
   getByCurriculum: (curriculumId) => api.get(`/grade/curriculum/${curriculumId}`),
 
+  // Filter API with search and filter options
+  getFiltered: (curriculumId, filters = {}) => api.get(`/grade/filter/${curriculumId}`, { params: filters }),
+
   create: (data) => api.post('/grade', data),
 
   update: (id, data) => api.put(`/grade/${id}`, data),
@@ -478,7 +481,12 @@ export const curriculumAPI = {
 
   getAvailableStudentsForSession: (sessionId) => api.get(`/curriculum/session/${sessionId}/available-students`),
 
-  getCurriculumsByTeacher: (teacherId) => api.get(`/curriculum/teacher/${teacherId}`),
+  getCurriculumsByTeacher: (teacherId, status) => {
+    const url = status 
+      ? `/curriculum/teacher/${teacherId}?status=${encodeURIComponent(status)}`
+      : `/curriculum/teacher/${teacherId}`;
+    return api.get(url);
+  },
 
   getStudentsByTeacherSessions: (teacherId) => api.get(`/curriculum/teacher/${teacherId}/students`),
 
@@ -499,6 +507,8 @@ export const sessionAttendanceAPI = {
   getAll: (params) => api.get('/sessionattendance', { params }),
 
   create: (data) => api.post('/sessionattendance', data),
+
+  createBulk: (data) => api.post('/sessionattendance/bulk', data),
 
   update: (id, data) => api.put(`/sessionattendance/${id}`, data),
 

@@ -1487,11 +1487,11 @@ namespace EnglishCenter.API.Controllers
         /// Gets all curriculums for a specific teacher. (Lấy danh sách khóa học của giảng viên.)
         /// </summary>
         [HttpGet("teacher/{teacherId}")]
-        public async Task<ActionResult<IEnumerable<object>>> GetCurriculumsByTeacher(int teacherId)
+        public async Task<ActionResult<IEnumerable<object>>> GetCurriculumsByTeacher(int teacherId, [FromQuery] string? status = null)
         {
             try
             {
-                var curriculums = await _context.Curriculums
+                var query = _context.Curriculums
                     .Include(c => c.CurriculumCourses)
                         .ThenInclude(cc => cc.Course)
                     .Include(c => c.ParticipantStudents)
@@ -1502,6 +1502,26 @@ namespace EnglishCenter.API.Controllers
                         .ThenInclude(cd => cd.CurriculumSessions)
                             .ThenInclude(cs => cs.Teacher)
                     .Where(c => c.CurriculumDays.Any(cd => cd.CurriculumSessions.Any(cs => cs.TeacherId == teacherId)))
+                    .AsQueryable();
+
+                // Apply status filter if provided
+                if (!string.IsNullOrEmpty(status))
+                {
+                    if (status == "Active")
+                    {
+                        query = query.Where(c => c.Status == "Active" && c.EndDate >= DateTime.UtcNow);
+                    }
+                    else if (status == "Ended")
+                    {
+                        query = query.Where(c => c.Status == "Ended" || (c.Status == "Active" && c.EndDate < DateTime.UtcNow) || c.Status == "Completed" || c.Status == "Cancelled");
+                    }
+                    else
+                    {
+                        query = query.Where(c => c.Status == status);
+                    }
+                }
+
+                var curriculums = await query
                     .Select(c => new
                     {
                         curriculumId = c.CurriculumId,
@@ -1509,7 +1529,7 @@ namespace EnglishCenter.API.Controllers
                         courseName = string.Join(", ", c.CurriculumCourses.Select(cc => cc.Course.CourseName)),
                         startDate = c.StartDate,
                         endDate = c.EndDate,
-                        status = c.Status,
+                        status = (c.Status == "Active" && c.EndDate < DateTime.UtcNow) ? "Ended" : c.Status,
                         roomName = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Where(cs => cs.TeacherId == teacherId).Select(cs => cs.AssignedRoom!.RoomName).FirstOrDefault(),
                         teacherName = c.CurriculumDays.SelectMany(cd => cd.CurriculumSessions).Where(cs => cs.TeacherId == teacherId).Select(cs => cs.Teacher!.FullName).FirstOrDefault(),
                         currentStudents = c.ParticipantStudents.Count,

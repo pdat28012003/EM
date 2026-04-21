@@ -82,17 +82,18 @@ const Profile = () => {
   }
 
   return (
-    <Box sx={{ backgroundColor: '#f8fafc', py: 4 }}>
-      <Container maxWidth="md">
+    <Box sx={{ backgroundColor: '#f8fafc', py: 3 }}>
+      <Container maxWidth="lg">
         <Paper
           elevation={0}
           sx={{
-            p: 4,
-            borderRadius: 4,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.05)'
+            p: { xs: 2, md: 3 },
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+            border: '1px solid rgba(0,0,0,0.06)'
           }}
         >
-          <Typography variant="h5" fontWeight="bold" sx={{ mb: 4 }}>
+          <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>
             Hồ sơ của tôi
           </Typography>
 
@@ -100,14 +101,19 @@ const Profile = () => {
             value={activeTab}
             onChange={handleTabChange}
             sx={{
-              mb: 4,
+              mb: 3,
               '& .MuiTab-root': {
                 textTransform: 'none',
                 fontWeight: 600,
-                fontSize: '1rem'
+                fontSize: '0.95rem',
+                minHeight: 44
+              },
+              '& .Mui-selected': {
+                color: 'primary.main'
               },
               '& .MuiTabs-indicator': {
-                borderRadius: 2
+                height: 3,
+                borderRadius: '3px 3px 0 0'
               }
             }}
           >
@@ -118,7 +124,7 @@ const Profile = () => {
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-          <Grid container spacing={3} sx={{ alignItems: 'stretch' }}>
+          <Grid container spacing={3} alignItems="flex-start">
             {/* Left - Profile Card */}
             <Grid item xs={12} md={4}>
               <ProfileCard

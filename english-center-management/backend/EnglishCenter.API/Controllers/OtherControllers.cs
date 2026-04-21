@@ -409,18 +409,32 @@ namespace EnglishCenter.API.Controllers
         /// <summary>
         /// Gets teacher dashboard statistics with week-over-week comparison. (Lấy thống kê dashboard giảng viên với so sánh tuần qua.)
         /// </summary>
-        /// <param name="teacherId">Teacher ID (ID giảng viên)</param>
+        /// <param name="userId">User ID (ID người dùng)</param>
         /// <returns>Teacher dashboard statistics (Thống kê dashboard giảng viên)</returns>
-        [HttpGet("teacher-dashboard/{teacherId}")]
-        public async Task<ActionResult<DashboardStatisticsDto>> GetTeacherDashboardStatistics(int teacherId)
+        [HttpGet("teacher-dashboard/{userId}")]
+        public async Task<ActionResult<DashboardStatisticsDto>> GetTeacherDashboardStatistics(int userId)
         {
             var now = DateTime.Now;
             var startOfThisWeek = StartOfWeek(now);
             var startOfLastWeek = startOfThisWeek.AddDays(-7);
             var endOfLastWeek = startOfThisWeek.AddSeconds(-1);
 
-            // Get teacher's curriculums - TODO: Curriculum doesn't have TeacherId directly
-            // Need to get from CurriculumSessions instead
+            // Tìm Teacher theo UserId để lấy đúng TeacherId
+            var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == userId);
+            if (teacher == null)
+            {
+                return Ok(new DashboardStatisticsDto
+                {
+                    TotalCurriculums = new StatisticItem { CurrentValue = 0, ChangeFromLastWeek = 0, ChangeType = "increase" },
+                    TotalStudents = new StatisticItem { CurrentValue = 0, ChangeFromLastWeek = 0, ChangeType = "increase" },
+                    PendingAssignments = new StatisticItem { CurrentValue = 0, ChangeFromLastWeek = 0, ChangeType = "increase" },
+                    WeeklySchedule = new StatisticItem { CurrentValue = 0, ChangeFromLastWeek = 0, ChangeType = "increase" }
+                });
+            }
+            
+            var teacherId = teacher.TeacherId;
+
+            // Get teacher's curriculums from CurriculumSessions
             var teacherCurriculums = await _context.CurriculumSessions
                 .Where(cs => cs.TeacherId == teacherId)
                 .Select(cs => cs.CurriculumDay.Curriculum)
@@ -429,13 +443,10 @@ namespace EnglishCenter.API.Controllers
 
             var teacherCurriculumIds = teacherCurriculums.Select(c => c.CurriculumId).ToList();
 
-            // Total Curriculums for this teacher
-            var totalCurriculumsThisWeek = teacherCurriculums
-                .Where(c => c.StartDate >= startOfThisWeek && c.StartDate <= now)
-                .Count();
-            var totalCurriculumsLastWeek = teacherCurriculums
-                .Where(c => c.StartDate >= startOfLastWeek && c.StartDate <= endOfLastWeek)
-                .Count();
+            // Total Curriculums for this teacher (tổng tất cả)
+            var totalCurriculumsCount = teacherCurriculums.Count;
+            var totalCurriculumsThisWeek = totalCurriculumsCount; // So sánh tuần này
+            var totalCurriculumsLastWeek = totalCurriculumsCount; // So sánh tuần trước
 
             // Total Students in teacher's curriculums (via enrollments)
             var totalStudentsThisWeek = await _context.Enrollments

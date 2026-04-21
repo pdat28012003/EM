@@ -23,8 +23,8 @@ const ProfileCard = ({ user, avatarPreview, uploading, fileInputRef, onAvatarCli
   const avatarSrc = avatarPreview || user?.avatar;
   
   return (
-    <Card sx={{ height: '100%', minHeight: 450, borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-      <CardContent sx={{ textAlign: 'center', p: 4, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+    <Card sx={{ height: '100%', minHeight: 400, borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.06)' }}>
+      <CardContent sx={{ textAlign: 'center', p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <Box sx={{ position: 'relative', display: 'flex', justifyContent: 'center', mb: 2, width: 140, height: 140, mx: 'auto' }}>
           <Avatar
             sx={{

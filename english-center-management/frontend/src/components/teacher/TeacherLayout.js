@@ -16,7 +16,6 @@ import {
   Menu as MuiMenu,
   MenuItem,
   Avatar,
-  InputBase,
   Tooltip,
   Divider,
 } from '@mui/material';
@@ -27,10 +26,10 @@ import {
   FileText,
   LogOut,
   Menu as MenuIcon,
-  Search,
   ChevronDown,
   Home,
   GraduationCap,
+  User,
 } from 'lucide-react';
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -307,40 +306,6 @@ const TeacherLayout = ({ children }) => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{
-              display: { xs: 'none', sm: 'flex' },
-              alignItems: 'center',
-              bgcolor: 'rgba(0, 0, 0, 0.04)',
-              borderRadius: '12px',
-              px: 1.5,
-              py: 0.5,
-              mr: 1,
-              border: '1px solid transparent',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              '&:focus-within': {
-                bgcolor: 'white',
-                borderColor: 'primary.main',
-                boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
-              }
-            }}>
-              <Search size={16} color="#64748b" />
-              <InputBase
-                placeholder="Tìm kiem..."
-                sx={{
-                  ml: 1,
-                  fontSize: '0.85rem',
-                  color: 'text.primary',
-                  width: 150,
-                  transition: 'width 0.3s',
-                  '& .MuiInputBase-input::placeholder': {
-                    color: 'text.secondary',
-                    opacity: 0.5
-                  },
-                  '&:focus-within': { width: 220 }
-                }}
-              />
-            </Box>
-
             <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
               <NotificationDropdown />
             </Box>
@@ -350,30 +315,46 @@ const TeacherLayout = ({ children }) => {
               sx={{
                 textTransform: 'none',
                 ml: 1,
-                borderRadius: '12px',
-                px: 1,
-                py: 0.5,
-                '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
+                borderRadius: '14px',
+                px: 1.5,
+                py: 0.75,
+                bgcolor: 'transparent',
+                border: '1px solid transparent',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: 'rgba(99, 102, 241, 0.08)',
+                  borderColor: 'rgba(99, 102, 241, 0.2)',
+                },
+                '&:active': {
+                  transform: 'scale(0.98)',
+                }
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
-                  <Typography variant="body2" sx={{ fontWeight: 800, lineHeight: 1, color: 'text.primary' }}>
+                <Avatar
+                  src={user?.avatar || ''}
+                  alt={user?.fullName || 'Avatar'}
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    bgcolor: 'primary.main',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)',
+                    border: '2px solid white',
+                  }}
+                >
+                  {!user?.avatar && (user?.fullName?.[0] || 'G')}
+                </Avatar>
+                <Box sx={{ textAlign: 'left', display: { xs: 'none', sm: 'block' } }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2, color: 'text.primary' }}>
                     {user?.fullName || 'Giáo viên'}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Giáo viên</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, fontSize: '0.75rem' }}>
+                    Giáo viên
+                  </Typography>
                 </Box>
-                <Avatar sx={{
-                  width: 38,
-                  height: 38,
-                  bgcolor: 'primary.main',
-                  fontSize: '0.9rem',
-                  fontWeight: 800,
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
-                }}>
-                  {user?.fullName?.[0] || 'G'}
-                </Avatar>
-                <ChevronDown size={14} color="#64748b" />
+                <ChevronDown size={16} color="#6366f1" style={{ marginLeft: 4 }} />
               </Box>
             </Button>
             <MuiMenu
@@ -381,26 +362,99 @@ const TeacherLayout = ({ children }) => {
               open={Boolean(anchorEl)}
               onClose={handleMenuClose}
               onClick={handleMenuClose}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               PaperProps={{
-                elevation: 3,
+                elevation: 0,
                 sx: {
-                  mt: 1,
-                  borderRadius: '12px',
-                  minWidth: 180,
-                  border: '1px solid rgba(0, 0, 0, 0.05)'
+                  mt: 1.5,
+                  borderRadius: '16px',
+                  minWidth: 200,
+                  overflow: 'visible',
+                  bgcolor: 'background.paper',
+                  boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                  '&:before': {
+                    content: '""',
+                    display: 'block',
+                    position: 'absolute',
+                    top: -6,
+                    right: 20,
+                    width: 12,
+                    height: 12,
+                    bgcolor: 'background.paper',
+                    transform: 'rotate(45deg)',
+                    borderRadius: '2px',
+                    boxShadow: '-2px -2px 4px rgba(0,0,0,0.04)',
+                    zIndex: 0,
+                  },
                 }
               }}
             >
-              <MenuItem onClick={() => { navigate('/teacher/profile'); handleMenuClose(); }} sx={{ py: 1.5 }}>
-                <Avatar sx={{ width: 24, height: 24, mr: 1.5, fontSize: '0.8rem' }}>
-                  {user?.fullName?.[0] || 'G'}
-                </Avatar>
-                <ListItemText>Profile</ListItemText>
+              <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                  {user?.fullName || 'Giáo viên'}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {user?.email || 'teacher@englishcenter.com'}
+                </Typography>
+              </Box>
+              <MenuItem
+                onClick={() => { navigate('/teacher/profile'); handleMenuClose(); }}
+                sx={{
+                  py: 1.25,
+                  px: 2,
+                  mx: 1,
+                  my: 0.5,
+                  borderRadius: '10px',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(99, 102, 241, 0.08)',
+                  }
+                }}
+              >
+                <Box sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '10px',
+                  bgcolor: 'rgba(99, 102, 241, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mr: 1.5
+                }}>
+                  <User size={16} color="#6366f1" />
+                </Box>
+                <ListItemText primary="Trang cá nhân" sx={{ '& .MuiTypography-root': { fontWeight: 500, fontSize: '0.9rem' } }} />
               </MenuItem>
-              <Divider />
-              <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: '#f87171' }}>
-                <LogOut size={18} style={{ marginRight: 12 }} />
-                <ListItemText>Logout</ListItemText>
+              <Divider sx={{ mx: 1.5, my: 0.5 }} />
+              <MenuItem
+                onClick={handleLogout}
+                sx={{
+                  py: 1.25,
+                  px: 2,
+                  mx: 1,
+                  my: 0.5,
+                  borderRadius: '10px',
+                  color: '#ef4444',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(239, 68, 68, 0.08)',
+                  }
+                }}
+              >
+                <Box sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '10px',
+                  bgcolor: 'rgba(239, 68, 68, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mr: 1.5
+                }}>
+                  <LogOut size={16} color="#ef4444" />
+                </Box>
+                <ListItemText primary="Đăng xuất" sx={{ '& .MuiTypography-root': { fontWeight: 500, fontSize: '0.9rem' } }} />
               </MenuItem>
             </MuiMenu>
           </Box>

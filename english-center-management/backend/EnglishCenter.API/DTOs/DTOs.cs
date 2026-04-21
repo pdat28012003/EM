@@ -30,6 +30,7 @@ namespace EnglishCenter.API.DTOs
         public int TotalPages { get; set; }
         public bool HasPreviousPage => Page > 1;
         public bool HasNextPage => Page < TotalPages;
+        public Dictionary<string, object>? Metadata { get; set; }
     }
 
     // Student DTOs
@@ -943,6 +944,7 @@ namespace EnglishCenter.API.DTOs
         public decimal Fee { get; set; }
         public bool IsSelected { get; set; } = false;
         public bool IsPaid { get; set; } = false;
+        public DateTime EnrollmentDate { get; set; }
     }
 
     public class StudentEnrolledCoursesDto
@@ -951,6 +953,14 @@ namespace EnglishCenter.API.DTOs
         public string StudentName { get; set; } = string.Empty;
         public List<CourseForPaymentDto> Courses { get; set; } = new List<CourseForPaymentDto>();
         public decimal TotalSelectedAmount { get; set; } = 0;
+    }
+
+    public class StudentPendingPaymentsDto
+    {
+        public int StudentId { get; set; }
+        public string StudentName { get; set; } = string.Empty;
+        public List<CourseForPaymentDto> Courses { get; set; } = new List<CourseForPaymentDto>();
+        public decimal TotalPendingAmount { get; set; } = 0;
     }
 
     public class CreatePaymentDto
@@ -1083,5 +1093,13 @@ namespace EnglishCenter.API.DTOs
 
         [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
         public string? Notes { get; set; }
+    }
+
+    public class BulkAttendanceResult
+    {
+        public int Total { get; set; }
+        public int Created { get; set; }
+        public int Updated { get; set; }
+        public int Failed { get; set; }
     }
 }

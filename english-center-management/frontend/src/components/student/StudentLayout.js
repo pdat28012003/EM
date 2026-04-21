@@ -16,7 +16,6 @@ import {
   Menu as MuiMenu,
   MenuItem,
   Avatar,
-  InputBase,
   Tooltip,
   Divider,
 } from '@mui/material';
@@ -28,7 +27,6 @@ import {
   CreditCard,
   LogOut,
   Menu as MenuIcon,
-  Search,
   ChevronDown,
   Home,
   GraduationCap
@@ -170,42 +168,43 @@ const StudentLayout = ({ children }) => {
           </IconButton>
         </Tooltip>
       </Box>
-      <List sx={{ px: collapsed ? 0 : 1.5, mt: 0.5, '& .MuiListItem-root': { px: 0.5 } }}>
+      <List sx={{ px: collapsed ? 1 : 2, py: 1, '& .MuiListItem-root': { px: 0, mb: 0.5 } }}>
         {studentMenuItems.map((item) => {
           const isActive = item.path === '/student/dashboard'
             ? location.pathname === '/student/dashboard'
             : location.pathname.startsWith(item.path);
           return (
-            <ListItem key={item.text} disablePadding sx={{ mb: 0 }}>
+            <ListItem key={item.text} disablePadding>
               <ListItemButton
                 component={Link}
                 to={item.path}
                 title={collapsed ? item.text : undefined}
                 sx={{
-                  width: '100%',
-                  borderRadius: '10px',
-                  py: 0.8,
-                  px: collapsed ? 0 : 1.5,
+                  borderRadius: 2,
+                  py: 1,
+                  px: collapsed ? 1 : 1.5,
+                  minHeight: 44,
                   justifyContent: collapsed ? 'center' : 'flex-start',
                   alignItems: 'center',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  bgcolor: isActive ? 'rgba(59, 130, 246, 0.16)' : 'transparent',
-                  color: isActive ? 'text.primary' : 'text.secondary',
+                  transition: 'all 0.2s ease',
+                  bgcolor: isActive ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
+                  color: isActive ? 'primary.main' : 'text.secondary',
                   '&:hover': {
-                    bgcolor: isActive ? 'rgba(59, 130, 246, 0.22)' : 'rgba(0, 0, 0, 0.04)',
-                    color: 'text.primary',
-                    transform: collapsed ? 'none' : 'translateX(6px)',
+                    bgcolor: isActive ? 'rgba(59, 130, 246, 0.18)' : 'rgba(0, 0, 0, 0.04)',
+                    color: isActive ? 'primary.main' : 'text.primary',
                   },
                 }}
               >
                 <ListItemIcon
                   sx={{
-                    minWidth: 0,
+                    minWidth: 36,
+                    width: 36,
+                    height: 36,
                     mr: collapsed ? 0 : 1.5,
                     display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     color: 'inherit',
-                    width: collapsed ? '100%' : 'auto',
                   }}
                 >
                   {React.cloneElement(item.icon, { size: 20, strokeWidth: isActive ? 2.5 : 2 })}
@@ -229,22 +228,22 @@ const StudentLayout = ({ children }) => {
           );
         })}
       </List>
-      <Box sx={{ mt: 'auto', p: 1, borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
+      <Box sx={{ mt: 'auto', px: collapsed ? 1 : 2, py: 1.5, borderTop: '1px solid rgba(0, 0, 0, 0.08)' }}>
         <ListItemButton
           onClick={handleLogout}
           sx={{
-            width: '100%',
-            borderRadius: '10px',
-            py: 0.8,
-            px: collapsed ? 0 : 1.5,
+            borderRadius: 2,
+            py: 1,
+            px: collapsed ? 1 : 1.5,
+            minHeight: 44,
             justifyContent: collapsed ? 'center' : 'flex-start',
             alignItems: 'center',
-            color: '#dc2626',
-            '&:hover': { bgcolor: 'rgba(220, 38, 38, 0.12)' },
+            color: 'error.main',
+            '&:hover': { bgcolor: 'rgba(220, 38, 38, 0.08)' },
           }}
           title={collapsed ? 'Đăng xuất' : undefined}
         >
-          <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 1.5, display: 'flex', justifyContent: 'center', color: 'inherit' }}>
+          <ListItemIcon sx={{ minWidth: 36, width: 36, height: 36, mr: collapsed ? 0 : 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit' }}>
             <LogOut size={18} />
           </ListItemIcon>
           <ListItemText
@@ -277,106 +276,78 @@ const StudentLayout = ({ children }) => {
           borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Toolbar sx={{ justifyContent: 'space-between', minHeight: 64, px: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton
               color="inherit"
               aria-label="open drawer"
               edge="start"
               onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { sm: 'none' } }}
+              sx={{ display: { sm: 'none' } }}
             >
-              <MenuIcon size={24} />
+              <MenuIcon size={22} />
             </IconButton>
             <Box
               onClick={handleNavigateHome}
               sx={{
                 display: { xs: 'none', md: 'flex' },
                 alignItems: 'center',
-                gap: 1.5,
-                ml: 1,
+                gap: 1,
                 cursor: 'pointer',
-                '&:hover .headerBreadcrumb': {
-                  color: 'primary.main',
+                px: 1.5,
+                py: 0.5,
+                borderRadius: 1,
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: 'rgba(0, 0, 0, 0.04)',
                 },
               }}
             >
               <Home size={18} color="#64748b" />
-              <Typography variant="body2" sx={{ color: 'divider' }}>/</Typography>
-              <Typography className="headerBreadcrumb" variant="subtitle2" component="div" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: -0.2 }}>
+              <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 500 }}>/</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
                 Dashboard
               </Typography>
             </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{
-              display: { xs: 'none', sm: 'flex' },
-              alignItems: 'center',
-              bgcolor: 'rgba(0, 0, 0, 0.04)',
-              borderRadius: '12px',
-              px: 1.5,
-              py: 0.5,
-              mr: 1,
-              border: '1px solid transparent',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              '&:focus-within': {
-                bgcolor: 'white',
-                borderColor: 'primary.main',
-                boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)'
-              }
-            }}>
-              <Search size={16} color="#64748b" />
-              <InputBase
-                placeholder="Tìm kiem..."
-                sx={{
-                  ml: 1,
-                  fontSize: '0.85rem',
-                  color: 'text.primary',
-                  width: 150,
-                  transition: 'width 0.3s',
-                  '& .MuiInputBase-input::placeholder': {
-                    color: 'text.secondary',
-                    opacity: 0.5
-                  },
-                  '&:focus-within': { width: 220 }
-                }}
-              />
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
-              <NotificationDropdown />
-            </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <NotificationDropdown />
 
             <Button
               onClick={handleMenuClick}
               sx={{
                 textTransform: 'none',
+                borderRadius: 2,
+                px: 1.5,
+                py: 0.75,
                 ml: 1,
-                borderRadius: '12px',
-                px: 1,
-                py: 0.5,
-                '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
+                border: '1px solid rgba(0, 0, 0, 0.08)',
+                bgcolor: 'rgba(255, 255, 255, 0.6)',
+                transition: 'all 0.2s ease',
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)', borderColor: 'rgba(0, 0, 0, 0.12)' }
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
-                  <Typography variant="body2" sx={{ fontWeight: 800, lineHeight: 1, color: 'text.primary' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2, color: 'text.primary' }}>
                     {user?.fullName || 'Học viên'}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Học viên</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, fontSize: '0.75rem' }}>Học viên</Typography>
                 </Box>
-                <Avatar sx={{
-                  width: 38,
-                  height: 38,
-                  bgcolor: 'primary.main',
-                  fontSize: '0.9rem',
-                  fontWeight: 800,
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
-                }}>
+                <Avatar
+                  src={user?.avatar}
+                  sx={{
+                    width: 34,
+                    height: 34,
+                    bgcolor: 'primary.main',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                  }}
+                >
                   {user?.fullName?.[0] || 'H'}
                 </Avatar>
-                <ChevronDown size={14} color="#64748b" />
+                <ChevronDown size={16} color="#64748b" />
               </Box>
             </Button>
             <MuiMenu
@@ -385,25 +356,32 @@ const StudentLayout = ({ children }) => {
               onClose={handleMenuClose}
               onClick={handleMenuClose}
               PaperProps={{
-                elevation: 3,
+                elevation: 2,
                 sx: {
-                  mt: 1,
-                  borderRadius: '12px',
-                  minWidth: 180,
-                  border: '1px solid rgba(0, 0, 0, 0.05)'
+                  mt: 1.5,
+                  borderRadius: 2,
+                  minWidth: 200,
+                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden',
                 }
               }}
             >
-              <MenuItem onClick={() => { navigate('/student/profile'); handleMenuClose(); }} sx={{ py: 1.5 }}>
-                <Avatar sx={{ width: 24, height: 24, mr: 1.5, fontSize: '0.8rem' }}>
-                  {user?.fullName?.[0] || 'H'}
-                </Avatar>
-                <ListItemText>Profile</ListItemText>
+              <Box sx={{ px: 2, py: 1.5, bgcolor: 'rgba(0, 0, 0, 0.02)' }}>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                  {user?.fullName || 'Học viên'}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {user?.email || 'student@email.com'}
+                </Typography>
+              </Box>
+              <Divider />
+              <MenuItem onClick={() => { navigate('/student/profile'); handleMenuClose(); }} sx={{ py: 1.25 }}>
+                <ListItemText primary="Hồ sơ" primaryTypographyProps={{ fontWeight: 500 }} />
               </MenuItem>
               <Divider />
-              <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: '#f87171' }}>
+              <MenuItem onClick={handleLogout} sx={{ py: 1.25, color: 'error.main' }}>
                 <LogOut size={18} style={{ marginRight: 12 }} />
-                <ListItemText>Logout</ListItemText>
+                <ListItemText primary="Đăng xuất" primaryTypographyProps={{ fontWeight: 500 }} />
               </MenuItem>
             </MuiMenu>
           </Box>

@@ -25,6 +25,7 @@ import {
   Schedule,
   CheckCircle,
   Block,
+  Quiz as QuizIcon,
 } from '@mui/icons-material';
 import { studentsAPI, assignmentsAPI, authAPI } from '../../../services/api';
 import dayjs from 'dayjs';
@@ -170,6 +171,14 @@ const StudentAssignments = () => {
 
     if (isOverdue) return { label: 'Quá hạn', color: 'error', icon: <ErrorOutline fontSize="small" /> };
     return { label: 'Đang mở', color: 'primary', icon: <AccessTime fontSize="small" /> };
+  };
+
+  const getTypeLabel = (type) => {
+    switch (type) {
+      case 'Essay': return 'Bài tập về nhà';
+      case 'Quiz': return 'Trắc nghiệm';
+      default: return type || 'Bài tập';
+    }
   };
 
   const filteredAssignments = assignments.filter(a => {
@@ -346,14 +355,17 @@ const StudentAssignments = () => {
                   }
                 }}
               >
-                <ListItemIcon>
+                <ListItemIcon sx={{ minWidth: 72, mr: 2 }}>
                   <Avatar sx={{ 
                     bgcolor: isCompleted ? '#10B981' : (assignment.type === 'Quiz' ? '#3B82F6' : '#8B5CF6'), 
                     width: 56, 
                     height: 56,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
-                    {isCompleted ? <CheckCircle /> : <Assignment />}
+                    {isCompleted ? <CheckCircle sx={{ fontSize: 28 }} /> : <Assignment sx={{ fontSize: 28 }} />}
                   </Avatar>
                 </ListItemIcon>
                 <ListItemText
@@ -364,23 +376,32 @@ const StudentAssignments = () => {
                         {assignment.title}
                       </Typography>
                       <Chip 
-                        label={assignment.type} 
-                        size="small" 
+                        label={getTypeLabel(assignment.type)}
+                        size="small"
                         variant="outlined"
+                        color={assignment.type === 'Quiz' ? 'primary' : 'default'}
+                        icon={assignment.type === 'Quiz' ? <QuizIcon fontSize="small" /> : null}
                         sx={{ 
-                          borderColor: 'rgba(0,0,0,0.1)',
-                          color: 'text.secondary',
-                          fontWeight: 500
+                          fontWeight: 500,
+                          '& .MuiChip-icon': {
+                            color: 'inherit'
+                          }
                         }} 
                       />
                       {isCompleted && assignment.studentScore !== null && (
                         <Chip
-                          icon={<CheckCircle fontSize="small" />}
+                          icon={<CheckCircle sx={{ fontSize: 16, color: 'white !important' }} />}
                           label={`${assignment.studentScore}/${assignment.maxScore}`}
                           color="success"
                           variant="filled"
                           size="small"
-                          sx={{ fontWeight: 600 }}
+                          sx={{ 
+                            fontWeight: 600,
+                            '& .MuiChip-icon': {
+                              ml: '6px',
+                              mr: '-4px'
+                            }
+                          }}
                         />
                       )}
                     </Box>
@@ -403,20 +424,30 @@ const StudentAssignments = () => {
                           </Typography>
                         </Box>
                         <Chip
-                          icon={statusInfo.icon}
+                          icon={<Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: '4px', mr: '-2px' }}>{statusInfo.icon}</Box>}
                           label={statusInfo.label}
                           color={statusInfo.color}
                           size="small"
                           variant={statusInfo.color === 'success' ? 'filled' : 'outlined'}
-                          sx={{ fontWeight: 500 }}
+                          sx={{ 
+                            fontWeight: 500,
+                            '& .MuiChip-icon': {
+                              color: 'inherit'
+                            }
+                          }}
                         />
                         {assignment.timeSpentSeconds && (
                           <Chip
-                            icon={<AccessTime fontSize="small" />}
+                            icon={<AccessTime sx={{ fontSize: 14, ml: '4px', mr: '-2px' }} />}
                             label={`${Math.floor(assignment.timeSpentSeconds / 60)}:${String(assignment.timeSpentSeconds % 60).padStart(2, '0')}`}
                             variant="outlined"
                             size="small"
-                            sx={{ borderColor: 'rgba(0,0,0,0.1)' }}
+                            sx={{ 
+                              borderColor: 'rgba(0,0,0,0.1)',
+                              '& .MuiChip-icon': {
+                                color: 'text.secondary'
+                              }
+                            }}
                           />
                         )}
                       </Box>

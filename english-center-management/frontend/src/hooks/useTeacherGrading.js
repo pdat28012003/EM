@@ -8,8 +8,25 @@ export const useTeacherGrading = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [assignmentsPagination, setAssignmentsPagination] = useState({
+    page: 1,
+    pageSize: 10,
+    totalCount: 0,
+    totalPages: 1,
+  });
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [submissions, setSubmissions] = useState([]);
+  const [submissionsPagination, setSubmissionsPagination] = useState({
+    page: 1,
+    pageSize: 10,
+    totalCount: 0,
+    totalPages: 1,
+  });
+  const [submissionStats, setSubmissionStats] = useState({
+    gradedCount: 0,
+    pendingCount: 0,
+    lateCount: 0
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [teacher, setTeacher] = useState(null);
@@ -57,14 +74,44 @@ export const useTeacherGrading = () => {
   const loadAssignments = useCallback(async (classId, options = {}) => {
     if (!classId) return;
 
-    const { onSuccess, onError } = options;
+    const { 
+      onSuccess, 
+      onError,
+      search = null,
+      status = null,
+      skillId = null,
+      sortBy = null,
+      sortOrder = null,
+      page = 1,
+      pageSize = 100
+    } = options;
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await assignmentsAPI.getAll({ classId });
+      const params = {
+        curriculumId: classId,
+        page,
+        pageSize
+      };
+      
+      if (search) params.search = search;
+      if (status) params.status = status;
+      if (skillId !== null && skillId !== undefined) params.skillId = skillId;
+      if (sortBy) params.sortBy = sortBy;
+      if (sortOrder) params.sortOrder = sortOrder;
+      
+      const response = await assignmentsAPI.getAll(params);
       const data = Array.isArray(response.data?.data) ? response.data.data : [];
+      const pagination = response.data || {};
       setAssignments(data);
+      setAssignmentsPagination({
+        page: pagination.page || 1,
+        pageSize: pagination.pageSize || 10,
+        totalCount: pagination.totalCount || data.length,
+        totalPages: pagination.totalPages || 1,
+      });
       onSuccess?.(data);
     } catch (err) {
       const errorMsg = 'Lỗi khi tải danh sách bài tập';
@@ -78,14 +125,49 @@ export const useTeacherGrading = () => {
   const loadSubmissions = useCallback(async (assignmentId, options = {}) => {
     if (!assignmentId) return;
 
-    const { onSuccess, onError } = options;
+    const { 
+      onSuccess, 
+      onError, 
+      status = null,
+      search = null,
+      sortBy = null,
+      sortOrder = null,
+      page = 1,
+      pageSize = 100
+    } = options;
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await assignmentsAPI.getSubmissions(assignmentId);
+      const params = {
+        page,
+        pageSize
+      };
+      
+      if (status) params.status = status;
+      if (search) params.search = search;
+      if (sortBy) params.sortBy = sortBy;
+      if (sortOrder) params.sortOrder = sortOrder;
+      
+      const response = await assignmentsAPI.getSubmissions(assignmentId, params);
       const data = Array.isArray(response.data?.data) ? response.data.data : [];
+      const pagination = response.data || {};
+      const metadata = pagination.metadata || {};
       setSubmissions(data);
+      setSubmissionsPagination({
+        page: pagination.page || 1,
+        pageSize: pagination.pageSize || 10,
+        totalCount: pagination.totalCount || data.length,
+        totalPages: pagination.totalPages || 1,
+      });
+      setSubmissionStats({
+          gradedCount: metadata.gradedCount || 0,
+          pendingCount: metadata.pendingCount || 0,
+          lateCount: metadata.lateCount || 0,
+          total: metadata.total || 0,
+          averageScore: metadata.averageScore || "0"
+      });
       onSuccess?.(data);
     } catch (err) {
       const errorMsg = 'Lỗi khi tải danh sách bài nộp';
@@ -110,6 +192,7 @@ export const useTeacherGrading = () => {
     if (activeStep === 2) {
       setSelectedAssignment(null);
       setSubmissions([]);
+      setSubmissionStats({ gradedCount: 0, pendingCount: 0, lateCount: 0 });
       setActiveStep(1);
     } else if (activeStep === 1) {
       setSelectedClass(null);
@@ -118,9 +201,9 @@ export const useTeacherGrading = () => {
     }
   }, [activeStep]);
 
-  const refreshSubmissions = useCallback(() => {
+  const refreshSubmissions = useCallback((filters = {}) => {
     if (selectedAssignment?.assignmentId) {
-      loadSubmissions(selectedAssignment.assignmentId);
+      loadSubmissions(selectedAssignment.assignmentId, filters);
     }
   }, [selectedAssignment, loadSubmissions]);
 
@@ -130,6 +213,7 @@ export const useTeacherGrading = () => {
     setSelectedAssignment(null);
     setAssignments([]);
     setSubmissions([]);
+    setSubmissionStats({ gradedCount: 0, pendingCount: 0, lateCount: 0 });
     setError(null);
   }, []);
 
@@ -139,8 +223,11 @@ export const useTeacherGrading = () => {
     classes,
     selectedClass,
     assignments,
+    assignmentsPagination,
     selectedAssignment,
     submissions,
+    submissionsPagination,
+    submissionStats,
     loading,
     error,
     teacher,

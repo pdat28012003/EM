@@ -27,8 +27,11 @@ const TeacherGrading = () => {
     classes,
     selectedClass,
     assignments,
+    assignmentsPagination,
     selectedAssignment,
     submissions,
+    submissionsPagination,
+    submissionStats,
     loading,
     error,
     teacher,
@@ -57,21 +60,17 @@ const TeacherGrading = () => {
     }
   }, [teacher, loadTeacherClasses, showError]);
 
-  // Handle class selection with data loading
+  // Handle class selection
   const onSelectClass = useCallback((cls) => {
     handleSelectClass(cls);
-    loadAssignments(cls.classId, {
-      onError: () => showError('Không thể tải danh sách bài tập'),
-    });
-  }, [handleSelectClass, loadAssignments, showError]);
+    // AssignmentSelection sẽ tự động load qua useEffect khi mount
+  }, [handleSelectClass]);
 
-  // Handle assignment selection with data loading
+  // Handle assignment selection
   const onSelectAssignment = useCallback((assignment) => {
     handleSelectAssignment(assignment);
-    loadSubmissions(assignment.assignmentId, {
-      onError: () => showError('Không thể tải danh sách bài nộp'),
-    });
-  }, [handleSelectAssignment, loadSubmissions, showError]);
+    // SubmissionGrading sẽ tự động load qua useEffect khi mount
+  }, [handleSelectAssignment]);
 
   // Open grade dialog
   const handleOpenGradeDialog = useCallback((submission) => {
@@ -99,6 +98,26 @@ const TeacherGrading = () => {
       throw err;
     }
   }, [currentSubmission, refreshSubmissions, showSuccess, showError]);
+
+  // Handle filter changes from SubmissionGrading
+  const handleFilterChange = useCallback((filters) => {
+    if (selectedAssignment?.assignmentId) {
+      loadSubmissions(selectedAssignment.assignmentId, {
+        ...filters,
+        onError: () => showError('Không thể tải danh sách bài nộp'),
+      });
+    }
+  }, [selectedAssignment, loadSubmissions, showError]);
+
+  // Handle filter changes from AssignmentSelection
+  const handleAssignmentFilterChange = useCallback((filters) => {
+    if (selectedClass?.classId) {
+      loadAssignments(selectedClass.classId, {
+        ...filters,
+        onError: () => showError('Không thể tải danh sách bài tập'),
+      });
+    }
+  }, [selectedClass, loadAssignments, showError]);
 
   // Handle file download
   const handleDownloadFile = useCallback(async (submissionId, originalFileName) => {
@@ -156,8 +175,10 @@ const TeacherGrading = () => {
           <AssignmentSelection
             selectedClass={selectedClass}
             assignments={assignments}
+            totalPages={assignmentsPagination?.totalPages || 1}
             onBack={handleBack}
             onSelectAssignment={onSelectAssignment}
+            onFilterChange={handleAssignmentFilterChange}
             loading={loading}
           />
         )}
@@ -165,9 +186,12 @@ const TeacherGrading = () => {
           <SubmissionGrading
             selectedAssignment={selectedAssignment}
             submissions={submissions}
+            stats={submissionStats}
+            totalPages={submissionsPagination?.totalPages || 1}
             onBack={handleBack}
             onOpenGradeDialog={handleOpenGradeDialog}
             onDownloadFile={handleDownloadFile}
+            onFilterChange={handleFilterChange}
             loading={loading}
           />
         )}

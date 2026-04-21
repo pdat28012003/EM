@@ -102,8 +102,8 @@ const StudentGrades = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Container maxWidth="lg" sx={{ py: 3 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
           <CircularProgress />
         </Box>
       </Container>
@@ -111,53 +111,54 @@ const StudentGrades = () => {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography variant="h4" sx={{ fontWeight: 700, mb: 4, color: '#1e293b' }}>
+    <Container maxWidth="lg" sx={{ py: 3 }}>
+      <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: '#1e293b' }}>
         Kết quả học tập
       </Typography>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
 
       {/* Curriculum Selector */}
       {curriculums.length > 0 && (
-        <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Chọn chương trình
-          </Typography>
-          <FormControl fullWidth>
-            <InputLabel>Chọn chương trình</InputLabel>
-            <Select
-              value={selectedCurriculum}
-              onChange={handleCurriculumChange}
-              label="Chọn chương trình"
-            >
-              {curriculums.map((curriculum) => (
-                <MenuItem key={curriculum.curriculumId} value={curriculum.curriculumId}>
-                  {curriculum.curriculumName}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+        <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+              Chương trình:
+            </Typography>
+            <FormControl sx={{ minWidth: 250 }}>
+              <Select
+                value={selectedCurriculum}
+                onChange={handleCurriculumChange}
+                size="small"
+                sx={{ borderRadius: 1.5 }}
+              >
+                {curriculums.map((curriculum) => (
+                  <MenuItem key={curriculum.curriculumId} value={curriculum.curriculumId}>
+                    {curriculum.curriculumName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
         </Paper>
       )}
 
       {/* Grades Table */}
-      <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Paper sx={{ borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden' }}>
         <TableContainer>
-          <Table>
+          <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: '#f8fafc' }}>
-                <TableCell sx={{ fontWeight: 600 }}>Bài tập</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Kỹ năng</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Điểm</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Điểm tối đa</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Xếp loại</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Nhận xét</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Ngày chấm</TableCell>
+              <TableRow sx={{ bgcolor: 'primary.main' }}>
+                <TableCell sx={{ fontWeight: 600, color: 'white' }}>Bài tập</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'white' }}>Kỹ năng</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'white' }} align="center">Điểm</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'white' }} align="center">Xếp loại</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'white' }}>Nhận xét</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'white' }}>Ngày chấm</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -165,7 +166,7 @@ const StudentGrades = () => {
                 filteredGrades.map((grade) => (
                   <TableRow key={grade.gradeId} hover>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
                         {grade.assignmentTitle || 'Bài tập chung'}
                       </Typography>
                     </TableCell>
@@ -174,26 +175,22 @@ const StudentGrades = () => {
                         label={grade.skillName || 'Chưa xác định'}
                         size="small"
                         variant="outlined"
-                        sx={{ fontSize: '0.75rem' }}
+                        sx={{ fontSize: '0.7rem', height: 22 }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell align="center">
                       <Typography
                         variant="body1"
                         sx={{
                           fontWeight: 700,
-                          color: getScoreColor(grade.score, grade.maxScore)
+                          color: getScoreColor(grade.score, grade.maxScore),
+                          fontSize: '1.1rem'
                         }}
                       >
-                        {grade.score}
+                        {grade.score}/{grade.maxScore}
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {grade.maxScore}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
+                    <TableCell align="center">
                       <Chip
                         label={getGradeLabel(grade.score, grade.maxScore)}
                         size="small"
@@ -201,17 +198,18 @@ const StudentGrades = () => {
                           bgcolor: getScoreColor(grade.score, grade.maxScore) + '20',
                           color: getScoreColor(grade.score, grade.maxScore),
                           fontWeight: 600,
-                          fontSize: '0.75rem'
+                          fontSize: '0.7rem',
+                          height: 22
                         }}
                       />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ maxWidth: 200 }}>
-                        {grade.comments || '-'}
+                      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 200 }}>
+                        {grade.comments || <em style={{ color: '#999' }}>Không có</em>}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" fontSize="0.8rem">
                         {grade.gradedAt ? new Date(grade.gradedAt).toLocaleDateString('vi-VN') : '-'}
                       </Typography>
                     </TableCell>
@@ -219,10 +217,15 @@ const StudentGrades = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body1" color="text.secondary">
-                      Chưa có điểm trong chương trình này.
-                    </Typography>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        Chưa có điểm
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Kết quả học tập sẽ được cập nhật sau khi hoàn thành bài tập
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -233,10 +236,10 @@ const StudentGrades = () => {
 
       {/* Summary Statistics */}
       {filteredGrades.length > 0 && (
-        <Grid container spacing={3} sx={{ mt: 4 }}>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3 }}>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#4F46E5', mb: 1 }}>
+        <Grid container spacing={2} sx={{ mt: 3 }}>
+          <Grid item xs={12} sm={4}>
+            <Paper sx={{ p: 2.5, textAlign: 'center', borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: '#4F46E5', mb: 0.5 }}>
                 {((filteredGrades.reduce((acc, g) => acc + (g.score / g.maxScore) * 10, 0) / filteredGrades.length).toFixed(1))}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -244,9 +247,9 @@ const StudentGrades = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3 }}>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#10b981', mb: 1 }}>
+          <Grid item xs={12} sm={4}>
+            <Paper sx={{ p: 2.5, textAlign: 'center', borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: '#10b981', mb: 0.5 }}>
                 {filteredGrades.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -254,9 +257,9 @@ const StudentGrades = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3 }}>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#f59e0b', mb: 1 }}>
+          <Grid item xs={12} sm={4}>
+            <Paper sx={{ p: 2.5, textAlign: 'center', borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: '#f59e0b', mb: 0.5 }}>
                 {filteredGrades.filter(g => (g.score / g.maxScore) >= 0.8).length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
